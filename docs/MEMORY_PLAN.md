@@ -123,3 +123,20 @@ only when its live dependencies and subsequent release are proven. Snapshot
 streams use bounded chunks; an in-place restore failure invalidates the session
 on every rank rather than claiming the old state is usable. No extra full-state
 copy can be assumed on any 32 GiB machine.
+# Actual BF16 pool accounting
+
+`cache_pool.DeviceRowPool` now allocates and touches the BF16 payload eagerly,
+alongside int64 device generations, bounded device undo rows and fixed host
+logical/generation arrays. Those arrays and journal/scratch reservations count
+in addition to the source/shadow payload arithmetic. Pool construction refuses
+an insufficient explicit admission. Allocation and `cuda.synchronize` alone do
+not prove WDDM residency or whole-process fit; those remain hardware gates.
+
+Source/shadow slot offsets are independent. GPU scatter checks existing local
+generations; the pool backs up every target before writing, advances local
+generations after success, and restores rejected writes in reverse timeline
+order. Failed tentative writes block consumption until a complete abort. A
+metadata or backup failure before scatter cannot create a valid undo entry.
+The global stage transaction and replica protocol still need to bind these pools
+into the actual model. `selftest-cuda` contains a small real-GPU partial-prefix
+and ring-overwrite regression; it has not executed on this host.

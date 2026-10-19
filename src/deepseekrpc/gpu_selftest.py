@@ -93,10 +93,41 @@ def run_cuda_checks():
         # This disposable pool is never published. Failed writes in an actual
         # session require its transaction journal to restore tentative state.
 
+    def row_pool_rollback():
+        from .cache_pool import DeviceRowPool
+        from .state import Operation
+        pool = DeviceRowPool(2, 128, context=16, offset=1, admitted_bytes=1024 * 1024, device=device)
+        try:
+            pool.reset("a" * 32, 0)
+            first = Operation("a" * 32, "b" * 32, 0, 1, "c" * 32, "d" * 64, 0, 2)
+            pool.begin(first)
+            original, _ = bf16_array(rng.normal(0, .2, (2, 128)))
+            pool.write([0, 1], [0, 1], original)
+            pool.finish(first, 2)
+            second = Operation("a" * 32, "b" * 32, 0, 2, "e" * 32, "f" * 64, 2, 4)
+            pool.begin(second)
+            replacement, _ = bf16_array(rng.normal(0, .2, (4, 128)))
+            pool.write([2, 3], [2, 3], replacement[:2].contiguous())
+            pool.write([4, 5], [4, 5], replacement[2:].contiguous())
+            pool.finish(second, 1)
+            actual = pool.data[pool.physical([1, 2])].view(torch.int16)
+            expected = torch.stack([original[1], replacement[0]]).view(torch.int16)
+            torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+            generations = pool.generations.clone()
+            third = Operation("a" * 32, "b" * 32, 0, 3, "1" * 32, "2" * 64, 3, 2)
+            pool.begin(third)
+            pool.write([3, 4], [3, 4], replacement[2:].contiguous())
+            pool.finish(third, 0)
+            torch.testing.assert_close(pool.generations, generations, rtol=0, atol=0)
+            torch.testing.assert_close(pool.data[pool.physical([1, 2])].view(torch.int16), expected, rtol=0, atol=0)
+        finally:
+            pool.close()
+
     record("BF16 sparse attention: sink, duplicates and empty rows", attention)
     record("BF16 index scores: signed weights and causal visibility", index_scores)
     record("Engram: finite E4M3 codes and UE8M0 byte zero", engram_decode)
     record("BF16 scatter: bit preservation and stale generation refusal", scatter)
+    record("BF16 row pool: partial acceptance, ring overwrite and abort", row_pool_rollback)
     return report
 
 

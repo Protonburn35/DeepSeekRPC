@@ -174,3 +174,16 @@ was widened; retain this intermittent observation for further diagnosis.
 
 Added source/dep-pinned native vLLM wheel build qualification on Windows. Full
 serving dependency consistency, GPU execution and full model remain unqualified.
+
+## 2026-10-19 — eager BF16 cache pools and bounded CUDA undo
+
+Implemented actual eager BF16 device row pools, independently mapped source /
+shadow slots, generation-checked scatter, metadata reservations and bounded
+GPU undo rows. Backups finish before the mutation becomes abortable. Rejected
+suffix writes restore payload/generations in reverse token order, including
+multiple overwrites of a small ring; failed tentative writes block consumption.
+
+New slot-map tests plus existing state/protocol checks: 26 passed locally.
+Actual GPU rollback regression is in selftest-cuda and remains unrun. Full-model
+pool registration, global transactions and whole-process/WDDM admission remain
+pending; this does not establish 1M model execution or physical residency.
