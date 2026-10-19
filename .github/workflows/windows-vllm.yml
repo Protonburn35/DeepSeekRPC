@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - .gitattributes
       - tools/build_upstream.py
       - tools/patch_vllm_for_rpc.py
       - patches/**

@@ -161,6 +161,9 @@ def main():
             run("dependency-check", [sys.executable, "-m", "pip", "check"], cwd=output)
         else:
             report["complete_serving_dependencies"] = "not qualified by native-only build"
+    except BaseException as exc:
+        report["failure"] = {"type": type(exc).__name__, "message": str(exc)}
+        raise
     finally:
         if dependency_lock is not None:
             try:

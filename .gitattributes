@@ -1,0 +1,4 @@
+# Exact-source patch hashes and vendored provenance are byte-sensitive.
+* text=auto eol=lf
+*.patch text eol=lf
+*.gz binary
