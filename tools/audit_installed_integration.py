@@ -56,11 +56,23 @@ def main():
         entry.load()()
         return "registered"
 
+    def owned_adapters():
+        from deepseekrpc.runtime_policy import configure_exact_exl3
+        configure_exact_exl3()
+        from deepseekrpc.vllm_experts import BoundedMoEMethod
+        from deepseekrpc.vllm_engram import DiskEngram
+        from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
+        from vllm.models.deepseek_v41.common.engram import Engram
+        if not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or DiskEngram.__bases__ != (Engram,):
+            raise RuntimeError("owned adapters do not bind the real upstream model classes")
+        return "actual vLLM routed-method and learned Engram classes; CUDA constructors/execution not run"
+
     try:
         record("import_vllm", import_vllm)
         record("plugin_entrypoint", plugin_entrypoint)
         record("import_plugin", import_plugin)
         record("register_plugin", register_plugin)
+        record("owned_adapter_imports", owned_adapters)
     finally:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

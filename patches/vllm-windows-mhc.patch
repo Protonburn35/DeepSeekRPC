@@ -1,0 +1,62 @@
+--- a/vllm/tilelang_utils/__init__.py
++++ b/vllm/tilelang_utils/__init__.py
+@@ -4,6 +4,7 @@
+ from __future__ import annotations
+ 
+ import functools
++import sys
+ from collections.abc import Callable
+ from functools import cache
+ from typing import TYPE_CHECKING, Any
+@@ -11,7 +12,7 @@
+ from vllm.platforms import current_platform
+ from vllm.utils.import_utils import has_tilelang
+ 
+-if TYPE_CHECKING or current_platform.is_cuda():
++if TYPE_CHECKING or (current_platform.is_cuda() and sys.platform != "win32"):
+     if not has_tilelang():
+         raise ImportError(
+             "tilelang is required for mhc but is not installed. Install it with "
+@@ -104,7 +105,7 @@
+     global, so on the deferred ROCm path this rebinds `T`/`tilelang` in the
+     decorated function's own module globals once they become available.
+     """
+-    if not current_platform.is_rocm():
++    if not current_platform.is_rocm() and sys.platform != "win32":
+         _ensure_tilelang_imported()
+         return tilelang.jit(pass_configs=_get_pass_configs())(kernel_function)
+ 
+--- a/vllm/models/deepseek_v41/nvidia/model.py
++++ b/vllm/models/deepseek_v41/nvidia/model.py
+@@ -25,9 +25,10 @@
+     is_forward_context_available,
+ )
+ from vllm.logger import init_logger
+-from vllm.model_executor.kernels.mhc.tilelang import (
+-    mhc_post_tilelang,
+-    mhc_pre_delayed_tilelang,
++from deepseekrpc.vllm_mhc import (
++    mhc_post as mhc_post_tilelang,
++    mhc_pre_delayed as mhc_pre_delayed_tilelang,
++    mhc_shifted_post_pre,
+ )
+ from vllm.model_executor.kernels.mhc.triton import hc_collapse_triton
+ from vllm.model_executor.layers.fused_moe import (
+@@ -104,7 +105,6 @@
+     MHC_OVERLAP_MAX_TOKENS,
+     init_mhc_all_reduce,
+     mhc_pre_delayed_overlap,
+-    mhc_shifted_post_pre,
+     supports_mhc_all_reduce,
+     supports_mhc_overlap,
+ )
+@@ -645,7 +645,8 @@
+         # the default stream.
+         aux_stream_list = [torch.cuda.Stream() for _ in range(3)]
+         # Keep mHC independent of the streams used inside attention.
+-        mhc_stream = torch.cuda.Stream() if supports_mhc_overlap(vllm_config) else None
++        # Layer-RPC uses bounded eager CUDA execution with explicit stage barriers.
++        mhc_stream = None
+         self.fuse_mhc_all_reduce = mhc_stream is not None and supports_mhc_all_reduce(
+             vllm_config
+         )

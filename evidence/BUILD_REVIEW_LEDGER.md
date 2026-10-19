@@ -202,3 +202,32 @@ locked dependency commits. Configuration stopped when Git checked out very
 long ROCm submodule paths inside the FlashAttention source. The Windows job now
 sets core.longpaths for its own Git subprocesses without changing global Git
 configuration. Full compilation/import remains pending.
+
+## 2026-10-19 — real learned disk-Engram adapter source
+
+Added a subclass of the actual vLLM Engram graph that preserves its learned
+projection/gate and replaces whole-table allocation with bounded original row
+reads, pinned upload and explicit BF16 decode. Production construction requires
+stage A, TP=1 and verified publisher header/full-file SHA. Extended the installed
+integration audit to check actual upstream adapter bases; no namespace stubs.
+Engram storage/history checks: 12 passed locally. CUDA graph construction and
+learned output have not run. The model-stage factory still needs to inject it.
+
+Found DSR-AUDIT-004: selected CUDA mHC imports demand TileLang even though the
+Windows requirement set excludes it for a TVM-FFI conflict. Native wheel builds
+do not resolve this graph issue; an explicit compatible backend remains needed.
+
+## 2026-10-19 — explicit Windows CUDA mHC backend source
+
+Added bounded native-Torch CUDA mHC pre/post and shifted post/pre, preserving
+the upstream delayed mix equations, BF16 internal streams and FP32 coefficients.
+FP32 stage activation/pre_mix transport remains required. The exact-source patch
+selects this backend and defers unused TileLang imports on Windows. Packaged the
+upstream Apache-2.0 notice, file hash and adaptations. CUDA math policy disables
+TF32/reduced-precision auxiliary reductions and detects later changes.
+
+Coefficient diagnostics against independent FP64 equations, plus precision
+policy mutation regressions: four passed on CPU. The source patch applied to a
+verified writable copy and both patched Python modules compile. Updated actual
+installed class/entrypoint audit passed. Actual patched Windows graph import,
+CUDA differential execution and full stage integration remain pending.

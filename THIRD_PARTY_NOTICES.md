@@ -39,6 +39,12 @@ Incorporated source:
 - `tests/oracles/exl3_dequant.py` is unchanged from vllm-exl3
   `src/vllm_exl3/dequant.py` at the locked commit, under AGPL-3.0-only. It is a
   test-only scalar procedural-codebook oracle, not a production executor.
+- `src/deepseekrpc/vllm_mhc.py` adapts the delayed mHC mathematical operations
+  from the pinned Windows vLLM `model_executor/kernels/mhc/torch.py`, under
+  Apache-2.0. It adds bounded CUDA entry checks, explicit RMSNorm, exact-math
+  policy and the stage interface. The license and original file hash are
+  packaged in `_vendor/vllm_windows/`. The exact-source Windows mHC integration
+  patch and before/after hashes are in patches/; graph execution is unqualified.
 
 Complete reference archive hashes and model metadata hashes are in provenance/.
 No full model payloads, credentials, copied proprietary SDKs or compiled

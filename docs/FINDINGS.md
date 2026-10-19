@@ -59,3 +59,22 @@ compares the unchanged official Expert.forward body and demonstrates that
 moving the multiply across the half conversion changes the result. Actual
 quantized GPU output and independent review remain pending. Shared experts
 remain a separate contribution from the real vLLM runner.
+
+## DSR-AUDIT-004 — CUDA mHC imports require an excluded Windows dependency
+
+The pinned Windows vLLM requirements exclude TileLang because its TVM-FFI pin
+conflicts with the Windows xgrammar/TVM-FFI requirements. However the CUDA
+DeepSeek model imports TileLang mHC operations, and vllm.tilelang_utils requires
+TileLang immediately on CUDA. An empty CPU import audit avoids this CUDA branch;
+it cannot qualify the actual Windows model import/execution.
+
+The real stage adapter needs an explicitly selected Windows CUDA mHC backend
+and corresponding source patch, or a fully compatible validated TileLang build.
+Do not remove the import guard and then leave a missing operation, inject
+placeholder modules, or treat the native library build as graph qualification.
+An explicit bounded CUDA mHC implementation now preserves the upstream delayed
+pre/post equations using native Torch CUDA products and reductions. The exact
+source patch binds this backend in the V4.1 decoder and defers unused TileLang
+imports on Windows. Its arithmetic helpers compare against independent FP64
+equations on CPU. Native Windows graph import, patched wheel qualification and
+actual CUDA differential execution remain pending; the finding is still open.

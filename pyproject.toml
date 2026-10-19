@@ -8,7 +8,7 @@ version = "0.0.1.dev2"
 description = "Three-stage native Windows DeepSeek EXL3 runtime development"
 requires-python = ">=3.12,<3.13"
 license = "AGPL-3.0-only"
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/deepseekrpc/_vendor/deepseek_1017/LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/deepseekrpc/_vendor/deepseek_1017/LICENSE", "src/deepseekrpc/_vendor/vllm_windows/LICENSE"]
 dependencies = ["numpy==2.3.5", "safetensors==0.8.0", "tokenizers==0.23.3", "huggingface-hub==1.33.0"]
 
 [project.optional-dependencies]
@@ -22,6 +22,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "deepseekrpc._vendor.deepseek_1017" = ["LICENSE", "PROVENANCE.json"]
+"deepseekrpc._vendor.vllm_windows" = ["LICENSE", "PROVENANCE.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

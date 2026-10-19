@@ -7,6 +7,7 @@ from .jsonutil import ValidationError
 
 _mutex = threading.Lock()
 _configured = False
+_cuda_math_configured = False
 _EXACT_ENV = {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0"}
 
 
@@ -33,3 +34,29 @@ def configure_exact_exl3():
 def assert_exact_exl3():
     if not _configured or any(os.environ.get(name) != value for name, value in _EXACT_ENV.items()):
         raise ValidationError("exact ExLlama policy is missing or changed after configuration")
+
+
+def configure_exact_cuda_math():
+    """Require full FP32 products/reductions for Torch's auxiliary CUDA graph."""
+    configure_exact_exl3()
+    import torch
+    global _cuda_math_configured
+    with _mutex:
+        if not _cuda_math_configured:
+            torch.set_float32_matmul_precision("highest")
+            torch.backends.cuda.matmul.allow_tf32 = False
+            torch.backends.cudnn.allow_tf32 = False
+            torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = False
+            torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = False
+            _cuda_math_configured = True
+        assert_exact_cuda_math()
+
+
+def assert_exact_cuda_math():
+    import torch
+    assert_exact_exl3()
+    if (not _cuda_math_configured or torch.get_float32_matmul_precision() != "highest" or
+            torch.backends.cuda.matmul.allow_tf32 or torch.backends.cudnn.allow_tf32 or
+            torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction or
+            torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction):
+        raise ValidationError("exact auxiliary CUDA math policy is missing or changed")

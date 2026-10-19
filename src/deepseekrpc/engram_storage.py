@@ -21,11 +21,12 @@ MAX_BATCH = 1024
 
 
 class EngramRows:
-    def __init__(self, path: Path, *, layer: int, cache_bytes: int):
+    def __init__(self, path: Path, *, layer: int, cache_bytes: int, pin=None):
         if layer not in (1, 14):
             raise ValidationError("only the pinned October Engram layers are supported")
         integer(cache_bytes, "Engram cache budget", 0, 1 << 40)
         self._file = TensorFile(path)
+        self.layer, self.verified = layer, False
         self.weight = f"layers.{layer}.engram.embed.weight"
         self.scale = f"layers.{layer}.engram.embed.scale"
         try:
@@ -34,6 +35,14 @@ class EngramRows:
                     w.shape[1] != ROW_WIDTH or s.shape != (w.shape[0], SCALE_WIDTH)):
                 raise ValidationError("Engram table format differs from the pinned FP8/UE8M0 layout")
             self.rows = w.shape[0]
+            if pin is not None:
+                from .weights import ShardPin
+                if (not isinstance(pin, ShardPin) or path.name != pin.name or
+                        self._file.file_bytes != pin.file_bytes or self._file.header_sha256 != pin.header_sha256 or
+                        min(t.offset for t in self._file.tensors.values()) != 8 + pin.header_bytes):
+                    raise ValidationError("Engram file differs from its pinned original publisher header")
+                self._file.verify_file(pin.file_sha256)
+                self.verified = True
         except BaseException:
             self._file.close()
             raise

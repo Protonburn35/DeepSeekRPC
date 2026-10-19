@@ -27,6 +27,11 @@
       "name": "register_plugin",
       "status": "passed",
       "result": "registered"
+    },
+    {
+      "name": "owned_adapter_imports",
+      "status": "passed",
+      "result": "actual vLLM routed-method and learned Engram classes; CUDA constructors/execution not run"
     }
   ]
 }

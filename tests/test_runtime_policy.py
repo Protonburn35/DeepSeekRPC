@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
 
 def test_exact_policy_overrides_int8_defaults_before_import_and_detects_changes():
     code = '''
@@ -26,3 +28,26 @@ else:
     result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0"}
+
+
+@pytest.mark.reference
+def test_auxiliary_cuda_precision_policy_refuses_a_later_tf32_shortcut():
+    pytest.importorskip("torch")
+    code = '''
+from deepseekrpc.runtime_policy import configure_exact_cuda_math, assert_exact_cuda_math
+from deepseekrpc.jsonutil import ValidationError
+import torch
+configure_exact_cuda_math()
+assert_exact_cuda_math()
+torch.backends.cuda.matmul.allow_tf32 = True
+try:
+    assert_exact_cuda_math()
+except ValidationError:
+    pass
+else:
+    raise AssertionError("changed auxiliary CUDA math policy was accepted")
+'''
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
+    result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr

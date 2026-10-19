@@ -76,3 +76,22 @@ the upstream CUDA top-k's unspecified tie choices is not claimed. The actual
 query/weight projection, RoPE and exact CED visibility still require the graph
 adapter. Cancellation can stop between tiles; cache readers hold a window lease
 through CUDA completion so another thread cannot restore slots while in use.
+
+`vllm_engram.DiskEngram` subclasses the actual vLLM common Engram graph and
+replaces its table embedding with bounded encoded-row reads/uploads and the
+project's explicit BF16 decoder. vLLM retains its learned wkv/q/k parameters and
+Triton gate. Production construction requires the original publisher file's
+complete hash/header admission, stage A and TP=1. Lookup staging reserves 2 MiB;
+the base graph's bounded BF16 staged rows count separately. Hash stamps prevent
+consuming rows prepared for another lookup. Actual graph construction, learned
+CUDA execution and model integration remain unrun; the installed CPU audit only
+checks the real upstream class relationship and imports.
+
+`vllm_mhc` is the explicit bounded CUDA backend in the exact-source Windows
+mHC patch. It preserves BF16 residual/layer-input storage and FP32 coefficients
+from the pinned graph; the eventual boundary adapter must promote those values
+to FP32 for activation/pre_mix transport. The separate exact Torch math policy
+disables TF32 and reduced-precision auxiliary GEMM reductions before execution
+and refuses later policy changes. The patch selects this path explicitly and
+retains a real deferred TileLang import for unused operations; it supplies no
+placeholder kernel/module. Complete patched model execution remains unqualified.

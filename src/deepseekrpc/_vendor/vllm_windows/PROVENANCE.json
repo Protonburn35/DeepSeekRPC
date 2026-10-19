@@ -1,0 +1,13 @@
+{
+  "repository": "SystemPanic/vllm-windows",
+  "commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "source": "vllm/model_executor/kernels/mhc/torch.py",
+  "sha256": "3697085aa6f0070e165c145f9c337ca3fe0623623c8265d29e50c43467e49985",
+  "license": "Apache-2.0",
+  "derived_file": "deepseekrpc/vllm_mhc.py",
+  "adaptations": [
+    "Bounded CUDA-only entry checks and exact geometry.",
+    "Explicit RMSNorm, exact-math policy and coefficient validity checks.",
+    "Stage-RPC delayed post/pre interface without TileLang or tensor parallel collectives."
+  ]
+}

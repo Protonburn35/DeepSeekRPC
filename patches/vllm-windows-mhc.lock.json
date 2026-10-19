@@ -1,0 +1,19 @@
+{
+  "upstream_repository": "SystemPanic/vllm-windows",
+  "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "patch": "vllm-windows-mhc.patch",
+  "patch_sha256": "4b2cb539e75bfce3c509be9a322f5196b7fcc85242ffd0c5fa4b51c2a4996ef2",
+  "files": [
+    {
+      "path": "vllm/tilelang_utils/__init__.py",
+      "sha256_before": "69ca819bbf68aa4e0ffdf6aff2995a3b8cd91c10a92922c051a165c9c625e726",
+      "sha256_after": "9029932935593d4d220a4c27c7db13f96c54b21906445bf8121ec6e924743df7"
+    },
+    {
+      "path": "vllm/models/deepseek_v41/nvidia/model.py",
+      "sha256_before": "f3b109e980d12652e024fd9b20396e11d9810544c0f4a285fccb6206ce8a3bc8",
+      "sha256_after": "dc559cfd3339d16f4c74eef7e9b94fe51c541b604a31c80a095e59aeb4c81db7"
+    }
+  ],
+  "scope": "Explicit Windows CUDA mHC backend; defer unused TileLang until actual use; not a full layer-stage adapter"
+}

@@ -1,4 +1,5 @@
 import json
+import hashlib
 import struct
 
 import numpy as np
@@ -81,3 +82,19 @@ def test_zero_ue8m0_byte_keeps_official_nonzero_scale():
     actual = decode_fp8_rows(encoded)
     np.testing.assert_array_equal(actual.view(np.uint32), expected.view(np.uint32))
     assert np.all(actual > 0)
+
+
+def test_production_engram_admission_requires_the_pinned_complete_publisher_file(tmp_path):
+    from deepseekrpc.weights import ShardPin
+    from dataclasses import replace
+    path, _, _ = table(tmp_path)
+    admitted = tmp_path / "model-00047-of-00048.safetensors"
+    path.rename(admitted)
+    raw = admitted.read_bytes()
+    header_bytes, = struct.unpack("<Q", raw[:8])
+    pin = ShardPin(admitted.name, "a" * 40, len(raw), hashlib.sha256(raw).hexdigest(),
+                   header_bytes, hashlib.sha256(raw[8:8 + header_bytes]).hexdigest())
+    with EngramRows(admitted, layer=1, cache_bytes=0, pin=pin) as rows:
+        assert rows.verified and rows.layer == 1
+    with pytest.raises(ValidationError, match="publisher SHA"):
+        EngramRows(admitted, layer=1, cache_bytes=0, pin=replace(pin, file_sha256="b" * 64))
