@@ -12,8 +12,12 @@ setup(
         "deepseekrpc_cuda",
         ["bindings.cpp", "operations.cu"],
         extra_compile_args={
-            "cxx": ["/O2", "/std:c++17", "/fp:precise"] if os.name == "nt" else ["-O3", "-std=c++17"],
-            "nvcc": ["-O3", "--std=c++17", "--ftz=false", "--fmad=false"],
+            "cxx": ["/O2", "/fp:precise", "/Zc:preprocessor", "/DWIN32_LEAN_AND_MEAN", "/DNOMINMAX"]
+                   if os.name == "nt" else ["-O3", "-std=c++17"],
+            # Torch appends the Windows NVCC standard flag unconditionally.
+            "nvcc": ["-O3", "--ftz=false", "--fmad=false"] +
+                    (["-DWIN32_LEAN_AND_MEAN", "-DNOMINMAX", "-Xcompiler=/Zc:preprocessor"]
+                     if os.name == "nt" else ["--std=c++17"]),
         },
     )],
     cmdclass={"build_ext": BuildExtension},
