@@ -1,0 +1,57 @@
+{
+  "scope": "pinned exllamav3 Windows native compile/link/import; no GPU execution",
+  "source_commit": "af15c3a3186722a99bf1fe31ba7380c0bc50e0a6",
+  "worktree_clean": true,
+  "upstream": {
+    "repository": "vcruz305/exllamav3",
+    "commit": "475461e9a1a288e7c10eb472056239d3fb78b625",
+    "url": "https://codeload.github.com/vcruz305/exllamav3/tar.gz/475461e9a1a288e7c10eb472056239d3fb78b625",
+    "archive_sha256": "eaff2507332bc6ed6cd3e5da0a6ad50e929027935ec06c744b25e3fef063a18c",
+    "archive_bytes": 9465082
+  },
+  "patches": [],
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "checks": [
+    {
+      "name": "torch",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "import-native",
+      "exit_code": 0
+    },
+    {
+      "name": "fatbin",
+      "exit_code": 0
+    },
+    {
+      "name": "import-package",
+      "exit_code": 0
+    },
+    {
+      "name": "dependency-check",
+      "exit_code": 0
+    }
+  ],
+  "GPU_execution": "not run",
+  "full_model_validation": "not run",
+  "omitted_nonbuild_agent_links": [],
+  "wheel": {
+    "name": "exllamav3-1.6.1.post1-cp312-cp312-win_amd64.whl",
+    "sha256": "7ff7c8976e3553bcba34131408eccfd4408173ffcfd5f64508c8f13bf5f3e950"
+  },
+  "binary_architectures_verified": true,
+  "actions_run": "https://github.com/Protonburn35/DeepSeekRPC/actions/runs/39318861176"
+}

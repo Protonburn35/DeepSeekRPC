@@ -8,7 +8,8 @@ from .jsonutil import ValidationError
 _mutex = threading.Lock()
 _configured = False
 _cuda_math_configured = False
-_EXACT_ENV = {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0"}
+_EXACT_ENV = {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0",
+              "VLLM_DISABLE_SHARED_EXPERTS_STREAM": "1"}
 
 
 def configure_exact_exl3():
@@ -55,7 +56,9 @@ def configure_exact_cuda_math():
 def assert_exact_cuda_math():
     import torch
     assert_exact_exl3()
-    if (not _cuda_math_configured or torch.get_float32_matmul_precision() != "highest" or
+    vllm_envs = sys.modules.get("vllm.envs")
+    if (vllm_envs is not None and not vllm_envs.VLLM_DISABLE_SHARED_EXPERTS_STREAM or
+            not _cuda_math_configured or torch.get_float32_matmul_precision() != "highest" or
             torch.backends.cuda.matmul.allow_tf32 or torch.backends.cudnn.allow_tf32 or
             torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction or
             torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction):

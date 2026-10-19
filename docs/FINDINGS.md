@@ -120,3 +120,14 @@ separate and available. Capability probes now report only compiled dispatches;
 an omitted SM12x call fails rather than dispatching to an unrelated SM80 kernel.
 The profile changes no CUDA SDK file. Its Windows compile/link and runtime
 execution still require qualification; this finding remains open.
+
+## DSR-AUDIT-008 — FP32 router output does not establish FP32 router computation
+
+The pinned V4 MoE creates GateLinear with out_dtype=FP32 but no forced compute
+dtype. On the selected SM89/SM120 GPUs its default parameters can be BF16, and
+the plain path can compute at that dtype before promoting the returned logits.
+The exact stage-hook patch sets the existing force_fp32_compute option. For
+these consumer architectures this creates FP32 router parameters and retains
+the real GateLinear/selection graph. Native F16 checkpoint values can be
+promoted exactly. GPU router comparison and full-model qualification remain
+pending; a dtype label alone is not their substitute.

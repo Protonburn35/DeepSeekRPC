@@ -89,7 +89,7 @@ def main():
     env["PATH"] = os.pathsep.join([str(sdk / "bin"), str(sdk / "bin/x64"), env["PATH"]])
     if args.component == "vllm-windows":
         env.update(VLLM_TARGET_DEVICE="cuda", VLLM_USE_PRECOMPILED="0", VLLM_USE_PRECOMPILED_RUST="0",
-                   SETUPTOOLS_SCM_PRETEND_VERSION="0.31.0+deepseekrpc1", NVCC_THREADS="1",
+                   SETUPTOOLS_SCM_PRETEND_VERSION="0.31.0+deepseekrpc2", NVCC_THREADS="1",
                    CMAKE_ARGS="-DVLLM_DEEPSEEKRPC_EXL3=ON")
     report = {"scope": f"pinned {args.component} Windows native compile/link/import; no GPU execution",
               "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
@@ -99,9 +99,10 @@ def main():
               "checks": [], "GPU_execution": "not run", "full_model_validation": "not run"}
     dependency_lock = None
 
-    def run(name, command, *, cwd=root):
+    def run(name, command, *, cwd=root, execution_env=None):
         with (output / f"{name}.log").open("w", encoding="utf-8") as stream:
-            result = subprocess.run(command, cwd=cwd, env=env, stdout=stream, stderr=subprocess.STDOUT)
+            result = subprocess.run(command, cwd=cwd, env=env if execution_env is None else execution_env,
+                                    stdout=stream, stderr=subprocess.STDOUT)
         report["checks"].append({"name": name, "exit_code": result.returncode})
         if result.returncode:
             raise RuntimeError(f"{name} failed; see retained {name}.log")
@@ -114,7 +115,8 @@ def main():
         report["omitted_nonbuild_agent_links"] = extract_source(archive, source)
         if args.component == "vllm-windows":
             from patch_vllm_for_rpc import apply
-            report["patches"] = [apply(source), apply(source, "vllm-windows-exl3-build.lock.json")]
+            report["patches"] = [apply(source), apply(source, "vllm-windows-exl3-build.lock.json"),
+                                 apply(source, "vllm-windows-stage-hooks.lock.json")]
             report["native_build_profile"] = "Windows DeepSeekRPC EXL3; SM12x FP8/NVFP4 GEMMs excluded"
             dependency_lock = json.loads((root / "provenance/vllm-native-deps.lock.json").read_text(encoding="utf-8"))
             for item in dependency_lock["dependencies"]:
@@ -155,9 +157,19 @@ def main():
             if architecture not in listing:
                 raise RuntimeError(f"compiled upstream module is missing target {architecture}")
         report["binary_architectures_verified"] = True
+        runtime_env = dict(env)
+        for key in list(runtime_env):
+            if key.upper() in {"CUDA_HOME", "CUDA_PATH"} or key.upper().startswith("CUDA_PATH_V"):
+                runtime_env.pop(key)
+        runtime_env["PATH"] = os.pathsep.join(
+            entry for entry in env["PATH"].split(os.pathsep)
+            if entry and not Path(entry).resolve().is_relative_to(sdk))
+        # A compiler-SDK DLL directory must not conceal a missing runtime
+        # dependency in an otherwise installable Torch-based deployment.
+        run("import-native-without-sdk", [sys.executable, "-c", query], cwd=output, execution_env=runtime_env)
         if args.component == "exllamav3":
             query = "import exllamav3; import exllamav3.modules.quant.exl3 as q; assert callable(q.LinearEXL3); print(exllamav3.__file__)"
-            run("import-package", [sys.executable, "-c", query], cwd=output)
+            run("import-package", [sys.executable, "-c", query], cwd=output, execution_env=runtime_env)
             run("dependency-check", [sys.executable, "-m", "pip", "check"], cwd=output)
         else:
             report["complete_serving_dependencies"] = "not qualified by native-only build"

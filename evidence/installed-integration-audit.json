@@ -31,7 +31,7 @@
     {
       "name": "owned_adapter_imports",
       "status": "passed",
-      "result": "actual vLLM routed-method and learned Engram classes; CUDA constructors/execution not run"
+      "result": "actual vLLM routed-method, learned Engram and concrete BF16 attention classes; CUDA constructors/execution not run"
     }
   ]
 }

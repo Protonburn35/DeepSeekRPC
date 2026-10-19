@@ -50,6 +50,13 @@ checks dependency consistency. This is separate from the four project kernels
 and from the still-required native vLLM build. The upstream compiler math flags
 are preserved; numerical packed-weight execution must be qualified separately.
 
+The first full upstream EXLlama qualification passed in run 39318861176:
+compile/link, wheel installation, native/Python imports, dependency consistency
+and both SM89/SM120 cubins. The retained wheel SHA and build report are in
+`evidence/exllama-first-build.json`. The first run's import used the SDK PATH;
+future qualifications also remove SDK DLL directories for a separate installed
+native import check. No EXL3 GPU product or actual model has executed here.
+
 `windows-vllm.yml` separately builds the full pinned upstream native wheel with
 its native build dependencies. This job checks the actual installed Torch
 library and cubins; it does not qualify the complete serving dependency stack.
@@ -60,7 +67,7 @@ non-build `.claude/skills` aliases are omitted during Windows extraction, avoidi
 a symlink privilege requirement; runtime/build source files remain intact.
 
 The vLLM wheel selects the explicit `VLLM_DEEPSEEKRPC_EXL3` build profile and
-version `0.31.0+deepseekrpc1`. Exact before/after hashes and patch hashes are
+version `0.31.0+deepseekrpc2`. Exact before/after hashes and patch hashes are
 recorded under `patches/`. This profile omits upstream SM12x FP8/NVFP4 matrix
 and MoE kernels, which are unused by this model and fail MSVC C2719 in the
 unmodified build. It preserves CUDA's descriptor alignment. Native capability
@@ -111,3 +118,28 @@ and packed compressor/index-key projections. Startup reads remain bounded; B
 requires its completed locked resident store. Dense input/output workspaces and
 upstream scratch count separately in the full graph's memory ledger. Actual
 packed execution and the complete layer construction remain unqualified.
+
+`vllm_attention.OwnedBF16Attention` is a concrete subclass of the actual pinned
+attention class. It uses real vLLM linears, fused Q/KV RMSNorm, RoPE, and the
+existing Windows FP8 query preparation with its scale folded into index weights.
+Index-key storage stays BF16. It stages only the causal SWA tail plus at most
+64 current rows, maps sparse logical IDs through the local KV slot map and
+projects the eight output groups independently. Source 20 has an explicit
+encoder-only projection entry; phase-specific visibility remains separate from
+window execution. This class imports in the installed CPU source audit, but
+CUDA construction/execution and complete stage orchestration remain unrun.
+
+`compression_state` calls the real vLLM compression kernel with FP32 pair
+state, fixed before-images and at most 64 original score rows. An accepted
+prefix reconstructs the original ring stores without reducing state precision.
+The normalized latent output is BF16. `attention_state` validates owned versus
+replicated pools and window-scoped top-k/candidate publications. The complete
+phase coordinator must validate immutable history and the all-stage encoder
+barrier before rewinding SWA/pair state for exact replay. These components do
+not by themselves establish that global barrier or distributed commit.
+
+`native_weights` copies learned native parameters through a bounded startup
+tile, including declared source/destination dtype conversions in its manifest.
+B's source is exclusively the locked resident store. Native parameter memory,
+boot scratch and packed storage require separate explicit admission. The full
+vision/DSpark binding plan and actual graph bootstrap still need integration.

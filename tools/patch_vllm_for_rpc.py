@@ -32,11 +32,14 @@ def apply(source: Path, lock_name="vllm-windows-mhc.lock.json"):
     if any(states) and not all(states):
         raise ValueError("partially patched vLLM source must be investigated")
     if not all(states):
-        subprocess.run(["git", "apply", "--check", str(patch)], cwd=source, check=True)
-        subprocess.run(["git", "apply", str(patch)], cwd=source, check=True)
+        # Archive files retain LF. The runner's global autocrlf=true would
+        # otherwise rewrite patched outputs to CRLF outside the checkout.
+        command = ["git", "-c", "core.autocrlf=false", "-c", "core.eol=lf", "apply"]
+        subprocess.run([*command, "--check", str(patch)], cwd=source, check=True)
+        subprocess.run([*command, str(patch)], cwd=source, check=True)
     for path, record in zip(paths, lock["files"]):
         if hashlib.sha256(path.read_bytes()).hexdigest() != record["sha256_after"]:
-            raise ValueError("vLLM patch output fingerprint mismatch")
+            raise ValueError(f"vLLM patch output fingerprint mismatch: {record['path']}")
     return {"name": lock["patch"], "sha256": lock["patch_sha256"], "files": lock["files"]}
 
 

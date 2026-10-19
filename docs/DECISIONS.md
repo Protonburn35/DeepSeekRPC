@@ -11,7 +11,7 @@
 3. Use the actual Codex CPU workspace. Disregard personal Google Cloud VM access,
    home paths, preloaded bundles, provider snapshots and fixed 100 GB assumptions.
 4. Use the settled October 1017 EXL3 2.9 model, all three native Windows stages,
-   full eager 1M capacity, default FP16/index and exact SWA. Earlier model shopping,
+   full eager 1M capacity, the BF16 cache policy in item 12 and exact SWA. Earlier model shopping,
    optional laptop, two-PC-first and bounded-replay-default proposals are obsolete.
 5. No full model/Engram download into Codex. Source-only archives and strictly
    bounded header/metadata reads are permitted and recorded.

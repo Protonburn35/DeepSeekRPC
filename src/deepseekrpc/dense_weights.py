@@ -84,13 +84,21 @@ class PackedBootUploader:
             for offset in range(0, part.info.nbytes, MAX_READ):
                 count = min(MAX_READ, part.info.nbytes - offset)
                 target = destination[part.offset + offset:part.offset + offset + count]
-                if self.resident:
-                    self.source.copy_to_cuda(part.info.name, offset, target)
-                else:
-                    chunk = self.source.read_range(part.info.name, offset, count)
-                    self._scratch[:count] = chunk
-                    self._pinned[:count].copy_(self._scratch_view[:count])
-                    target.copy_(self._pinned[:count], non_blocking=False)
+                self.copy_range(part.info.name, offset, target)
+
+    def copy_range(self, name, offset, destination):
+        import torch
+        count = destination.numel()
+        if (destination.device.type != "cuda" or destination.dtype != torch.uint8 or
+                not destination.is_contiguous() or destination.ndim != 1 or not 1 <= count <= MAX_READ):
+            raise ValidationError("boot copy requires one bounded contiguous CUDA byte range")
+        if self.resident:
+            self.source.copy_to_cuda(name, offset, destination)
+        else:
+            chunk = self.source.read_range(name, offset, count)
+            self._scratch[:count] = chunk
+            self._pinned[:count].copy_(self._scratch_view[:count])
+            destination.copy_(self._pinned[:count], non_blocking=False)
 
 
 class FixedPackedWeights:

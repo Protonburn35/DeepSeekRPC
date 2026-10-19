@@ -171,6 +171,23 @@ class DeviceRowPool:
                 raise ValidationError("cache requires rollback before another window")
             self.map.begin(operation)
 
+    def rewind_ring_for_replay(self, session: str, epoch: int):
+        """Clear a quiescent SWA ring for the full exact target pass.
+
+        The phase coordinator must first validate the immutable token/image
+        history. Compressed source/shadow pools must never use this operation.
+        """
+        import torch
+        with self._mutex, torch.cuda.device(self.device):
+            self._open()
+            if (self.map.slots != 128 or self.width != 512 or self.map.active is not None or
+                    self._needs_rollback or session != self.map.session or epoch != self.map.epoch):
+                raise ValidationError("SWA rewind requires the current quiescent 128-row ring")
+            self.map.logical.fill(-1)
+            self.map.generations.fill(0)
+            self.generations.zero_()
+            torch.cuda.synchronize(self.device)
+
     def write(self, logical_positions, token_positions, values):
         import torch
         from .cuda_ops import scatter_slots

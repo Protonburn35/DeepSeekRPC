@@ -45,6 +45,12 @@ Incorporated source:
   policy and the stage interface. The license and original file hash are
   packaged in `_vendor/vllm_windows/`. The exact-source Windows mHC integration
   patch and before/after hashes are in patches/; graph execution is unqualified.
+- `src/deepseekrpc/vllm_attention.py` adapts learned projection construction
+  from the pinned Windows vLLM V4.1 attention class under Apache-2.0. It retains
+  the real upstream linear, norm, RoPE and query preparation operations while
+  explicitly binding owned BF16 pools, source visibility and packed matrices.
+  The adjacent packaged provenance records the original file hash. Exact
+  decoder factory and FP32 router source patches are recorded under patches/.
 
 Complete reference archive hashes and model metadata hashes are in provenance/.
 No full model payloads, credentials, copied proprietary SDKs or compiled

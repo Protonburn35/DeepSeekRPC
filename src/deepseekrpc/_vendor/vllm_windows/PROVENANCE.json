@@ -9,5 +9,18 @@
     "Bounded CUDA-only entry checks and exact geometry.",
     "Explicit RMSNorm, exact-math policy and coefficient validity checks.",
     "Stage-RPC delayed post/pre interface without TileLang or tensor parallel collectives."
+  ],
+  "additional_derived_sources": [
+    {
+      "source": "vllm/models/deepseek_v41/attention.py",
+      "sha256": "12c183b169b134fc909d598d6f99bd4f8da83269a4589a5bc3162211d9364c77",
+      "derived_file": "deepseekrpc/vllm_attention.py",
+      "adaptations": [
+        "Construct the original learned projection/norm graph with explicit owned EXL3 bindings.",
+        "Retain real vLLM fused Q/KV RMSNorm, RoPE and FP8 index-query preparation.",
+        "Use admitted unquantized BF16 source/shadow/SWA pools and native sparse operations with exact phase visibility.",
+        "Preserve independent output-group rotations and FP32 compressor projections; disable auxiliary packed GEMM overlap."
+      ]
+    }
   ]
 }

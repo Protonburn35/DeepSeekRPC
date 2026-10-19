@@ -38,7 +38,19 @@ def test_reference_router_unbiased_weights_and_image_bias(oracle):
     expected_weights, expected_ids = oracle.Gate.forward(model, torch.from_numpy(x), torch.from_numpy(mask))
     weights, ids = route(x, weight, bias, image_mask=mask, image_bias=image_bias)
     np.testing.assert_array_equal(ids, expected_ids.numpy())
-    np.testing.assert_allclose(weights, expected_weights.numpy(), rtol=2e-6, atol=1e-6)
+    try:
+        np.testing.assert_allclose(weights, expected_weights.numpy(), rtol=2e-6, atol=1e-6)
+    except AssertionError as failure:
+        # Diagnose an intermittent host numerical-library discrepancy without
+        # weakening the comparison or changing the frozen source method.
+        logits64 = x.astype(np.float64) @ weight.astype(np.float64).T
+        scores64 = np.sqrt(np.logaddexp(0., logits64))
+        chosen64 = np.take_along_axis(scores64, ids, axis=-1)
+        chosen64 = chosen64 / chosen64.sum(-1, keepdims=True) * 1.5
+        raise AssertionError(
+            f"router error vs FP64 by row: numpy={np.max(abs(weights - chosen64), axis=1)}; "
+            f"torch={np.max(abs(expected_weights.numpy() - chosen64), axis=1)}"
+        ) from failure
     np.testing.assert_allclose(weights.sum(axis=1), 1.5, rtol=1e-6)
 
 

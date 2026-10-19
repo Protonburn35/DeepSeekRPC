@@ -1,0 +1,22 @@
+{
+  "upstream_repository": "SystemPanic/vllm-windows",
+  "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "requires": [
+    "vllm-windows-mhc.lock.json"
+  ],
+  "patch": "vllm-windows-stage-hooks.patch",
+  "patch_sha256": "68126e58cce39e4c730e43c1b4838b99fd6270a1ee5f880913295df5d346153d",
+  "files": [
+    {
+      "path": "vllm/models/deepseek_v41/nvidia/model.py",
+      "sha256_before": "dc559cfd3339d16f4c74eef7e9b94fe51c541b604a31c80a095e59aeb4c81db7",
+      "sha256_after": "6ecef14e39598f7cf028f8425317ce0db0a07e6a4ea47a6ff3238beed1ed21f4"
+    },
+    {
+      "path": "vllm/models/deepseek_v4/nvidia/model.py",
+      "sha256_before": "5d5a74e339cd110def9b5e37a56fa602a42cdece98811013fb69700a0274a224",
+      "sha256_after": "1bf29b0d2543975e2474bf42b184a504dc7ed90c5eee8afafa4031518fda3a33"
+    }
+  ],
+  "scope": "Explicit decoder attention/Engram factories preserving the real layer forward; require FP32 router computation on the selected consumer GPUs"
+}

@@ -1,0 +1,47 @@
+--- a/vllm/models/deepseek_v41/nvidia/model.py
++++ b/vllm/models/deepseek_v41/nvidia/model.py
+@@ -284,6 +284,8 @@
+         run_gemm_rs: bool = False,
+         mhc_stream: torch.cuda.Stream | None = None,
+         fuse_mhc_all_reduce: bool = False,
++        rpc_attention_factory: Callable | None = None,
++        rpc_engram_factory: Callable | None = None,
+     ):
+         super().__init__()
+ 
+@@ -297,7 +299,10 @@
+         if engram_layout is not None:
+             layer_id = extract_layer_index(prefix)
+             if layer_id in engram_layout.layer_ids:
+-                self.engram = Engram(
++                engram_cls = (
++                    Engram if rpc_engram_factory is None else rpc_engram_factory
++                )
++                self.engram = engram_cls(
+                     config,
+                     vllm_config.quant_config,
+                     engram_layout,
+@@ -308,7 +313,12 @@
+                 )
+ 
+         self.rms_norm_eps = config.rms_norm_eps
+-        self.attn = _select_dsv4_attn_cls(vllm_config)(
++        attention_cls = (
++            _select_dsv4_attn_cls(vllm_config)
++            if rpc_attention_factory is None
++            else rpc_attention_factory
++        )
++        self.attn = attention_cls(
+             vllm_config,
+             prefix=f"{prefix}.attn",
+             topk_indices_buffer=topk_indices_buffer,
+--- a/vllm/models/deepseek_v4/nvidia/model.py
++++ b/vllm/models/deepseek_v4/nvidia/model.py
+@@ -852,6 +852,7 @@
+             output_size=self.n_routed_experts,
+             bias=False,
+             out_dtype=torch.float32,
++            force_fp32_compute=True,
+             prefix=f"{prefix}.gate",
+         )
+ 

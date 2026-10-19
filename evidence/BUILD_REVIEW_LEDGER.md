@@ -231,3 +231,41 @@ policy mutation regressions: four passed on CPU. The source patch applied to a
 verified writable copy and both patched Python modules compile. Updated actual
 installed class/entrypoint audit passed. Actual patched Windows graph import,
 CUDA differential execution and full stage integration remain pending.
+
+## 2026-10-19 — full EXLlama Windows wheel qualification
+
+Run 39318861176 at af15c3a passed the complete pinned EXLlama compile/link,
+wheel install, native and Python imports, pip consistency and actual fatbin
+inspection for SM89 and SM120. The report and listing are retained in
+exllama-first-build.json and exllama-first-fatbin.log. The wheel SHA is
+7ff7c8976e3553bcba34131408eccfd4408173ffcfd5f64508c8f13bf5f3e950.
+No GPU operation executed. The first run used SDK PATH during import; a
+separate no-SDK native import check is now required for subsequent builds.
+
+## 2026-10-19 — concrete BF16 attention adapter and source patch repairs
+
+Added a concrete subclass of the real vLLM attention, original fused Q/KV
+norm and RoPE calls, explicit unquantized BF16 source/shadow pools, independent
+packed output groups, FP32 pair state around the real compression kernel,
+bounded native parameter bootstrap, and typed per-phase visibility/selection.
+The exact decoder patch adds explicit attention/Engram factories; no namespace
+replacement or CPU inference fallback is used. The real installed CPU audit
+imports all three owned adapters. CUDA constructors, numerical execution,
+complete stage bootstrap and distributed scheduling remain unrun/incomplete.
+
+Native vLLM run 39320169086 reached compiler C2719 in unused SM12x FP8 GEMMs.
+The explicit EXL3 profile omits unused SM12x FP8/NVFP4 matrix families and
+reports capabilities by compiled dispatch, without changing CUDA descriptor
+alignment. Runs 39326982042 and 39327599761 exposed Windows line conversion:
+first the checked-out patch hash, then Git's patched output hash. Repository
+attributes retain LF and each apply command explicitly disables autocrlf.
+All three chained patch output hashes now pass with inherited autocrlf=true.
+The next native Windows qualification remains pending.
+
+Local expanded suite: 190 passed, three real-Win32-only skips. Before that
+passing run the previously recorded CPU router discrepancy recurred with the
+same 24/42 weights and maximum 4.6253204e-05 difference; IDs stayed identical.
+Added FP64 diagnostic reporting on failure without changing the frozen oracle
+or widening tolerance. Another 500 isolated comparisons passed. The root cause
+of this intermittent host numerical discrepancy remains unresolved; a passing
+rerun is not its repair.
