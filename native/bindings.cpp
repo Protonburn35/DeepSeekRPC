@@ -1,5 +1,10 @@
 #include <torch/extension.h>
 #include <vector>
+#include <cstdint>
+
+#ifdef _WIN32
+std::vector<uint64_t> ds_windows_memory_budget(int64_t ordinal);
+#endif
 
 std::vector<torch::Tensor> ds_sparse_attention(
     torch::Tensor q, torch::Tensor window, torch::Tensor source,
@@ -17,5 +22,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("index_scores", &ds_index_scores);
     m.def("engram_decode", &ds_engram_decode);
     m.def("scatter_slots", &ds_scatter_slots);
-    m.def("abi_version", [] { return 1; });
+    m.def("abi_version", [] { return 2; });
+#ifdef _WIN32
+    m.def("windows_memory_budget", &ds_windows_memory_budget);
+#endif
 }

@@ -96,8 +96,8 @@ class PackedBootUploader:
         self.source = source
         self.resident = isinstance(source, LockedOwnedWeights)
         if self.resident:
-            source.register_cuda()
-            self.staging_bytes = 0
+            self.staging_bytes = MAX_READ
+            self._transfer = source.transfer()
         else:
             if source.role == Role.MIDDLE:
                 raise ValidationError("B's packed bootstrap requires its completed locked resident store")
@@ -120,7 +120,7 @@ class PackedBootUploader:
                 not destination.is_contiguous() or destination.ndim != 1 or not 1 <= count <= MAX_READ):
             raise ValidationError("boot copy requires one bounded contiguous CUDA byte range")
         if self.resident:
-            self.source.copy_to_cuda(name, offset, destination)
+            self._transfer.copy(name, offset, destination)
         else:
             chunk = self.source.read_range(name, offset, count)
             self._scratch[:count] = chunk

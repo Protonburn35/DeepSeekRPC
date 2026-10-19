@@ -37,7 +37,7 @@ class NativeWeightLoader:
     values are never inferred from a default dtype. Every conversion appears
     in the returned manifest; BF16 norms and FP32 routers remain distinct.
     Fused vision projections may pass explicit disjoint contiguous views.
-    B reads exclusively from its registered, locked resident store.
+    B reads exclusively from its locked resident store through bounded pinned staging.
     """
     def __init__(self, source, bindings: list[NativeParameter], *, required_names,
                  admitted_bytes: int):
@@ -69,7 +69,7 @@ class NativeWeightLoader:
         if any(left[1] > right[0] for left, right in zip(spans, spans[1:])):
             raise ValidationError("native parameter destinations overlap")
         from .resident_weights import LockedOwnedWeights
-        host_staging = 0 if isinstance(source, LockedOwnedWeights) else 3 * MAX_READ
+        host_staging = MAX_READ if isinstance(source, LockedOwnedWeights) else 3 * MAX_READ
         # One reusable raw CUDA tile; dtype conversion writes straight into
         # the final parameter without an additional converted tensor.
         self.admission_bytes = self.parameter_bytes + MAX_READ + host_staging

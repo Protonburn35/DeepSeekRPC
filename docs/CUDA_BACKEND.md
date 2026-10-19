@@ -163,3 +163,11 @@ Runtime construction checks pinned package versions and exact patched source
 hashes. All GPU graph constructors/execution remain unrun. Complete bootstrap,
 global CED scheduling/commit, image preprocessing/API, snapshots and prefix reuse
 remain unfinished; these source components are not a finished application.
+
+Native ABI 2 retains the four CUDA operations and adds an actual Windows DXGI
+budget query using CUDA's adapter LUID. The extension links the system DXGI
+library; the query runs only on an actual Windows GPU host. CPU build/import
+checks do not execute it. Subsequent native qualifications also import with the
+compiler SDK removed from PATH, checking the installed runtime dependency path.
+The original successful ABI 1 build remains recorded as historical evidence;
+it does not qualify the added telemetry or ABI 2 wheel.

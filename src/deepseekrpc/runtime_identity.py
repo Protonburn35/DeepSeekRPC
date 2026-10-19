@@ -36,7 +36,8 @@ def require_windows_runtime(device=0):
         raise ValidationError("this application build requires SM89 or SM120")
     import exllamav3_ext
     import deepseekrpc_cuda
-    if not callable(exllamav3_ext.exl3_gemm) or deepseekrpc_cuda.abi_version() != 1:
+    if (not callable(exllamav3_ext.exl3_gemm) or deepseekrpc_cuda.abi_version() != 2 or
+            not callable(getattr(deepseekrpc_cuda, "windows_memory_budget", None))):
         raise ValidationError("the actual packed/native operation ABI does not match")
     return {"versions": lock["versions"], "source_fingerprints_verified": True,
             "architecture": f"sm_{architecture[0]}{architecture[1]}",

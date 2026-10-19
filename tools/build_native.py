@@ -31,9 +31,10 @@ def main():
               "platform": platform.platform(), "architectures": ["sm_89", "sm_120"],
               "checks": [], "GPU_execution": "not run", "full_model_validation": "not run"}
 
-    def run(name, command):
+    def run(name, command, *, execution_env=None):
         with (output / f"{name}.log").open("w", encoding="utf-8") as stream:
-            result = subprocess.run(command, cwd=root, env=env, stdout=stream, stderr=subprocess.STDOUT)
+            result = subprocess.run(command, cwd=root, env=env if execution_env is None else execution_env,
+                                    stdout=stream, stderr=subprocess.STDOUT)
         report["checks"].append({"name": name, "exit_code": result.returncode})
         if result.returncode:
             raise RuntimeError(f"{name} failed; see retained {name}.log")
@@ -47,7 +48,8 @@ def main():
         wheel, = wheels.glob("deepseekrpc_cuda-*.whl")
         report["wheel"] = {"name": wheel.name, "sha256": hashlib.file_digest(wheel.open("rb"), "sha256").hexdigest()}
         run("install", [sys.executable, "-m", "pip", "install", "--no-deps", str(wheel)])
-        query = "import torch, deepseekrpc_cuda as c; assert c.abi_version() == 1; print(c.__file__)"
+        query = ("import torch, deepseekrpc_cuda as c; assert c.abi_version() == 2; "
+                 "assert callable(c.windows_memory_budget); print(c.__file__)")
         run("import", [sys.executable, "-c", query])
         module = Path((output / "import.log").read_text(encoding="utf-8").strip().splitlines()[-1])
         run("fatbin", [str(sdk / "bin/cuobjdump.exe"), "--list-elf", str(module)])
@@ -56,6 +58,16 @@ def main():
             if architecture not in listing:
                 raise RuntimeError(f"compiled module is missing target {architecture}")
         report["binary_architectures_verified"] = True
+        runtime_env = dict(env)
+        for key in list(runtime_env):
+            if key.upper() in {"CUDA_HOME", "CUDA_PATH"} or key.upper().startswith("CUDA_PATH_V"):
+                runtime_env.pop(key)
+        runtime_env["PATH"] = os.pathsep.join(entry for entry in env["PATH"].split(os.pathsep)
+                                             if entry and not Path(entry).resolve().is_relative_to(sdk))
+        run("import-without-sdk", [sys.executable, "-c", query], execution_env=runtime_env)
+    except BaseException as exc:
+        report["failure"] = {"type": type(exc).__name__, "message": str(exc)}
+        raise
     finally:
         (output / "BUILD.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, indent=2))

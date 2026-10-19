@@ -290,3 +290,25 @@ Local suite: 192 passed, three actual-Win32-only skips. Updated constructor
 prefix coverage uses the complete physical pack, including all draft matrices.
 Installed CPU adapter imports passed; Windows CPU run 39329361879 also passed
 the previous checkpoint. Native vLLM run 39329361817 remains in progress.
+
+## 2026-10-19 — complete admission arithmetic and bounded resident transfers
+
+Reconciled all 47,900 packed matrices and 896 native allocations (including C's
+replica) against complete pinned headers. The plan counts native destination
+dtypes, hot packed arenas, five-GiB source/index/shadow payload, generation/maps,
+RoPE, FP32 pair state, checkpoints, workspaces and headroom before deriving
+GPU expert slots. Missing experts and physical host/device shortfalls fail.
+Metadata-only estimates are not measured peaks or residency proof.
+
+Replaced B's whole-store CUDA registration with one shared 1 MiB pinned transfer
+tile and a direct locked-to-pinned native copy. Original canonical pages remain
+VirtualLocked; file handles stay closed. Added real QueryWorkingSetEx inspection
+of every canonical page after preload and GlobalMemoryStatusEx host counters.
+These Win32 API extensions await the next actual Windows CPU run.
+
+Native ABI 2 adds CUDA-LUID-matched DXGI local/nonlocal budget counters. No
+telemetry number is fabricated on a CPU host. The guard uses a pre-allocation
+baseline and explicitly does not claim permanent GPU pinning. Windows native
+compile/link/import and actual GPU budget queries remain pending. Local suite:
+194 passed, four actual-Win32-only skips. The CUDA arithmetic kernels are
+unchanged; the previous ABI 1 build does not qualify the added native query.

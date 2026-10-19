@@ -151,3 +151,32 @@ The selective loader permits this one replica only on C and still verifies its
 original shard/header/full-file hash. No other unowned tensor becomes readable.
 The replica requires full whole-process/device admission before allocation;
 the five-GiB source/index/shadow estimate does not include it.
+
+## Complete header-derived runtime admission
+
+`runtime_memory.plan_runtime_memory` reconciles all 47,900 packed matrices and
+895 original native tensors, plus C's one embedding replica. It derives every
+expert bundle's aligned storage and requires every owned expert, including the
+128-expert draft layers. Native destination dtypes, permanent packed arenas,
+BF16 pools, device generations, host maps, FP32 RoPE/pair state, checkpoints,
+bounded workspaces and separate host/device headroom all count before sizing
+the expert arena. Missing expert bundles and insufficient host/device budgets
+fail admission. This is prospective arithmetic; hardware peak measurements
+remain necessary.
+
+B uses one shared 1 MiB CUDA-pinned transfer tile for boot, native and expert
+uploads. A checked native CPU copy moves bytes directly from VirtualLock pages
+to that tile; no pageable payload copy or whole-store CUDA registration occurs.
+Registering the complete 16.4 GiB store could create unnecessary WDDM/shared
+memory pressure on a 32 GiB laptop. The canonical owned store remains locked,
+and its original file source remains closed. After preload, QueryWorkingSetEx
+checks the Valid and Locked bits of every allocated page in bounded batches.
+The 18 GiB-scale host lock and actual CUDA transfer remain hardware gates.
+
+Native ABI 2 adds a real CUDA-LUID-to-DXGI adapter query for local/nonlocal
+WDDM budgets and usage; physical host availability comes from Windows. The
+budget guard compares nonlocal usage to its pre-allocation baseline plus known
+transfer staging and refuses execution under pressure. These counters are not
+an absolute guarantee that Windows can never evict a GPU allocation. Native
+Windows compile/import and real-hardware budget/residency qualification remain
+pending for the new telemetry path.

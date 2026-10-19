@@ -11,6 +11,14 @@ def test_native_locked_host_pages():
     with LockedBuffer(4096, admitted_bytes=4096) as buffer:
         buffer.write(7, b"resident")
         assert buffer.read(7, 8) == b"resident"
+        target = bytearray(8)
+        buffer.copy_into(7, target)
+        assert target == b"resident"
+        assert buffer.verify_locked_pages()["locked_bytes"] == 4096
+        with pytest.raises(ValidationError, match="writable"):
+            buffer.copy_into(7, b"readonly")
+        with pytest.raises(ValidationError):
+            buffer.copy_into(4095, bytearray(2))
         with pytest.raises(ValidationError):
             buffer.write(4095, b"xx")
     with pytest.raises(ValidationError):
@@ -26,12 +34,20 @@ def test_large_locked_buffer_reserves_process_quota_and_releases_it():
     with LockedBuffer(size, admitted_bytes=size) as buffer:
         buffer.write(size - 8, b"resident")
         assert buffer.read(size - 8, 8) == b"resident"
+        assert buffer.verify_locked_pages()["pages_checked"] == size // 4096
         assert _working_set_limits(dll)[0] >= size
         # Closing one allocation must preserve another live allocation's quota.
         with LockedBuffer(4096, admitted_bytes=4096) as second:
             second.write(0, b"ok")
         assert buffer.read(size - 8, 8) == b"resident"
     assert _working_set_limits(dll) == before
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires the actual Windows physical-memory status API")
+def test_physical_host_counters_come_from_windows():
+    from deepseekrpc.native_windows import physical_host_memory
+    status = physical_host_memory()
+    assert 0 < status["available_bytes"] <= status["total_bytes"]
 
 
 @pytest.mark.skipif(os.name == "nt", reason="this check exercises explicit refusal on non-Windows hosts")

@@ -131,3 +131,18 @@ these consumer architectures this creates FP32 router parameters and retains
 the real GateLinear/selection graph. Native F16 checkpoint values can be
 promoted exactly. GPU router comparison and full-model qualification remain
 pending; a dtype label alone is not their substitute.
+
+## DSR-AUDIT-009 — whole-store CUDA registration is unnecessary on B
+
+The first uploader registered B's complete locked host allocation with CUDA.
+The owned source is about 16.4 GiB, close to or above a 32 GiB Windows machine's
+usual shared-memory allowance. No hardware failure was observed here; this is
+an avoidable admission risk and a distinct contract from VirtualLock residency.
+
+The uploader now shares one 1 MiB pinned transfer tile across boot/native/expert
+copies. A native bounded memcpy reads directly from locked canonical pages;
+the tile then uploads synchronously. Whole-store CUDA registration is removed.
+Every canonical host page is checked using QueryWorkingSetEx after preload.
+New DXGI budget queries support actual device admission/pressure monitoring.
+Native Windows API checks, ABI 2 compilation and full-size hardware residency
+still require qualification; no absolute WDDM pin guarantee is claimed.

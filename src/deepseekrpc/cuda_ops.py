@@ -15,7 +15,7 @@ def extension():
     if not torch.cuda.is_available():
         raise RuntimeError("a real CUDA device is required; CPU inference fallback is not supported")
     import deepseekrpc_cuda
-    if deepseekrpc_cuda.abi_version() != 1:
+    if deepseekrpc_cuda.abi_version() != 2:
         raise RuntimeError("DeepSeekRPC native extension ABI does not match this source")
     return deepseekrpc_cuda
 

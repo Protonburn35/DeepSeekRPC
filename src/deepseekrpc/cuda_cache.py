@@ -53,13 +53,13 @@ class DesktopUploader:
 
 class ResidentUploader:
     """No inference file-loader path and no pageable tensor payload copies."""
-    staging_bytes = 0
+    staging_bytes = MAX_READ
 
     def __init__(self, source):
         from .resident_weights import LockedOwnedWeights
         if not isinstance(source, LockedOwnedWeights) or source.closed:
             raise ValidationError("B's GPU uploader requires its completed locked resident preload")
-        source.register_cuda()
+        self._transfer = source.transfer()
         self.source = source
 
     def upload(self, key, layout, destination):
@@ -68,7 +68,7 @@ class ResidentUploader:
                 for offset in range(0, part.info.nbytes, MAX_READ):
                     count = min(MAX_READ, part.info.nbytes - offset)
                     start = base + part.offset + offset
-                    self.source.copy_to_cuda(part.info.name, offset, destination[start:start + count])
+                    self._transfer.copy(part.info.name, offset, destination[start:start + count])
 
 
 @dataclass

@@ -5,6 +5,8 @@ device allocations and WDDM admission still require separate qualification.
 """
 from __future__ import annotations
 
+import threading
+
 from .inventory import MAX_READ
 from .jsonutil import ValidationError, integer
 from .native_windows import LockedBuffer
@@ -19,6 +21,8 @@ class LockedOwnedWeights:
         integer(admitted_bytes, "locked resident admission", 1, 1 << 40)
         self._layout = {}
         self._buffer = None
+        self._transfer = None
+        self._transfer_mutex = threading.Lock()
         self.closed = True
         try:
             offset = 0
@@ -36,6 +40,7 @@ class LockedOwnedWeights:
                     written += len(chunk)
                 if written != info.nbytes:
                     raise ValidationError("resident tensor preload was incomplete")
+            self.residency = self._buffer.verify_locked_pages()
             self.payload_bytes, self.allocation_bytes = offset, self._buffer.size
             self.names = frozenset(self._layout)
             self.closed = False
@@ -57,24 +62,58 @@ class LockedOwnedWeights:
         integer(length, "bounded resident copy", 0, min(MAX_READ, info.nbytes - offset))
         return self._buffer.read(self._layout[name][0] + offset, length)
 
-    def register_cuda(self):
-        if self.closed:
-            raise ValidationError("resident weights are closed")
-        self._buffer.register_cuda()
-
-    def copy_to_cuda(self, name: str, offset: int, destination):
+    def copy_to_pinned(self, name: str, offset: int, destination):
+        """Direct locked-to-pinned copy, never a whole-store CUDA registration."""
+        import ctypes
+        import torch
         info = self.info(name)
-        integer(offset, "resident DMA tensor offset", 0, info.nbytes)
-        integer(destination.numel(), "resident DMA bytes", 0, min(MAX_READ, info.nbytes - offset))
-        self._buffer.copy_to_cuda(self._layout[name][0] + offset, destination)
+        if (destination.device.type != "cpu" or destination.dtype != torch.uint8 or
+                destination.ndim != 1 or not destination.is_contiguous() or not destination.is_pinned()):
+            raise ValidationError("resident transfer requires actual CUDA-pinned CPU bytes")
+        integer(offset, "resident transfer tensor offset", 0, info.nbytes)
+        count = integer(destination.numel(), "resident transfer bytes", 0, min(MAX_READ, info.nbytes - offset))
+        if count:
+            # The destination Tensor remains owned by this call. Only its
+            # bounded writable address is borrowed; no source pointer escapes.
+            owner = (ctypes.c_ubyte * count).from_address(destination.data_ptr())
+            self._buffer.copy_into(self._layout[name][0] + offset, owner)
+
+    def transfer(self):
+        """One shared pinned tile for boot/native/expert copies, never all weights."""
+        with self._transfer_mutex:
+            if self.closed:
+                raise ValidationError("resident weights are closed")
+            if self._transfer is None:
+                self._transfer = _ResidentTransfer(self)
+            return self._transfer
 
     def close(self):
-        if self._buffer is not None:
-            self._buffer.close()
-        self.closed = True
+        with self._transfer_mutex:
+            if self._buffer is not None:
+                self._buffer.close()
+            self.closed = True
+            self._transfer = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, *_):
         self.close()
+
+
+class _ResidentTransfer:
+    def __init__(self, source):
+        import torch
+        self.source = source
+        self._mutex = threading.Lock()
+        self._pinned = torch.empty(MAX_READ, dtype=torch.uint8, device="cpu", pin_memory=True)
+
+    def copy(self, name, offset, destination):
+        import torch
+        count = destination.numel()
+        if (destination.device.type != "cuda" or destination.dtype != torch.uint8 or
+                destination.ndim != 1 or not destination.is_contiguous() or not 1 <= count <= MAX_READ):
+            raise ValidationError("resident upload requires one bounded CUDA byte range")
+        with self._mutex:
+            self.source.copy_to_pinned(name, offset, self._pinned[:count])
+            destination.copy_(self._pinned[:count], non_blocking=False)

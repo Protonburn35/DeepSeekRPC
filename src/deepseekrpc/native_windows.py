@@ -28,6 +28,18 @@ class _ProcessMemoryCounters(ctypes.Structure):
                 ("pagefile", ctypes.c_size_t), ("peak_pagefile", ctypes.c_size_t)]
 
 
+class _WorkingSetEntry(ctypes.Structure):
+    _fields_ = [("address", ctypes.c_void_p), ("attributes", ctypes.c_size_t)]
+
+
+class _MemoryStatus(ctypes.Structure):
+    _fields_ = [("length", wintypes.DWORD), ("load", wintypes.DWORD),
+                ("physical_total", ctypes.c_uint64), ("physical_available", ctypes.c_uint64),
+                ("commit_total", ctypes.c_uint64), ("commit_available", ctypes.c_uint64),
+                ("virtual_total", ctypes.c_uint64), ("virtual_available", ctypes.c_uint64),
+                ("extended_available", ctypes.c_uint64)]
+
+
 def _working_set_limits(dll):
     process = dll.GetCurrentProcess()
     minimum, maximum, flags = ctypes.c_size_t(), ctypes.c_size_t(), wintypes.DWORD()
@@ -86,11 +98,26 @@ def _kernel32():
     dll.SetProcessWorkingSetSizeEx.restype = wintypes.BOOL
     dll.K32GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessMemoryCounters), wintypes.DWORD]
     dll.K32GetProcessMemoryInfo.restype = wintypes.BOOL
+    dll.K32QueryWorkingSetEx.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD]
+    dll.K32QueryWorkingSetEx.restype = wintypes.BOOL
+    dll.GlobalMemoryStatusEx.argtypes = [ctypes.POINTER(_MemoryStatus)]
+    dll.GlobalMemoryStatusEx.restype = wintypes.BOOL
     for name in ("VirtualLock", "VirtualUnlock"):
         function = getattr(dll, name)
         function.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
         function.restype = wintypes.BOOL
     return dll
+
+
+def physical_host_memory():
+    dll = _kernel32()
+    status = _MemoryStatus()
+    status.length = ctypes.sizeof(status)
+    if not dll.GlobalMemoryStatusEx(ctypes.byref(status)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    if not 0 <= status.physical_available <= status.physical_total:
+        raise ValidationError("Windows returned invalid physical host memory counters")
+    return {"total_bytes": status.physical_total, "available_bytes": status.physical_available}
 
 
 class LockedBuffer:
@@ -121,42 +148,6 @@ class LockedBuffer:
             self._working_set_token = None
             raise
         self._locked = True
-        self._cuda_runtime = None
-
-    def register_cuda(self):
-        """Register existing locked pages; never allocate a second host mirror."""
-        import torch
-        with self._mutex:
-            self._bounds(0, 0)
-            if self._cuda_runtime is not None:
-                return
-            if not torch.cuda.is_available():
-                raise RuntimeError("CUDA host registration requires a real CUDA device")
-            runtime = torch.cuda.cudart()
-            result = runtime.cudaHostRegister(self._pointer, self.size, 0)
-            if result.value != 0:
-                raise RuntimeError(f"CUDA host registration refused admission: {result.value}")
-            self._cuda_runtime = runtime
-
-    def copy_to_cuda(self, offset: int, destination):
-        """Synchronous bounded DMA; no raw pointer or borrowed view escapes."""
-        import torch
-        with self._mutex:
-            if (not destination.is_cuda or destination.dtype != torch.uint8 or
-                    destination.ndim != 1 or not destination.is_contiguous()):
-                raise ValidationError("locked transfer destination must be contiguous CUDA bytes")
-            length = destination.numel()
-            self._bounds(offset, length)
-            if self._cuda_runtime is None:
-                raise ValidationError("locked host pages require CUDA registration before DMA")
-            if not length:
-                return
-            with torch.cuda.device(destination.device):
-                owner = (ctypes.c_ubyte * length).from_address(self._pointer + offset)
-                source = torch.frombuffer(owner, dtype=torch.uint8, count=length)
-                if not source.is_pinned():
-                    raise ValidationError("CUDA did not recognize registered locked host pages")
-                destination.copy_(source, non_blocking=False)
 
     def _bounds(self, offset, length):
         if not self._pointer or not self._locked:
@@ -169,6 +160,38 @@ class LockedBuffer:
             self._bounds(offset, length)
             return ctypes.string_at(self._pointer + offset, length)
 
+    def verify_locked_pages(self):
+        """Check every allocated page's real Win32 Valid and Locked bits."""
+        with self._mutex:
+            self._bounds(0, 0)
+            pages = self.size // mmap.PAGESIZE
+            batch = (_WorkingSetEntry * min(8192, pages))()
+            for first in range(0, pages, len(batch)):
+                count = min(len(batch), pages - first)
+                for index in range(count):
+                    batch[index].address = self._pointer + (first + index) * mmap.PAGESIZE
+                    batch[index].attributes = 0
+                if not self._dll.K32QueryWorkingSetEx(self._dll.GetCurrentProcess(), batch,
+                                                      count * ctypes.sizeof(_WorkingSetEntry)):
+                    raise ctypes.WinError(ctypes.get_last_error())
+                if any((batch[index].attributes & (1 | (1 << 22))) != (1 | (1 << 22))
+                       for index in range(count)):
+                    raise ValidationError("owned host allocation contains a nonresident or unlocked page")
+            return {"scope": "all allocated host pages", "page_bytes": mmap.PAGESIZE,
+                    "pages_checked": pages, "locked_bytes": self.size}
+
+    def copy_into(self, offset: int, destination):
+        """Copy directly into bounded writable storage; expose no source view."""
+        view = memoryview(destination)
+        if view.readonly or not view.c_contiguous:
+            raise ValidationError("locked copy needs contiguous writable destination bytes")
+        view = view.cast("B")
+        with self._mutex:
+            self._bounds(offset, view.nbytes)
+            if view.nbytes:
+                owner = (ctypes.c_ubyte * view.nbytes).from_buffer(view)
+                ctypes.memmove(ctypes.addressof(owner), self._pointer + offset, view.nbytes)
+
     def write(self, offset: int, data: bytes):
         if not isinstance(data, bytes):
             raise ValidationError("locked host write requires bounded bytes")
@@ -179,11 +202,6 @@ class LockedBuffer:
     def close(self):
         with self._mutex:
             if self._pointer:
-                if self._cuda_runtime is not None:
-                    result = self._cuda_runtime.cudaHostUnregister(self._pointer)
-                    if result.value != 0:
-                        raise RuntimeError(f"CUDA host unregister failed: {result.value}")
-                    self._cuda_runtime = None
                 if self._locked:
                     if not self._dll.VirtualUnlock(self._pointer, self.size):
                         raise ctypes.WinError(ctypes.get_last_error())
