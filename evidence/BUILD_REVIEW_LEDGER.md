@@ -312,3 +312,24 @@ baseline and explicitly does not claim permanent GPU pinning. Windows native
 compile/link/import and actual GPU budget queries remain pending. Local suite:
 194 passed, four actual-Win32-only skips. The CUDA arithmetic kernels are
 unchanged; the previous ABI 1 build does not qualify the added native query.
+
+## 2026-10-19 — ABI 2 qualification and sampled verification arithmetic
+
+Windows CPU run 39334269398 passed actual Win32 locked-page/direct-copy/host
+memory checks. Native run 39334269334 passed ABI 2 compile/link, import,
+SM89/SM120 inspection and import without the compiler SDK on PATH. Reports
+are retained in native-abi2-build.json and native-abi2-fatbin.log. Actual GPU
+counter queries, kernels and full B residency have not executed.
+
+Added complete local terminal probability controls, independent transactional
+target/draft/accept PCG64 domains, exact speculative rejection correction and
+explicit processed-row/pending-output decisions. Fourteen focused tests passed,
+including exact rational marginal recovery and every rejection prefix. Normal
+rejection retains all draws consumed by the proposal algorithm; reusing the
+rejection-conditioned proposal suffix could bias subsequent proposals. A full
+uncommitted abort restores all three domains. Production integration is pending.
+
+vLLM native run 39329361817 reached 80/203 units and failed on an upstream
+Windows INFINITY macro expanding to an overflowing float cast. An additional
+exact-source patch represents the same negative infinity via CUDA numeric_limits.
+The next actual compiler run must validate it.

@@ -1,0 +1,14 @@
+{
+  "upstream_repository": "SystemPanic/vllm-windows",
+  "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "patch": "vllm-windows-float-infinity.patch",
+  "patch_sha256": "7ad21c030ea60d250013e538cebce7bb77ad63dee20acfad4010bc17a05a71b1",
+  "files": [
+    {
+      "path": "csrc/libtorch_stable/moe/grouped_topk_kernels.cu",
+      "sha256_before": "e4a64ddd8054115cdcdb2259b16489715effb884be289bdaa65b71b6e1f61b8d",
+      "sha256_after": "0b200504251ee73e8d7b38f16d578a0c3fb7f086b50aa322014006a6d097ce5a"
+    }
+  ],
+  "scope": "Represent negative float infinity directly; avoid MSVC INFINITY macro overflow in an nvcc constexpr. No scoring or sorting change."
+}

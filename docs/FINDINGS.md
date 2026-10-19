@@ -144,5 +144,17 @@ copies. A native bounded memcpy reads directly from locked canonical pages;
 the tile then uploads synchronously. Whole-store CUDA registration is removed.
 Every canonical host page is checked using QueryWorkingSetEx after preload.
 New DXGI budget queries support actual device admission/pressure monitoring.
-Native Windows API checks, ABI 2 compilation and full-size hardware residency
-still require qualification; no absolute WDDM pin guarantee is claimed.
+Windows CPU run 39334269398 passed the actual all-page lock, direct-copy and
+physical-memory checks. Native ABI 2 run 39334269334 passed compile/link/import,
+both architecture inspections and import with the SDK removed from PATH.
+Actual GPU counters and full-size hardware residency remain unrun; no absolute
+WDDM pin guarantee is claimed.
+
+## DSR-AUDIT-010 — Windows INFINITY macro is invalid in a CUDA float constexpr
+
+Native run 39329361817 progressed to 80/203 compile units, then nvcc rejected
+the grouped-top-k constant. MSVC's INFINITY macro expanded to a cast of 1e300
+to float, which overflows during constant evaluation. The exact-source patch
+uses the already included CUDA standard library's numeric_limits<float>
+infinity directly. Its negative-infinity score semantics are unchanged. The
+next native compile/link run must qualify this repair; no GPU result is claimed.

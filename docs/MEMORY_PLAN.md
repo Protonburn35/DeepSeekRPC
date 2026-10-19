@@ -171,7 +171,7 @@ Registering the complete 16.4 GiB store could create unnecessary WDDM/shared
 memory pressure on a 32 GiB laptop. The canonical owned store remains locked,
 and its original file source remains closed. After preload, QueryWorkingSetEx
 checks the Valid and Locked bits of every allocated page in bounded batches.
-The 18 GiB-scale host lock and actual CUDA transfer remain hardware gates.
+The full 16.4 GiB host lock and actual CUDA transfer remain hardware gates.
 
 Native ABI 2 adds a real CUDA-LUID-to-DXGI adapter query for local/nonlocal
 WDDM budgets and usage; physical host availability comes from Windows. The

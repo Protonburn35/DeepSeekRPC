@@ -116,7 +116,8 @@ def main():
         if args.component == "vllm-windows":
             from patch_vllm_for_rpc import apply
             report["patches"] = [apply(source), apply(source, "vllm-windows-exl3-build.lock.json"),
-                                 apply(source, "vllm-windows-stage-hooks.lock.json")]
+                                 apply(source, "vllm-windows-stage-hooks.lock.json"),
+                                 apply(source, "vllm-windows-float-infinity.lock.json")]
             report["native_build_profile"] = "Windows DeepSeekRPC EXL3; SM12x FP8/NVFP4 GEMMs excluded"
             dependency_lock = json.loads((root / "provenance/vllm-native-deps.lock.json").read_text(encoding="utf-8"))
             for item in dependency_lock["dependencies"]:

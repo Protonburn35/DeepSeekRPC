@@ -1,0 +1,48 @@
+{
+  "scope": "native Windows CUDA compile/link/import only; no GPU execution",
+  "source_commit": "99ca318cc80ba6bf0de0d2a118189807bf767635",
+  "worktree_clean": true,
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "checks": [
+    {
+      "name": "compiler",
+      "exit_code": 0
+    },
+    {
+      "name": "torch",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "import",
+      "exit_code": 0
+    },
+    {
+      "name": "fatbin",
+      "exit_code": 0
+    },
+    {
+      "name": "import-without-sdk",
+      "exit_code": 0
+    }
+  ],
+  "GPU_execution": "not run",
+  "full_model_validation": "not run",
+  "wheel": {
+    "name": "deepseekrpc_cuda-0.0.1.dev1-cp312-cp312-win_amd64.whl",
+    "sha256": "8a58fa76df0ae8ccec4778e72c16e55f36b3b9536f7497084bb6bfc0607c0bb6"
+  },
+  "binary_architectures_verified": true,
+  "run_id": 39334269334
+}

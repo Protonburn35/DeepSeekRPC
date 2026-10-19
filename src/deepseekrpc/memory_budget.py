@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import os
 
 from .jsonutil import ValidationError, integer
 from .native_windows import physical_host_memory
@@ -32,6 +33,8 @@ class DeviceBudget:
 
 
 def query_device_budget(device=0) -> DeviceBudget:
+    if os.name != "nt":
+        raise OSError("actual Windows WDDM memory budgets are unavailable on this platform")
     from .cuda_ops import extension
     import torch
     values = extension().windows_memory_budget(device)

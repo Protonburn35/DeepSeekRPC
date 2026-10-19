@@ -183,6 +183,7 @@ class OwnedStageGraph(nn.Module):
         finally:
             torch.set_default_dtype(previous_dtype)
         self.requires_grad_(False)
+        self.eval()
 
     def load_owned_native(self, source, *, admitted_bytes: int):
         if self._ready:
