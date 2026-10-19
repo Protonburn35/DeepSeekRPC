@@ -11,6 +11,6 @@ pillow
 pyyaml
 marisa_trie
 pydantic
-llguidance>=1.7.0
+llguidance>=1.7.0,<1.8.0
 # Torch 2.11 uses the Triton 3.6 generation, rather than latest 3.8.
 triton-windows==3.6.0.post26

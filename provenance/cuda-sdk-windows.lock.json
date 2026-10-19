@@ -45,6 +45,42 @@
       "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cuobjdump/windows-x86_64/cuda_cuobjdump-windows-x86_64-13.2.51-archive.zip",
       "bytes": 6190067,
       "sha256": "85df7d24fa3dc534be028b655d77ec778f854eb3d9cef82b004bea65fe320976"
+    },
+    {
+      "component": "libcusparse",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.7.9.17-archive.zip",
+      "bytes": 149110272,
+      "sha256": "5f0c5a3b94256379f899f8f56fe71f5b765a891283ae34b5e759178894cf60ce"
+    },
+    {
+      "component": "libcusolver",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-12.1.0.51-archive.zip",
+      "bytes": 194271069,
+      "sha256": "f00ba328579f0b939e99adcfb4f71cf7ead323cf6d06b4b2b42ff1216eab0844"
+    },
+    {
+      "component": "cuda_nvrtc",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-13.2.51-archive.zip",
+      "bytes": 288205206,
+      "sha256": "e85d74221e685fd12040b129eb0f91055b34f9149651cf5259079e21ba690897"
+    },
+    {
+      "component": "cuda_nvtx",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvtx/windows-x86_64/cuda_nvtx-windows-x86_64-13.2.20-archive.zip",
+      "bytes": 152482,
+      "sha256": "44d428e710084bd304d38f0f285db776b5d126bacbe577121f43bd19d0161893"
+    },
+    {
+      "component": "libcurand",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.4.2.51-archive.zip",
+      "bytes": 55030112,
+      "sha256": "6971672940449b6325690ae889a41eac2a00a447ce28f4a8fa3578a2e29c87bb"
+    },
+    {
+      "component": "libcufft",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-12.2.0.37-archive.zip",
+      "bytes": 216183815,
+      "sha256": "e2667a2a69864e833b3b584b0b31c2abf627ea73055a3a7570a88b45d4d08650"
     }
   ]
 }

@@ -146,3 +146,13 @@ It requires precompiled SM89/SM120 cubins and imports the installed package;
 there is no model download or GPU execution. The previous project CUDA run
 39316435141 passed compile/link/import/cubin checks and CPU stack tests. The
 new full EXLlama build is pending and does not complete native vLLM or the graph.
+
+## 2026-10-19 — expand the verified SDK for the upstream runtime
+
+Full EXLlama run 39317323604 verified source/dependencies and reached native
+compilation (206 translation units), then stopped at missing cusparse.h in
+Torch's CUDAContextLight.h. The earlier minimal SDK sufficed for this project's
+four kernels but not upstream Torch CUDA headers. Added NVIDIA-published hashes
+and byte bounds for cuSPARSE, cuSOLVER, cuRAND, cuFFT, NVRTC and NVTX components;
+source is unchanged. Also constrained llguidance below 1.8 to match vLLM common
+requirements. Repeat full upstream Windows build pending.

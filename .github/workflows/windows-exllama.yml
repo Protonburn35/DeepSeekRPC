@@ -8,6 +8,8 @@ on:
       - tools/build_upstream.py
       - requirements-exllama-windows.lock
       - provenance/sources.lock.json
+      - provenance/cuda-sdk-windows.lock.json
+      - tools/prepare_cuda_sdk.py
       - .github/workflows/windows-exllama.yml
 
 permissions:
