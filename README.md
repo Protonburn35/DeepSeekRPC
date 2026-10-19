@@ -5,7 +5,7 @@ project goal. This repository is currently an **incomplete engineering
 checkpoint**, not a release candidate or a model-serving application.
 
 The planned topology is 4090 stage A → resident 4060 laptop stage B → 5070 Ti stage C,
-default layers 18/5/17, full eager 1M context, FP16 KV/index and exact SWA replay.
+default layers 18/5/17, full eager 1M context, BF16 KV/index and exact SWA replay.
 All three deployment PCs run Windows 11; stage C uses a Ryzen 7 9800X3D.
 The Windows vLLM graph remains the intended foundation. The working Qwen
 StrataRPC deployment is kept separate.
@@ -21,7 +21,7 @@ remains unfinished.
 Selective local loading verifies publisher file hashes and exposes only owned
 tensor ranges. A boot-only Win32 locked preload closes the laptop disk source;
 full device residency and model execution are still unqualified.
-The vLLM stage adapter, CUDA/FP16 attention integration and complete application
+The vLLM stage adapter, CUDA/BF16 attention integration and complete application
 features remain unfinished. See [requirements](docs/REQUIREMENTS.md),
 [compatibility](docs/COMPATIBILITY.md), [memory](docs/MEMORY_PLAN.md),
 [protocol](docs/RPC_PROTOCOL.md), and [handoff](HANDOFF.md).

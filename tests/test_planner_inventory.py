@@ -25,6 +25,16 @@ def test_actual_source_map_and_replica_bytes():
         ("kv", 20, 1, 2), ("index_k", 20, 1, 2), ("topk", 20, 1, 2), ("candidates", 20, 1, 2),
     }
     assert [p.persistent_source_bytes(r) for r in Role] == [2013265920, 2013265920, 1342177280]
+    assert p.cache_dtype == "bfloat16"
+
+
+@pytest.mark.parametrize("cache_dtype", ["float16", "fp8", "int8", "nvfp4", "auto"])
+def test_cache_precision_cannot_silently_change(cache_dtype):
+    p = plan()
+    with pytest.raises(ValidationError, match="unquantized BF16"):
+        StagePlan(p.geometry, p.split, cache_dtype)
+    with pytest.raises(ValidationError):
+        p.persistent_source_bytes(Role.MIDDLE, element_bytes=1)
 
 
 def test_alternate_partition_regenerates_dependencies():

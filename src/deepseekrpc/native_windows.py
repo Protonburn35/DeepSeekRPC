@@ -53,6 +53,42 @@ class LockedBuffer:
             self._pointer = None
             raise ctypes.WinError(error)
         self._locked = True
+        self._cuda_runtime = None
+
+    def register_cuda(self):
+        """Register existing locked pages; never allocate a second host mirror."""
+        import torch
+        with self._mutex:
+            self._bounds(0, 0)
+            if self._cuda_runtime is not None:
+                return
+            if not torch.cuda.is_available():
+                raise RuntimeError("CUDA host registration requires a real CUDA device")
+            runtime = torch.cuda.cudart()
+            result = runtime.cudaHostRegister(self._pointer, self.size, 0)
+            if result.value != 0:
+                raise RuntimeError(f"CUDA host registration refused admission: {result.value}")
+            self._cuda_runtime = runtime
+
+    def copy_to_cuda(self, offset: int, destination):
+        """Synchronous bounded DMA; no raw pointer or borrowed view escapes."""
+        import torch
+        with self._mutex:
+            if (not destination.is_cuda or destination.dtype != torch.uint8 or
+                    destination.ndim != 1 or not destination.is_contiguous()):
+                raise ValidationError("locked transfer destination must be contiguous CUDA bytes")
+            length = destination.numel()
+            self._bounds(offset, length)
+            if self._cuda_runtime is None:
+                raise ValidationError("locked host pages require CUDA registration before DMA")
+            if not length:
+                return
+            with torch.cuda.device(destination.device):
+                owner = (ctypes.c_ubyte * length).from_address(self._pointer + offset)
+                source = torch.frombuffer(owner, dtype=torch.uint8, count=length)
+                if not source.is_pinned():
+                    raise ValidationError("CUDA did not recognize registered locked host pages")
+                destination.copy_(source, non_blocking=False)
 
     def _bounds(self, offset, length):
         if not self._pointer or not self._locked:
@@ -75,6 +111,11 @@ class LockedBuffer:
     def close(self):
         with self._mutex:
             if self._pointer:
+                if self._cuda_runtime is not None:
+                    result = self._cuda_runtime.cudaHostUnregister(self._pointer)
+                    if result.value != 0:
+                        raise RuntimeError(f"CUDA host unregister failed: {result.value}")
+                    self._cuda_runtime = None
                 if self._locked:
                     if not self._dll.VirtualUnlock(self._pointer, self.size):
                         raise ctypes.WinError(ctypes.get_last_error())

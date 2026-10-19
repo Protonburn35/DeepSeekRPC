@@ -26,7 +26,7 @@ recipient addresses.
 
 ## Persistent state arithmetic
 
-At 1,048,576 positions, FP16 KV width 512 plus FP16 index K width 128 costs
+At 1,048,576 positions, BF16 KV width 512 plus BF16 index K width 128 costs
 1280 bytes per stored logical row. Sources 2/8/14 are half-rate; source 20 is
 full-rate. Primary arrays total 3.125 GiB; with source-14 and source-20 shadows:
 
@@ -37,7 +37,7 @@ full-rate. Primary arrays total 3.125 GiB; with source-14 and source-20 shadows:
 | C | 1342177280 | 1.250 |
 | Total | 5368709120 | 5.000 |
 
-This is not total attention memory and not evidence an FP16 backend exists.
+This is not total attention memory and not evidence a qualified BF16 backend exists.
 Also budget SWA rings for every owned layer, compression pairs, per-row validity
 and generation maps, sparse top-k/candidates, request-local workspaces, attention
 sink and RoPE state, journals and draft state. Include padding/alignment and

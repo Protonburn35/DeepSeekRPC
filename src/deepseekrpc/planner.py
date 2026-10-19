@@ -89,8 +89,11 @@ class Dependency:
 class StagePlan:
     geometry: Geometry
     split: tuple[int, int, int]
+    cache_dtype: str = "bfloat16"
 
     def __post_init__(self):
+        if self.cache_dtype != "bfloat16":
+            raise ValidationError("this deployment requires unquantized BF16 KV/index caches")
         if len(self.split) != 3:
             raise ValidationError("exactly three nonempty stages required")
         for count in self.split:
@@ -131,7 +134,7 @@ class StagePlan:
         return tuple(sorted(result, key=lambda d: (d.recipient, d.source_layer, d.field)))
 
     def persistent_source_bytes(self, role: Role, *, element_bytes: int = 2) -> int:
-        integer(element_bytes, "element bytes", 1, 8)
+        integer(element_bytes, "unquantized BF16 element bytes", 2, 2)
         sources = {s for s in self.geometry.kv_sources if self.owner(s) == role}
         sources.update(d.source_layer for d in self.dependencies()
                        if d.field == "kv" and d.recipient == role)
@@ -148,6 +151,7 @@ class StagePlan:
             "bounds_half_open": {r.label: list(self.bounds(r)) for r in Role},
             "dependencies": [dict(asdict(d), owner=d.owner.label, recipient=d.recipient.label)
                              for d in self.dependencies()],
-            "fp16_source_and_shadow_bytes": {r.label: self.persistent_source_bytes(r) for r in Role},
+            "cache_dtype": self.cache_dtype,
+            "source_and_shadow_bytes": {r.label: self.persistent_source_bytes(r) for r in Role},
             "allocation_status": "prospective arithmetic; not allocated or hardware measured",
         }

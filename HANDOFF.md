@@ -42,14 +42,14 @@ An actual installed CPU-only empty vLLM build and plugin entry-point audit also
 passed; this is Python integration evidence, not native/CUDA qualification.
 Current upstream
 attention rejects missing local shared caches, the plain path returns BF16,
-and bounded SWA replay defaults true. Both required FP16 attention/index support
+and bounded SWA replay defaults true. Both required BF16 attention/index support
 and cross-stage replicas need real adapters; no guards were removed.
 
 Every one of the 192495 pack tensor headers is accounted for; quantization
 metadata alone misses 5389 descriptors. The generated inventory includes four
 original Engram table/scale tensors, omitting redundant original projections
 already represented in EXL3. B owns 17602641264 weight bytes, not including
-2013265920 prospective FP16 source/shadow bytes, scratch, copies or OS reserve.
+2013265920 prospective BF16 source/shadow bytes, scratch, copies or OS reserve.
 This is not proof of physical residency or full 1M fit.
 
 CPU Torch 2.13.0+cpu is an independently pinned mathematical reference tool.
@@ -78,7 +78,7 @@ PYTHONPATH=src python tools/build_inventory.py --metadata-root /workspace/deepse
 
 Next required gates: qualify M1 on native Windows, obtain user-mediated review
 of the source/precision/memory/protocol design, then continue owned vLLM loading,
-replica registration/scatter, exact CED scheduling, full FP16 attention/index,
+replica registration/scatter, exact CED scheduling, full BF16 attention/index,
 EXL3 bounded execution/cache promotion and disk Engram graph integration. Native
 The user granted ongoing pushes/CI authorization; do not ask again for routine
 repository work. Keep a neutral author identity and personal details out of
@@ -120,6 +120,6 @@ non-Windows-only skip, wheel/install/CLI. Archive:
 Native CUDA operation source and a pinned Windows compile workflow now exist;
 its build evidence is pending. See docs/CUDA_BACKEND.md. Next continue actual
 packed EXL3 device loading, bounded caches and the vLLM layer-stage graph,
-transactional FP16 source pools/index selection, exact CED scheduling, Engram
+transactional BF16 source pools/index selection, exact CED scheduling, Engram
 projection/gate, and the remaining application features. Do not request Astra
 review until the complete application is implemented.

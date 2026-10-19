@@ -33,7 +33,7 @@ Paths in this table are relative to the pinned reference indicated.
 | Plugin ABI source surface | vllm-exl3 `tools/check_vllm_compat.py`, executed against Windows vLLM `vllm/`; exact output in `evidence/vllm-compat.log` | Exit 0: imports, plugin group and required abstract methods resolve. One guarded fallback NOTICE and four documentation-only BAD lines are preserved. This is not installed import or GPU qualification. |
 | Actual geometry | Model `config.json:text_config` and vllm-exl3 `src/vllm_exl3/deepseek_v41.py:DEEPSEEK_V41_HIDDEN`, `DEEPSEEK_V41_INTERMEDIATE`, `native_p2b_geometry_supported` | 40 layers, 5120 hidden, 2304 expert intermediate, 384 routed experts, top-6, one shared expert. |
 | Cross-rank state | Windows vLLM `vllm/models/deepseek_v41/attention.py:DeepseekV4Attention.__init__` | Compressed consumers select the latest preceding KV/index sources. Missing local index K source raises NotImplementedError. Default boundaries require source-14 and source-20 replicas, top-k and candidate state. Removing guards alone is incorrect. |
-| FP16 requirement | `attention.py:_resolve_dsv4_kv_cache_dtype`; `nvidia/flashinfer_sparse.py:DeepseekV4FlashInferMLASparseBackend`, `DeepseekV4FlashInferSM120Attention` | Packed paths accept FP8/FP4 formats; plain fallback returns BF16. Backend lists BF16 compute, not a qualified FP16 path. New FP16 storage, index selection and sparse attention adapters are required. A dtype flag cannot satisfy R07. |
+| Historical FP16 requirement, superseded by user | `attention.py:_resolve_dsv4_kv_cache_dtype`; `nvidia/flashinfer_sparse.py:DeepseekV4FlashInferMLASparseBackend`, `DeepseekV4FlashInferSM120Attention` | Packed paths accept FP8/FP4 formats; plain fallback returns BF16. Backend lists BF16 compute, not a qualified FP16 path. The user now requires BF16-only, unquantized KV/index storage. Existing BF16 plain paths are relevant; index selection, full-context state and replica adapters still need integration. No quantized fallback is allowed. |
 | Replay default | Windows vLLM `vllm/config/cache.py:CacheConfig.swa_bounded_replay` | Upstream defaults true. DeepSeekRPC exact mode must set false and verify the resulting backend setting. |
 | Engram allocation | Windows vLLM `vllm/config/engram.py:EngramConfig`; `nvidia/engram.py:DeepseekV41EngramEmbedding` allocation paths | Pinned whole-table CPU/UVA storage is incompatible with the 32 GiB hosts. Implement bounded exact row lookup on A. |
 | Disk-row reference | Zanooda `patches/README.md`, v41 patches 0009, 0010 and 0013 | Source/shadow transfer and exact disk gather are relevant references. Linux preadv/pthread/runtime GCC details require Windows equivalents. Packed reference row sizes are not FP16 sizes. |
@@ -88,7 +88,7 @@ Setuptools 80.10.2 meets the upstream >=77,<81 requirement. pip check passes.
 The CPU build is a source-integration audit, not a native Windows runtime build.
 
 Real CUDA kernels, Windows extension builds,
-FP16 attention/index execution, physical laptop residency, exact CED scheduling,
+BF16 attention/index execution, physical laptop residency, exact CED scheduling,
 vision, distributed full-model behavior and throughput remain unverified.
 These are implementation/build gates, not waived requirements. Ongoing remote
 pushes and CPU CI are authorized by the user. Future builds target Windows only.

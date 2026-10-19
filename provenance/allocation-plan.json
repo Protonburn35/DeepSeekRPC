@@ -65,7 +65,8 @@
         "recipient": "terminal"
       }
     ],
-    "fp16_source_and_shadow_bytes": {
+    "cache_dtype": "bfloat16",
+    "source_and_shadow_bytes": {
       "host": 2013265920,
       "middle": 2013265920,
       "terminal": 1342177280

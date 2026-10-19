@@ -80,6 +80,15 @@ def test_invalid_activation_layouts(dtype, shape):
         TensorDescriptor("hidden_states", -1, dtype, shape, 0, "a" * 32, 0, 0)
 
 
+@pytest.mark.parametrize("semantic", ["kv", "index_k"])
+def test_cache_wire_requires_unquantized_bf16(semantic):
+    for dtype in ("fp16", "fp32", "u8"):
+        with pytest.raises(ValidationError, match="unquantized BF16"):
+            TensorDescriptor(semantic, 14, dtype, (1, 128), 0, "a" * 32, 0, 0)
+    descriptor = TensorDescriptor(semantic, 14, "bf16", (1, 128), 0, "a" * 32, 0, 0)
+    assert descriptor.nbytes == 256
+
+
 @pytest.mark.parametrize("accepted", [0, 1, 2, 3])
 def test_partial_commit_restores_overwritten_ring_rows(accepted):
     s = session()

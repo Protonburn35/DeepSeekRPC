@@ -17,7 +17,7 @@ def capabilities():
                         "resident-only byte storage", "leased bounded RAM tier",
                         "pinned tokenizer", "transactional official Engram hashes"],
         "unqualified_or_missing": ["Windows/CUDA build", "vLLM stage adapter", "EXL3 CUDA execution",
-                                    "FP16 sparse attention/index", "exact CED scheduler", "disk Engram execution",
+                                    "BF16 sparse attention/index integration", "exact CED scheduler", "disk Engram execution",
                                     "physical laptop residency", "GPU cache tier", "vision/API integration",
                                     "DSpark verification", "prefix reuse", "three-stage snapshots"],
         "hardware_validation": "not run", "independent_astra_review": "pending",

@@ -91,6 +91,8 @@ class TensorDescriptor:
             raise ValidationError("fragment splits an element")
         if self.semantic in {"hidden_states", "pre_mix"} and self.dtype != "fp32":
             raise ValidationError("this protocol implementation requires FP32 activation wire")
+        if self.semantic in {"kv", "index_k"} and self.dtype != "bf16":
+            raise ValidationError("KV/index wire requires unquantized BF16 storage")
         if self.semantic in {"token_ids", "positions", "topk", "candidates"} and self.dtype not in {"i32", "i64"}:
             raise ValidationError("integer semantic requires lossless integer storage")
         if self.shape and self.logical_row + self.shape[0] > MAX_CONTEXT:

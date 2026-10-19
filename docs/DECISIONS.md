@@ -33,3 +33,8 @@
 11. All deployment PCs run Windows 11. Stage C is the RTX 5070 Ti with a
     Ryzen 7 9800X3D. "Terminal" is an internal last-stage protocol role, not an
     operating-system choice. User-facing launch instructions identify stages A/B/C.
+12. The user clarified that avoiding quantized KV storage is the actual cache
+    requirement. Use BF16-only KV/index caches; drop the optional FP16 cache mode
+    and prohibit FP8/FP4/INT8 or automatic quantized-cache fallback. This explicit
+    instruction supersedes the original prompt's FP16 default/native alternatives.
+    Existing FP16 EXL3 weight-kernel inputs/rotations are a separate format.

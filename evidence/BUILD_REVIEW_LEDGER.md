@@ -98,3 +98,25 @@
 - Windows CUDA build dependencies and compiler SDK packages are hash-pinned.
   The Windows SDK helper refuses installation on the Linux cloud host. Future
   native evidence verifies both sm_89 and sm_120 cubins plus no-GPU import.
+
+## 2026-10-19 — BF16 cache requirement and first CUDA compiler repair
+
+- User clarified the actual requirement: unquantized KV storage. BF16-only
+  KV/index caches replace the original FP16 default and its optional precision
+  modes. No FP8/FP4/INT8 cache fallback. Planner, typed wire and native operators
+  enforce this. The 5 GiB source/shadow arithmetic is unchanged; other state and
+  working buffers remain additional. Original FP16 EXL3 kernels are separate.
+- Added exact selected mul1 layout validation for physical K2/3/4/5/6/8,
+  rotations, shapes and signed multiplier bytes. DevicePackedLinear binds the
+  actual plugin/ExLlama class and forces packed execution without reconstruction;
+  CUDA execution remains unrun. Focused loader/layout/Win32 CPU checks passed
+  15 tests, two native Win32-only skips. CUDA host registration/DMA on B has an
+  explicit bounded direct-copy path without another pageable host mirror.
+- Native Windows CUDA run 39313690245 verified SDK downloads and actual Torch
+  2.11.0+cu130, compiled the C++ bindings, then hit a Torch Python-header/NVCC
+  generated-code ambiguity. Replaced torch/extension.h in the CUDA translation
+  unit with ATen/ATen.h; Python bindings remain in bindings.cpp. No math assertion
+  was disabled. Also replaced the Windows infinity macro with CUDA's constant.
+- Planner/protocol/layout focused suite after BF16 policy: 55 passed locally.
+  Inventory regenerated with BF16 plan metadata; tensor bytes and ownership are
+  unchanged. New native build remains pending; actual GPU execution is unrun.

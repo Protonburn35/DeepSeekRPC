@@ -5,15 +5,20 @@ for SM89 and SM120 is being qualified; actual GPU execution remains unrun.
 The CUDA build workflow uses a CPU Windows runner and never executes kernels.
 The intended deployment OS is Windows 11 on all three PCs.
 
+The user's current requirement is BF16-only, unquantized KV/index storage. FP16
+cache mode and quantized-cache fallbacks are excluded. This supersedes the
+original implementation prompt's FP16-default language; FP16 inside existing
+EXL3 weight kernels remains independent of this cache policy.
+
 `native/operations.cu` implements these operations without INT8 activations or
 implicit lower-precision cache storage:
 
 | Operation | Storage and computation | State contract |
 | --- | --- | --- |
-| Sparse latent attention | Two FP16 KV pools, FP32 query/accumulation/output; online softmax includes the learned per-head sink as a zero-value term | Int32 per-query slots select the small SWA staging pool or persistent compressed source pool; -1 is padding, duplicates retain their multiplicity. Invalid slots/nonfinite scores fail. No full cache concatenation or dense 1M score matrix. |
-| Index scores | FP16 stored keys, FP32 query/dot/rectification/head-weight reduction | A bounded tile of at most 8192 positions; explicit per-query visible counts; unreachable/padded positions are -inf. Candidate filtering and global top-k require the surrounding adapter. |
+| Sparse latent attention | Two BF16 KV pools, FP32 query/accumulation/output; online softmax includes the learned per-head sink as a zero-value term | Int32 per-query slots select the small SWA staging pool or persistent compressed source pool; -1 is padding, duplicates retain their multiplicity. Invalid slots/nonfinite scores fail. No full cache concatenation or dense 1M score matrix. |
+| Index scores | BF16 stored keys, FP32 query/dot/rectification/head-weight reduction | A bounded tile of at most 8192 positions; explicit per-query visible counts; unreachable/padded positions are -inf. Candidate filtering and global top-k require the surrounding adapter. |
 | Original Engram row decode | Exact FP8 E4M3 values multiplied by standard UE8M0 scales in FP32, then explicitly rounded to BF16 | Bounded encoded [rows,264] input, standard scale-byte-zero interpretation; NaN/overflow fails. Learned projection/gating is a separate graph operation. |
-| Cache scatter | Exact FP16 copies into existing slot pools | Checks physical bounds, duplicate targets and expected int64 slot generations. Failed operations may have tentative writes; transaction rollback is mandatory before reuse/publication. |
+| Cache scatter | Exact BF16 copies into existing slot pools | Checks physical bounds, duplicate targets and expected int64 slot generations. Failed operations may have tentative writes; transaction rollback is mandatory before reuse/publication. |
 
 Python wrappers inspect the native status after stream completion before
 returning a result. This synchronous baseline establishes an ordering boundary;

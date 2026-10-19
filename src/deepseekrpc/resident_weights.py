@@ -57,6 +57,17 @@ class LockedOwnedWeights:
         integer(length, "bounded resident copy", 0, min(MAX_READ, info.nbytes - offset))
         return self._buffer.read(self._layout[name][0] + offset, length)
 
+    def register_cuda(self):
+        if self.closed:
+            raise ValidationError("resident weights are closed")
+        self._buffer.register_cuda()
+
+    def copy_to_cuda(self, name: str, offset: int, destination):
+        info = self.info(name)
+        integer(offset, "resident DMA tensor offset", 0, info.nbytes)
+        integer(destination.numel(), "resident DMA bytes", 0, min(MAX_READ, info.nbytes - offset))
+        self._buffer.copy_to_cuda(self._layout[name][0] + offset, destination)
+
     def close(self):
         if self._buffer is not None:
             self._buffer.close()

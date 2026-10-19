@@ -10,6 +10,7 @@ on:
       - tools/prepare_cuda_sdk.py
       - provenance/cuda-sdk-windows.lock.json
       - requirements-cuda-windows.lock
+      - requirements-dev.lock
       - .github/workflows/windows-cuda.yml
 
 permissions:
@@ -43,13 +44,15 @@ jobs:
           python -m pip install --require-hashes --only-binary=:all:
           --index-url https://pypi.org/simple
           --extra-index-url https://download.pytorch.org/whl/cu130
-          -r requirements-cuda-windows.lock
+          -r requirements-dev.lock -r requirements-cuda-windows.lock
       - name: Install the verified official compiler SDK into runner temporary storage
         run: python tools/prepare_cuda_sdk.py --destination "$env:RUNNER_TEMP/cuda-13.2"
       - name: Compile SM89 and SM120, link, import without a GPU, inspect both cubins
         run: >-
           python tools/build_native.py --sdk "$env:RUNNER_TEMP/cuda-13.2"
           --output "$env:RUNNER_TEMP/deepseekrpc-cuda-build"
+      - name: Run CPU fixtures against the actual Windows CUDA Torch stack
+        run: python -m pytest -q --junitxml="$env:RUNNER_TEMP/deepseekrpc-cuda-build/stack-tests.xml"
       - name: Retain source-specific native build evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
