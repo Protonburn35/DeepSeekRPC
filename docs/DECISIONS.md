@@ -19,5 +19,11 @@
    Xolotl, Abyss, demand-I/O GGUF recipe) are optional technical references.
    They do not silently become new runtime foundations or alternate quants.
 7. Independent Astra review remains a user-mediated handoff. Do not launch an
-   unrequested agent or record self-review as independent approval. Remote
-   publication/CI execution retain the prompt's separate authorization boundary.
+   unrequested agent or record self-review as independent approval.
+8. The user explicitly authorized the first push/draft PR/CPU CI run, then
+   granted ongoing repository push and CI authorization. Future CI builds are
+   Windows-only at the user's request. Native Windows remains the deployment
+   target for all three PCs; cloud CPU source checks are development evidence.
+9. Keep the user's personal identity private. New commits use the neutral
+   DeepSeekRPC Automation identity. Do not include personal names or email
+   addresses in generated commits, PR text, documents or build metadata.

@@ -1,4 +1,4 @@
-name: CPU foundation and native Windows checks
+name: Native Windows CPU checks
 
 on:
   pull_request:
@@ -9,16 +9,8 @@ permissions:
 
 jobs:
   foundation:
-    name: ${{ matrix.os }} / Python 3.12 / CPU only
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            reference: linux
-          - os: windows-2025
-            reference: windows
-    runs-on: ${{ matrix.os }}
+    name: Windows 2025 / Python 3.12 / CPU only
+    runs-on: windows-2025
     timeout-minutes: 25
     env:
       PYTHONUTF8: "1"
@@ -35,13 +27,13 @@ jobs:
           python -m pip install --require-hashes --only-binary=:all:
           --index-url https://pypi.org/simple
           --extra-index-url https://download.pytorch.org/whl/cpu
-          -r requirements-dev.lock -r requirements-reference-${{ matrix.reference }}.lock
+          -r requirements-dev.lock -r requirements-reference-windows.lock
       - name: Run tests, build wheel, and check installed package outside the checkout
         run: python tools/ci_check.py
       - name: Retain exact-source CPU results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cpu-foundation-${{ matrix.os }}-${{ github.sha }}
+          name: cpu-foundation-windows-2025-${{ github.sha }}
           path: ${{ runner.temp }}/deepseekrpc-check
           retention-days: 7

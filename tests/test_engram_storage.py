@@ -70,3 +70,14 @@ def test_nonfinite_fp8_rows_rejected(bad):
     encoded[0, 256:] = 127
     with pytest.raises(ValidationError):
         decode_fp8_rows(encoded)
+
+
+def test_zero_ue8m0_byte_keeps_official_nonzero_scale():
+    # Official ParallelEngramEmbedding uses standard UE8M0 .float(), whereas
+    # the upstream vLLM integer-exponent shortcut maps this encoding to zero.
+    encoded = np.zeros((1, 264), dtype=np.uint8)
+    encoded[:, :256] = 0x38  # exact FP8 +1
+    expected = np.full((1, 256), np.float32(2.0 ** -127), dtype=np.float32)
+    actual = decode_fp8_rows(encoded)
+    np.testing.assert_array_equal(actual.view(np.uint32), expected.view(np.uint32))
+    assert np.all(actual > 0)

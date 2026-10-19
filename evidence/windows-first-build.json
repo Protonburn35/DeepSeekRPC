@@ -1,0 +1,56 @@
+{
+  "source_commit": "494962c972f5916b4e12d1a7edc62ace5b710cb8",
+  "worktree_clean": true,
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "--junitxml=D:\\a\\_temp\\deepseekrpc-check\\pytest.xml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "wheel",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--wheel-dir",
+        "D:\\a\\_temp\\deepseekrpc-check\\wheels",
+        "D:\\a\\DeepSeekRPC\\DeepSeekRPC"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "install-wheel",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-deps",
+        "D:\\a\\_temp\\deepseekrpc-check\\wheels\\deepseekrpc-0.0.1.dev0-py3-none-any.whl"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "CUDA_execution": "not run",
+  "full_model_validation": "not run",
+  "release_candidate": false,
+  "wheel": {
+    "name": "deepseekrpc-0.0.1.dev0-py3-none-any.whl",
+    "sha256": "e31d5b9d2629fe3f1c1ad9f7f5f0e79b0ea9e4e46c0ccb6342ddddff06f89b6a"
+  },
+  "scope": "Initial native Windows foundation run: tests/wheel/install passed; CLI path check failed before launch. Not a CUDA build.",
+  "run_id": 39309316416,
+  "job_id": 118254514086
+}

@@ -9,6 +9,7 @@ from pathlib import Path
 import platform
 import subprocess
 import sys
+import sysconfig
 import tempfile
 
 
@@ -37,7 +38,7 @@ def main():
         # Remove only prior regenerable wheels in this dedicated CI-output dir.
         for wheel in wheels.glob("deepseekrpc-*.whl"):
             wheel.unlink()
-        run("wheel", [sys.executable, "-m", "pip", "wheel", "--no-deps", "--wheel-dir", str(wheels), str(root)])
+        run("wheel", [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "--wheel-dir", str(wheels), str(root)])
         artifacts = list(wheels.glob("deepseekrpc-*.whl"))
         if len(artifacts) != 1:
             raise RuntimeError("expected exactly one wheel from the current build")
@@ -50,7 +51,7 @@ def main():
         location = Path(subprocess.check_output(command, cwd=output, env=installed_env, text=True).strip()).resolve()
         if location.is_relative_to(root / "src"):
             raise RuntimeError("installed-package check accidentally imported checkout source")
-        entry = Path(sys.executable).parent / ("deepseekrpc.exe" if os.name == "nt" else "deepseekrpc")
+        entry = Path(sysconfig.get_path("scripts")) / ("deepseekrpc.exe" if os.name == "nt" else "deepseekrpc")
         run("installed-cli", [str(entry), "capabilities"], cwd=output, env=installed_env)
         capabilities = json.loads((output / "installed-cli.log").read_text(encoding="utf-8"))
         if capabilities["release_candidate"] is not False:

@@ -78,10 +78,18 @@ their licenses and corresponding source obligations.
 
 ## Qualification gaps
 
-Installed vLLM/plugin registration, real CUDA kernels, Windows extension builds,
+An empty CPU-only vLLM 0.31.0+empty wheel and a VLLM_EXL3_NO_CUDA=1 plugin wheel
+were built from the verified pinned archives and installed without dependency
+substitution. Actual vLLM import, installed plugin discovery/import and
+entry-point registration passed. No CUDA extension is present in that build.
+The resolved common/build source-audit stack requires NumPy <2.4 through
+mistral-common, so the initial bootstrap NumPy 2.5.4 was replaced with 2.3.5.
+Setuptools 80.10.2 meets the upstream >=77,<81 requirement. pip check passes.
+The CPU build is a source-integration audit, not a native Windows runtime build.
+
+Real CUDA kernels, Windows extension builds,
 FP16 attention/index execution, physical laptop residency, exact CED scheduling,
 vision, distributed full-model behavior and throughput remain unverified.
-These are implementation/build gates, not waived requirements. Windows CI use
-and remote publication are separate from local implementation authorization;
-prepare a concrete workflow before requesting any missing runner/publication
-permission. Astra review is user-mediated and has not happened.
+These are implementation/build gates, not waived requirements. Ongoing remote
+pushes and CPU CI are authorized by the user. Future builds target Windows only.
+Astra review is user-mediated and has not happened.

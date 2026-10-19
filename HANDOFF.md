@@ -18,11 +18,15 @@ recorded in docs/DECISIONS.md.
 1. Source implementation: incomplete. See docs/REQUIREMENTS.md for every missing
    mandatory runtime component. Do not call a transport fixture an executor.
 2. Native Windows compilation/link/package: pending. CPU Windows workflow is
-   prepared; no remote CI execution has been authorized or run at this point.
+   running in draft PR #1. The first native Windows job passed 129 tests, one
+   non-Windows-only skip, wheel build and install; the installed CLI path check
+   failed because base Windows Python stores scripts in Scripts/. That check
+   now uses sysconfig. Future CI builds are Windows-only by user request.
    CUDA/MSVC tools are absent locally. Python wheel building works on Linux.
 3. CPU checks: ownership/header parsing, real three-process mutual-TLS TCP,
    fragmentation, commit/cancel/resume, journal rollback, bounded RAM/resident
-   storage, original Engram encoded rows, official encoding, independent routing,
+   storage, original Engram encoded rows and transactional hash history, pinned
+   tokenizer/compressed map, official encoding, independent routing,
    unquantized expert and mHC methods, all mul1 windows. Exact counts and source
    identity belong to generated BUILD.json/JUnit logs for each run.
 4. Independent Astra review: pending; user-mediated, no automated reviewer.
@@ -34,7 +38,9 @@ recorded in docs/DECISIONS.md.
 
 The plugin source compatibility checker exits 0 against the pinned Windows
 vLLM tree; its NOTICE and documentation BAD lines are retained in evidence/.
-No installed vLLM/plugin/CUDA qualification is inferred. Current upstream
+An actual installed CPU-only empty vLLM build and plugin entry-point audit also
+passed; this is Python integration evidence, not native/CUDA qualification.
+Current upstream
 attention rejects missing local shared caches, the plain path returns BF16,
 and bounded SWA replay defaults true. Both required FP16 attention/index support
 and cross-stage replicas need real adapters; no guards were removed.
@@ -51,6 +57,11 @@ It is not the qualified Windows runtime Torch (the source requirements select
 2.11.0+cu130 there). uv's initial Torch wheel extraction failed; pip downloaded
 and installed it with the same required hashes and normal TLS verification.
 No unchecked artifact was used and no checksum was changed.
+
+NumPy is now 2.3.5 to satisfy the pinned vLLM source's mistral-common dependency
+(NumPy <2.4); build tooling uses setuptools 80.10.2 (source requires <81).
+The actual CPU source-audit dependency stack passes pip check. See
+docs/FINDINGS.md for the official/vLLM Engram scale-byte-zero discrepancy.
 
 ## Commands and next work
 
@@ -69,9 +80,10 @@ Next required gates: qualify M1 on native Windows, obtain user-mediated review
 of the source/precision/memory/protocol design, then continue owned vLLM loading,
 replica registration/scatter, exact CED scheduling, full FP16 attention/index,
 EXL3 bounded execution/cache promotion and disk Engram graph integration. Native
-Windows runner/publication permission must be resolved with the concrete
-workflow; do not claim Linux compilation as Windows evidence. Continue useful
-local work while that handoff is pending. Later integrate sampling/DSpark, actual
+The user granted ongoing pushes/CI authorization; do not ask again for routine
+repository work. Keep a neutral author identity and personal details out of
+generated output. Do not claim Linux compilation as Windows evidence. Later
+integrate sampling/DSpark, actual
 vision/API, exact prefixes and bounded snapshots, build both SMs, and prepare
 repeated Astra review packets before asking for hardware trials.
 

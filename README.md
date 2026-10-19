@@ -14,6 +14,9 @@ header-derived tensor ownership ledger, bounded typed framing, native TCP with
 mutual TLS, tensor fragmentation, tentative-state rollback, resident-only byte
 storage, a leased RAM cache, bounded original Engram row reads, the official
 October text/tool/vision encoding, and independent CPU operation fixtures.
+The pinned tokenizer and original Engram compressed token map/hash operation
+also run on CPU with bounded transactional validity; learned Engram execution
+remains unfinished.
 The vLLM stage adapter, CUDA/FP16 attention integration and complete application
 features remain unfinished. See [requirements](docs/REQUIREMENTS.md),
 [compatibility](docs/COMPATIBILITY.md), [memory](docs/MEMORY_PLAN.md),
@@ -48,9 +51,10 @@ python tools/ci_check.py
 
 The CI helper runs the suite, builds and installs a wheel, then checks its CLI
 outside the checkout. Its BUILD.json distinguishes source revision, dirty
-working trees, check exits and unrun GPU/full-model validation. The Windows/Linux
-workflow is prepared; remote execution needs the separately authorized GitHub
-CI handoff. The Win32 lock test is explicitly skipped on Linux.
+working trees, check exits and unrun GPU/full-model validation. CI builds target
+native Windows only. Repository pushes and CPU CI are authorized by the user;
+local cloud checks remain development evidence. The Win32 lock test is
+explicitly skipped on Linux.
 
 ## Provenance and inventory
 

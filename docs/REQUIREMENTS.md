@@ -11,7 +11,7 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 | R03 Top-6/shared | CPU route/expert reference compared to extracted official methods; asymmetric clamp and actual-width tests | Quantized CUDA executor, exact GPU tie/routing behavior, all selected expert accumulation |
 | R04 Resident laptop | ResidentStore structurally has no inference loader; Win32 LockedBuffer refuses failed locks | Full preload, model/device working-set and WDDM admission; native Windows and worst-case hardware proof |
 | R05 Desktop tiers | RAMCache reservations/leases/in-flight dedup/failure tests | Native async SSD policy, GPU tier/events, full runtime memory ledger and integration |
-| R06 Disk Engram | EngramRows exact encoded row/scale reads; FP8 decode against CPU Torch | Actual hash/project/gate integration, October chunk/vision/rollback goldens, Windows large-file qualification |
+| R06 Disk Engram | Exact encoded row/scale reads; FP8 decode against CPU Torch; pinned tokenizer/compressed map and original hash operation match upstream frozen odd-chunk/image-mask fixtures with partial acceptance/reset | Learned project/gate integration, real image pipeline, full graph and Windows large-file qualification |
 | R07 FP16 default | Source audit identifies unsupported upstream paths; no fallback advertised | Implement/compile/test actual FP16 sparse KV and index backend on both SMs |
 | R08 Eager 1M | Derived source/shadow byte plan; bounded 64-bit file offsets | Real eager GPU pools and bounded exact schedule, complete lifetime/metadata budget and hardware validation |
 | R09 Replicas | Derived dependency graph; local slot generation/journal checks | Actual deltas, independent GPU slot scatter and candidate/top-k ordering |
@@ -24,7 +24,7 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 | R16 Prefix reuse | Not implemented | Full token/image/component/state identity and CED-aware replay |
 | R17 Snapshots | Protocol/design only | Bounded three-stage save/seal/restore and fault tests |
 | R18 OpenCode | Official October encoding + frozen upstream cases | Streaming API, tool/reasoning loops, client adapter/version and context accounting |
-| R19 Windows/SM89/SM120 | Native Win32 primitives and CPU Windows workflow prepared | Run native Windows tests; build actual runtime and both CUDA targets; then hardware execution |
+| R19 Windows/SM89/SM120 | First Windows CI passed 129 tests including real Win32 lock and sparse-file cases, wheel build/install; installed CLI path correction awaiting repeat | Complete Windows check, build actual runtime and both CUDA targets; then hardware execution |
 | R20 ISA/no INT8 | No added activation INT8 or optional AVX-512 path enabled | Native baseline/dispatch qualification; optional ISA optimization later |
 | R21 Auth/bounds | Mutual TLS stage SAN/run/plane checks; length overflow, digest, deadline, bad-auth tests | Full coordinator admission/queues, control priority during model execution, real deployment cert/port setup |
 | R22 Preserve Qwen | Existing repo and distinct project paths; no original installation changes | Future launcher/config/package isolation and port conflict tests |

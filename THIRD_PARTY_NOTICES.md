@@ -2,7 +2,7 @@
 
 DeepSeekRPC is licensed AGPL-3.0-only. Inspection is not integration: the initial
 source audit did not copy third-party inference code into the runtime. Subsequent
-incorporation of official encoding and test-only oracle methods is listed below. Each
+incorporation of official encoding, Engram hashing and test-only oracle methods is listed below. Each
 future incorporated file or patch must record its origin, commit, license and
 local changes here and in the dependency manifest.
 
@@ -29,6 +29,13 @@ Incorporated source:
   methods from official `inference/model.py`. Its provenance records source
   lines, segment hashes and CPU-only binding. The original MIT license is in
   tests/oracles/LICENSE.
+- `src/deepseekrpc/_vendor/deepseek_1017/engram.py` is unchanged from official
+  `inference/engram.py` at the same pinned October revision. It supplies the
+  compressed token map and n-gram hash state, under the adjacent MIT license.
+  `provenance/engram-reference.lock.json` records its hash and the unmodified
+  tokenizer metadata compressed in tests/fixtures/tokenizer.json.gz. The frozen
+  hash fixture was generated directly with that upstream file, independently
+  of the transactional adapter. It contains no learned weights.
 - `tests/oracles/exl3_dequant.py` is unchanged from vllm-exl3
   `src/vllm_exl3/dequant.py` at the locked commit, under AGPL-3.0-only. It is a
   test-only scalar procedural-codebook oracle, not a production executor.

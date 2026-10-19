@@ -1,0 +1,32 @@
+{
+  "scope": "installed CPU-only empty vLLM Python integration; no CUDA extensions",
+  "CUDA_execution": "not run",
+  "native_Windows_build": "not run",
+  "checks": [
+    {
+      "name": "import_vllm",
+      "status": "passed",
+      "result": {
+        "version": "0.31.0+empty",
+        "torch": "2.13.0+cpu"
+      }
+    },
+    {
+      "name": "plugin_entrypoint",
+      "status": "passed",
+      "result": [
+        "vllm_exl3:vllm_exl3.bf16_madv_compat:register"
+      ]
+    },
+    {
+      "name": "import_plugin",
+      "status": "passed",
+      "result": "0.5.0"
+    },
+    {
+      "name": "register_plugin",
+      "status": "passed",
+      "result": "registered"
+    }
+  ]
+}

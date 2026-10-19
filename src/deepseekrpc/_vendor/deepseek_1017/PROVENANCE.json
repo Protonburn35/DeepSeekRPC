@@ -3,5 +3,12 @@
   "revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
   "file": "encoding/encoding.py",
   "sha256": "13231c592e958fb39e2af6001dae69d90e7a36b265702b9b390236fb387599e2",
-  "patches": []
+  "patches": [],
+  "additional_files": [
+    {
+      "file": "inference/engram.py",
+      "sha256": "11f35ecbead8150c35aa002b3d180ef290b05a25afe883a11884f94d476d3897",
+      "patches": []
+    }
+  ]
 }

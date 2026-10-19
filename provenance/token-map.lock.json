@@ -1,0 +1,13 @@
+{
+  "repository": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+  "reference_file": "inference/engram.py",
+  "reference_sha256": "11f35ecbead8150c35aa002b3d180ef290b05a25afe883a11884f94d476d3897",
+  "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+  "tokenizers_version": "0.23.3",
+  "numpy_version": "2.3.5",
+  "raw_vocab_size": 129280,
+  "compressed_vocab_size": 99092,
+  "canonical_lookup_dtype": "little-endian signed int64",
+  "canonical_lookup_sha256": "26b9be2936d236a124ba318a998c417bc7032e3e92a3107fe98deee49f1dc496"
+}
