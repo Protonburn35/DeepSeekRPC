@@ -1,7 +1,8 @@
 # Native CUDA operation contract
 
-The new native extension is part of the unfinished runtime. Windows compilation
-for SM89 and SM120 is being qualified; actual GPU execution remains unrun.
+The native extension is part of the unfinished runtime. Windows compile/link,
+wheel install, CPU import and both SM89/SM120 cubins passed in run 39314752138.
+The expanded checks also passed in run 39316435141. Actual GPU execution remains unrun.
 The CUDA build workflow uses a CPU Windows runner and never executes kernels.
 The intended deployment OS is Windows 11 on all three PCs.
 
@@ -40,3 +41,11 @@ Their hashes and exact byte counts are recorded in the SDK lock. Compiler minor
 version interoperability, both embedded cubins, extension loading and full
 upstream native builds must be verified before qualification. Compilation does
 not establish numerical GPU correctness or hardware residency.
+
+The separate `windows-exllama.yml` job builds the full pinned EXLlama source,
+without namespace replacements or a JIT-only wheel. Its helper verifies the
+source archive hash, extracts a separate writable build tree, compiles both
+architectures, imports the installed native extension and Python package, and
+checks dependency consistency. This is separate from the four project kernels
+and from the still-required native vLLM build. The upstream compiler math flags
+are preserved; numerical packed-weight execution must be qualified separately.

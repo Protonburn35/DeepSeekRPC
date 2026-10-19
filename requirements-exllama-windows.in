@@ -1,0 +1,16 @@
+# All runtime requirements of the pinned ExLlama source; Torch matches vLLM.
+-r requirements-cuda-windows.in
+-c requirements-dev.lock
+numpy==2.3.5
+tokenizers==0.23.3
+huggingface-hub==1.33.0
+safetensors==0.8.0
+rich
+typing_extensions
+pillow
+pyyaml
+marisa_trie
+pydantic
+llguidance>=1.7.0
+# Torch 2.11 uses the Triton 3.6 generation, rather than latest 3.8.
+triton-windows==3.6.0.post26

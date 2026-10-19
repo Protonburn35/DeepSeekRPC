@@ -138,3 +138,11 @@
 - Native Windows host-lock admission now reserves process working-set quota
   before VirtualLock, preserving the current resident runtime. Added a real
   64 MiB lock/nested allocation/quota release regression; Windows run pending.
+
+## 2026-10-19 — full pinned EXLlama Windows build qualification started
+
+Added a separate source-verified, hash-pinned native Windows EXLlama build job.
+It requires precompiled SM89/SM120 cubins and imports the installed package;
+there is no model download or GPU execution. The previous project CUDA run
+39316435141 passed compile/link/import/cubin checks and CPU stack tests. The
+new full EXLlama build is pending and does not complete native vLLM or the graph.
