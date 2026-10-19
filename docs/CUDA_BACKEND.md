@@ -65,3 +65,14 @@ excluded from CPU CI and remains unrun here. It loads no model and establishes
 neither full-model correctness nor physical residency. The bounded expert
 executor and vLLM quant-method adapter still need integration into the complete
 owned staged graph and separate real packed-weight GPU comparisons.
+
+`index_selection.TiledIndexer` scores at most 8192 keys at a time, gathers BF16
+keys through the local physical slot map, and carries a bounded global top-512
+selection. Source 20 also publishes at most 2048 candidate block IDs (eight
+positions each), pinning the newest partial block. Later indexers score only
+those blocks. Logical IDs are sorted for consumption and padded with -1. Equal
+scores use lower logical IDs as a defined deterministic tie rule; equality with
+the upstream CUDA top-k's unspecified tie choices is not claimed. The actual
+query/weight projection, RoPE and exact CED visibility still require the graph
+adapter. Cancellation can stop between tiles; cache readers hold a window lease
+through CUDA completion so another thread cannot restore slots while in use.

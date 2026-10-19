@@ -187,3 +187,18 @@ New slot-map tests plus existing state/protocol checks: 26 passed locally.
 Actual GPU rollback regression is in selftest-cuda and remains unrun. Full-model
 pool registration, global transactions and whole-process/WDDM admission remain
 pending; this does not establish 1M model execution or physical residency.
+
+## 2026-10-19 — bounded BF16 index selection and vLLM long-path repair
+
+Added tiled actual-CUDA index scoring over independently mapped BF16 key pools,
+streaming top-512, source-20 candidate blocks and candidate-only downstream
+scoring. Ranking diagnostics pass across odd tile sizes and equal-score cases;
+GPU index/rollback self-tests exist but remain unrun. Source projection/RoPE and
+the complete graph/phase scheduler are still pending. Cache read leases retain
+the window until GPU completion; cancellation checks occur between key tiles.
+
+Native vLLM run 39318861172 completed SDK/Torch/CMake setup and fetched all ten
+locked dependency commits. Configuration stopped when Git checked out very
+long ROCm submodule paths inside the FlashAttention source. The Windows job now
+sets core.longpaths for its own Git subprocesses without changing global Git
+configuration. Full compilation/import remains pending.

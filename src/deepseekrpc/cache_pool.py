@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
 import threading
 
 import numpy as np
@@ -202,6 +203,20 @@ class DeviceRowPool:
             if self._needs_rollback:
                 raise ValidationError("failed tentative cache writes cannot be consumed")
             return self.map.physical(logical_positions)
+
+    @contextmanager
+    def read_window(self, operation: Operation):
+        import torch
+        with self._mutex, torch.cuda.device(self.device):
+            self._open()
+            if self._needs_rollback or self.map.active != operation:
+                raise ValidationError("cache consumer targets a failed or stale window")
+            try:
+                yield self.data
+            finally:
+                # A control thread cannot restore or reset slots while queued
+                # readers still use them. Cancellation signals are separate.
+                torch.cuda.synchronize(self.device)
 
     def finish(self, operation: Operation, accepted: int):
         import torch

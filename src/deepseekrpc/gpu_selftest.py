@@ -123,11 +123,51 @@ def run_cuda_checks():
         finally:
             pool.close()
 
+    def tiled_index():
+        from .cache_pool import DeviceRowPool
+        from .index_selection import TiledIndexer
+        from .state import Operation
+        pool = DeviceRowPool(2048, 128, context=4096, offset=997, admitted_bytes=4 * 1024 * 1024, device=device)
+        try:
+            pool.reset("a" * 32, 0)
+            keys = np.zeros((1025, 128), np.float32)
+            positions = np.arange(1025)
+            keys[:, 0], keys[:, 1] = positions // 256, (positions % 256) / 256
+            stored, _ = bf16_array(keys)
+            for number, start in enumerate(range(0, 1025, 64), 1):
+                count = min(64, 1025 - start)
+                op = Operation("a" * 32, "b" * 32, 0, number, "c" * 32, "d" * 64, start, count)
+                pool.begin(op)
+                pool.write(list(range(start, start + count)), list(range(start, start + count)), stored[start:start + count])
+                pool.finish(op, count)
+            op = Operation("a" * 32, "b" * 32, 0, 18, "c" * 32, "d" * 64, 1025, 3)
+            pool.begin(op)
+            query = torch.zeros((3, 32, 128), dtype=torch.float32, device=device)
+            query[:, 0, 0], query[:, 0, 1] = 256., 1.
+            weights = torch.zeros((3, 32), dtype=torch.float32, device=device)
+            weights[:, 0] = tensor([1., -1., 1.], torch.float32)
+            selection = TiledIndexer(tile_rows=128).select(pool, op, query, weights, [513, 1025, 1025], produce_candidates=True)
+            expected = np.stack([np.arange(1, 513), np.arange(512), np.arange(513, 1025)]).astype(np.int32)
+            np.testing.assert_array_equal(selection.topk.cpu().numpy(), expected)
+            candidates = torch.full((3, 2048), -1, dtype=torch.int32, device=device)
+            blocks = [[2, 30, 64], [0, 127, 128], [3, 14, 80]]
+            for row in range(3):
+                candidates[row, :3] = tensor(blocks[row], torch.int32)
+            selected = TiledIndexer(tile_rows=128).select(pool, op, query, weights, [513, 1025, 1025], candidate_blocks=candidates)
+            for row, visible in enumerate([513, 1025, 1025]):
+                expected_row = [p for block in blocks[row] for p in range(block * 8, min(block * 8 + 8, visible))]
+                actual = selected.topk[row].cpu().tolist()
+                assert actual == expected_row + [-1] * (512 - len(expected_row))
+            pool.finish(op, 0)
+        finally:
+            pool.close()
+
     record("BF16 sparse attention: sink, duplicates and empty rows", attention)
     record("BF16 index scores: signed weights and causal visibility", index_scores)
     record("Engram: finite E4M3 codes and UE8M0 byte zero", engram_decode)
     record("BF16 scatter: bit preservation and stale generation refusal", scatter)
     record("BF16 row pool: partial acceptance, ring overwrite and abort", row_pool_rollback)
+    record("BF16 tiled index: independent slots, global ranking and candidate restriction", tiled_index)
     return report
 
 
