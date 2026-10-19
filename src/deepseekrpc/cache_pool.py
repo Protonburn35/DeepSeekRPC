@@ -47,6 +47,17 @@ class SlotMap:
         self.logical.fill(-1)
         self.generations.fill(0)
 
+    def discard_for_reset(self, session: str, epoch: int):
+        """Invalidate an uncertain old window under a strictly newer epoch."""
+        from .protocol import hex_id
+        hex_id(session, 32, "cache session")
+        integer(epoch, "cache epoch", 0, I64_MAX)
+        if epoch <= self.epoch:
+            raise ValidationError("discarded cache recovery requires a newer epoch")
+        self.active = None
+        self.journal.clear()
+        self.reset(session, epoch)
+
     def begin(self, operation: Operation):
         if (self.active is not None or operation.epoch != self.epoch or operation.session != self.session or
                 operation.rows > 64 or operation.start + operation.rows > self.context):
@@ -170,6 +181,17 @@ class DeviceRowPool:
             if self._needs_rollback:
                 raise ValidationError("cache requires rollback before another window")
             self.map.begin(operation)
+
+    def discard_for_reset(self, session: str, epoch: int):
+        """Quiesce CUDA and invalidate all cache validity, retaining allocation."""
+        import torch
+        with self._mutex, torch.cuda.device(self.device):
+            self._open()
+            torch.cuda.synchronize(self.device)
+            self.map.discard_for_reset(session, epoch)
+            self.generations.zero_()
+            torch.cuda.synchronize(self.device)
+            self._needs_rollback = False
 
     def rewind_ring_for_replay(self, session: str, epoch: int):
         """Clear a quiescent SWA ring for the full exact target pass.

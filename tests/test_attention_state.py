@@ -23,3 +23,10 @@ def test_attention_never_silently_truncates_a_window_or_selects_an_unknown_phase
         window("target", 9)
     with pytest.raises(ValidationError, match="phase"):
         window("approximate_tail_replay")
+
+
+def test_target_prefill_projects_only_the_last_prompt_logit_but_verification_projects_every_row():
+    assert window("target", 64).target_head_rows() is None
+    assert window("target", 10).target_head_rows() == (2, 3)
+    assert window("decode", 10).target_head_rows() == (0, 3)
+    assert window("encoder", 10).target_head_rows() is None

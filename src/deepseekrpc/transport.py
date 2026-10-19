@@ -37,6 +37,18 @@ def check_peer(sock: ssl.SSLSocket, expected: Role):
         raise ValidationError("authenticated peer certificate has the wrong stage identity")
 
 
+def _hello_plane(frame):
+    zeros = "0" * 32
+    if (frame.kind != Kind.HELLO or (frame.session, frame.request, frame.transaction) != (zeros, zeros, zeros) or
+            any(getattr(frame, key) for key in ("epoch", "operation", "sequence", "position", "rows", "slot_generation"))):
+        raise ValidationError("channel HELLO has an invalid initial timeline")
+    message = loads(frame.payload, limit=128)
+    if (not isinstance(message, dict) or set(message) != {"plane"} or not isinstance(message["plane"], str) or
+            message["plane"] not in {"control", "data"}):
+        raise ValidationError("invalid channel HELLO plane")
+    return message["plane"]
+
+
 def listen(address: str, port: int) -> socket.socket:
     ip = ipaddress.IPv4Address(address)
     if ip.is_unspecified or ip.is_multicast or not (ip.is_private or ip.is_loopback):
@@ -135,12 +147,14 @@ class Connection:
 
     def hello(self):
         zeros = "0" * 32
-        self.send(Frame(Kind.HELLO, self.run, self.local, self.peer, zeros, zeros,
-                        0, 0, 0, zeros, payload=canonical({"plane": self.plane})))
-        frame = self.receive()
-        if frame.kind != Kind.HELLO or loads(frame.payload, limit=128) != {"plane": self.plane}:
+        try:
+            self.send(Frame(Kind.HELLO, self.run, self.local, self.peer, zeros, zeros,
+                            0, 0, 0, zeros, payload=canonical({"plane": self.plane})))
+            if _hello_plane(self.receive()) != self.plane:
+                raise ValidationError("channel HELLO mismatch")
+        except BaseException:
             self.close()
-            raise ValidationError("channel HELLO mismatch")
+            raise
 
     def __enter__(self):
         return self
@@ -173,6 +187,43 @@ def accept(listener: socket.socket, tls: TLSFiles, *, local: Role, peer: Role,
         sock = tls.context(server=True).wrap_socket(raw, server_side=True)
         connection = Connection(sock, local=local, peer=peer, run=run, plane=plane, timeout=timeout)
         connection.hello()
+        return connection
+    except BaseException:
+        raw.close()
+        if "sock" in locals():
+            sock.close()
+        raise
+
+
+def accept_authenticated(listener: socket.socket, tls: TLSFiles, *, local: Role,
+                         allowed_peers: set[Role], run: str, timeout: float = 10) -> Connection:
+    """Accept either plane from an allowed certificate, independent of startup order.
+
+    The caller must pair and deduplicate (peer, plane) within this configured
+    run. No stage identity is accepted from plaintext or caller-supplied JSON.
+    """
+    if (not isinstance(local, Role) or not isinstance(allowed_peers, set) or not allowed_peers or
+            any(not isinstance(role, Role) or role == local for role in allowed_peers) or not 0 < timeout <= 300):
+        raise ValidationError("listener requires distinct explicit allowed stage certificates")
+    listener.settimeout(timeout)
+    raw, _ = listener.accept()
+    try:
+        raw.settimeout(timeout)
+        sock = tls.context(server=True).wrap_socket(raw, server_side=True)
+        names = {value for kind, value in sock.getpeercert().get("subjectAltName", ())
+                 if kind == "DNS" and value in {role.dns_name for role in Role}}
+        if len(names) != 1:
+            raise ValidationError("authenticated certificate must identify exactly one stage")
+        peer, = [role for role in Role if role.dns_name in names]
+        if peer not in allowed_peers:
+            raise ValidationError("authenticated stage is not allowed on this worker listener")
+        # HELLO is exempt from plane dispatch until its authenticated content
+        # selects this channel's immutable control/data plane.
+        connection = Connection(sock, local=local, peer=peer, run=run, plane="control", timeout=timeout)
+        connection.plane = _hello_plane(connection.receive())
+        zeros = "0" * 32
+        connection.send(Frame(Kind.HELLO, run, local, peer, zeros, zeros, 0, 0, 0, zeros,
+                              payload=canonical({"plane": connection.plane})))
         return connection
     except BaseException:
         raw.close()

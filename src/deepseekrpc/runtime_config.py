@@ -42,7 +42,7 @@ def make_vllm_config(model_root: Path):
         scheduler_config=SchedulerConfig(max_model_len=1048576, is_encoder_decoder=False, max_num_seqs=1,
                                          max_num_batched_tokens=64, enable_chunked_prefill=True,
                                          is_multimodal_model=True),
-        device_config=DeviceConfig(device="cuda"), load_config=LoadConfig(load_format="dummy"),
+        device_config=DeviceConfig(device="cuda"), load_config=LoadConfig(load_format="safetensors"),
         engram_config=EngramConfig(cpu_offload=False, embedding_across_dp=False,
                                   dp_shared_memory=False, use_thp=False),
         kernel_config=KernelConfig(enable_jit_warmup=False, enable_cutedsl_warmup=False),

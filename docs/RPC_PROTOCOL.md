@@ -61,6 +61,21 @@ Bound descriptor count, outstanding operations, replay history, worker queues,
 serialization and staging. A failed send/receive makes that channel unusable.
 Do not continue a partially received operation or infer a remote commit outcome.
 
+The implemented control RPC uses strict payload objects with `rpc=request`
+and a bounded structured `body`; replies contain `rpc=response`, `ok` and a
+structured body or one public error code. Per-channel sequences correlate
+requests and replies while every session/operation field must match. Outgoing
+and incoming work queues are bounded to eight by default; completed replies
+retain a bounded 128-entry exact replay history. A request deadline invalidates
+the channel and leaves its remote outcome unknown until coherent recovery.
+
+One control I/O thread owns each TLS socket. GPU work belongs to an execution
+queue; handlers return promptly so heartbeat/cancellation can continue. The
+data connection uses independent bounded pinned transfer tiles. A mesh listener
+derives stage identity from its verified certificate and plane from the initial
+authenticated HELLO, then pairs/deduplicates channels for the configured run.
+Complete production dispatch and coordinator integration remain in progress.
+
 ## Message families
 
 | IDs | Names | Semantics |

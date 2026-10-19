@@ -72,3 +72,23 @@ def test_new_epoch_invalidates_old_rows_without_reallocating_metadata():
         mapping.physical([0])
     with pytest.raises(ValidationError, match="stale"):
         mapping.begin(op)
+
+
+def test_uncertain_active_window_can_only_be_discarded_into_a_newer_epoch():
+    mapping = SlotMap(4, context=16, offset=2)
+    mapping.reset("a" * 32, 0)
+    op = operation(rows=1)
+    mapping.begin(op)
+    mapping.reserve([0], [0])
+    arrays = id(mapping.logical), id(mapping.generations)
+    with pytest.raises(ValidationError, match="quiescence"):
+        mapping.reset("a" * 32, 1)
+    with pytest.raises(ValidationError, match="newer epoch"):
+        mapping.discard_for_reset("a" * 32, 0)
+    assert mapping.active == op and len(mapping.journal) == 1
+    mapping.discard_for_reset("a" * 32, 1)
+    assert mapping.active is None and not mapping.journal
+    assert arrays == (id(mapping.logical), id(mapping.generations))
+    assert (mapping.logical == -1).all() and (mapping.generations == 0).all()
+    with pytest.raises(ValidationError, match="stale"):
+        mapping.begin(op)

@@ -5,7 +5,11 @@
     "vllm-exl3": "0.5.0",
     "exllamav3": "1.6.1.post1",
     "torch": "2.11.0+cu130",
-    "deepseekrpc-cuda": "0.0.1.dev1"
+    "deepseekrpc-cuda": "0.0.1.dev1",
+    "numpy": "2.3.5",
+    "tokenizers": "0.23.3",
+    "safetensors": "0.8.0",
+    "huggingface-hub": "1.33.0"
   },
   "files": [
     {

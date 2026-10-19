@@ -132,6 +132,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
     hex_id(run_id, 32, "worker run")
     integer(device, "CUDA device index", 0, 31)
     manifest, config, plan, identity = local_deployment(model_root, split=split)
+    identity = fingerprint({"deployment": identity, "runtime": runtime["component_identity"]})
     root = model_root.resolve(strict=True)
     if (role == Role.HOST) != (engram_root is not None):
         raise ValidationError("exactly stage A must supply the original local Engram directory")

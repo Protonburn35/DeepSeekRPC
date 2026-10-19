@@ -26,6 +26,18 @@ def oracle():
 @pytest.mark.reference
 def test_reference_router_unbiased_weights_and_image_bias(oracle):
     torch = oracle.torch
+    from torch.utils._python_dispatch import TorchDispatchMode
+    class Observe(TorchDispatchMode):
+        """Observe real ATen results without changing the frozen math method."""
+        def __init__(self):
+            super().__init__()
+            self.values = {}
+
+        def __torch_dispatch__(self, function, types, args=(), kwargs=None):
+            result = function(*args, **(kwargs or {}))
+            if str(function) in {"aten.mm.default", "aten.softplus.default", "aten.sqrt.default"}:
+                self.values[str(function)] = result
+            return result
     rng = np.random.default_rng(41017)
     x = rng.normal(size=(7, 5120)).astype(np.float32) / 10
     weight = rng.normal(size=(384, 5120)).astype(np.float32) / 10
@@ -35,7 +47,9 @@ def test_reference_router_unbiased_weights_and_image_bias(oracle):
     model = SimpleNamespace(weight=torch.from_numpy(weight), bias=torch.from_numpy(bias),
                             bias_vl=torch.from_numpy(image_bias), gate_temp=1.0,
                             score_func="sqrtsoftplus", topk=6, norm_topk_prob=True, route_scale=1.5)
-    expected_weights, expected_ids = oracle.Gate.forward(model, torch.from_numpy(x), torch.from_numpy(mask))
+    observed = Observe()
+    with observed:
+        expected_weights, expected_ids = oracle.Gate.forward(model, torch.from_numpy(x), torch.from_numpy(mask))
     weights, ids = route(x, weight, bias, image_mask=mask, image_bias=image_bias)
     np.testing.assert_array_equal(ids, expected_ids.numpy())
     try:
@@ -47,9 +61,15 @@ def test_reference_router_unbiased_weights_and_image_bias(oracle):
         scores64 = np.sqrt(np.logaddexp(0., logits64))
         chosen64 = np.take_along_axis(scores64, ids, axis=-1)
         chosen64 = chosen64 / chosen64.sum(-1, keepdims=True) * 1.5
+        intermediates = {}
+        for key, reference in (("aten.mm.default", logits64), ("aten.softplus.default", np.logaddexp(0., logits64)),
+                               ("aten.sqrt.default", scores64)):
+            if key in observed.values:
+                intermediates[key] = np.max(abs(observed.values[key].numpy() - reference), axis=1).tolist()
         raise AssertionError(
             f"router error vs FP64 by row: numpy={np.max(abs(weights - chosen64), axis=1)}; "
-            f"torch={np.max(abs(expected_weights.numpy() - chosen64), axis=1)}"
+            f"torch={np.max(abs(expected_weights.numpy() - chosen64), axis=1)}; "
+            f"actual ATen intermediate errors={intermediates}"
         ) from failure
     np.testing.assert_allclose(weights.sum(axis=1), 1.5, rtol=1e-6)
 

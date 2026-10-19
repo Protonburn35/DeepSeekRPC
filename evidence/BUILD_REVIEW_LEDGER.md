@@ -360,3 +360,47 @@ sampling/admission/phase checks: 30 passed. Actual GPU transfers remain unrun.
 Full EXLlama run 39326981917 passed compile/link, install, Python/native imports,
 both SM cubins and pip consistency. This run predates the separate SDK-free
 native-import check; the newer run 39336142655 must qualify that requirement.
+
+## 2026-10-19 — actual execution boundary, identity and persistent control I/O
+
+The execution component now connects actual CUDA forwards, remote BF16
+source/index rows, current top-k/candidates, independent slot maps and original
+Engram begin/replay/commit to the production phase ledger. Source closures use
+absolute parity and operation hashes bind the exact original tokens/masks.
+Forced recovery quiesces CUDA and invalidates a faulted session under a newer
+epoch without unloading its weight allocations. GPU recovery remains unrun.
+
+Added fixed-capacity original token/image history and separate generated-token
+counts. Repetition penalties use all token counts; presence/frequency penalties
+use generated tokens. Terminal decisions bind those counts, controls, grammar
+identity and RNG state. Prefix digests include original image/processor keys;
+they cannot treat compressed-token-map equality as exact history equality.
+Runtime peer identity now hashes installed application/component source and
+native binaries, in addition to pinned versions, model metadata and precision.
+
+Target prefill no longer computes the vocabulary head for every prompt row:
+only the final target prompt position produces seed logits. Verification still
+projects all bounded input rows, and every target row still updates attention
+and draft context. This preserves full CED while avoiding unnecessary head work.
+
+Added one-owner TLS control pumps, correlated bounded RPC queues, compact error
+codes, deadline invalidation and certificate-derived mesh peer/plane acceptance
+independent of connection arrival order. Real loopback TLS tests exercise replies
+and cancellation while an execution-queue fixture waits. These tests do not
+emulate or qualify model execution. Production service dispatch, coordinator,
+API/vision, prefix checkpoint reuse and snapshots remain incomplete.
+
+Expanded local suite before the latest control additions: 234 passed, four
+actual-Win32-only skips. The application wheel built and its deployment metadata,
+history operations and packaged source identity were inspected after installation
+outside the checkout. Windows CPU run 39337612127 passed checkpoint 65631c7.
+
+The complete follow-up then caught the known CPU router discrepancy: 238 passed,
+one failed and four Win32-only skips. FP64 comparison identifies the Torch side
+(up to 4.6e-5 on the first four rows), with NumPy below 7e-8. Added observation
+of the real ATen intermediate results to the failure diagnostic without editing
+the frozen Gate body or its comparison tolerance. The next full run and three
+diagnostic follow-up suites each passed 239 tests/four skips; 3,000 isolated
+observed Gate calls and an alignment-varied raw-linear check did not reproduce
+the failure. The host numerical issue remains open; none of those passes is a
+causal repair. Native Windows/runtime Torch qualification stays separate.

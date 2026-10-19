@@ -8,6 +8,7 @@ from deepseekrpc.jsonutil import ValidationError
 from deepseekrpc.phases import PhaseLedger, unanimous_receipts
 from deepseekrpc.planner import Role
 from deepseekrpc.state import Operation
+from deepseekrpc.execution import StepInput, source_closures
 
 
 def ledgers(tokens=129):
@@ -135,3 +136,16 @@ def test_aborted_window_retains_cursor_seed_and_full_prefill_chunk_partition():
     cluster[0].reset(session="a" * 32, request="b" * 32, epoch=1,
                      history_digest="c" * 64, encoder_tokens=129)
     assert cluster[0].phase == "encoder"
+
+
+def test_execution_identity_binds_original_ids_masks_and_absolute_compression_closures():
+    inputs = StepInput((7, 129264, 9), (True, False, True))
+    step = inputs.make_window(session="a" * 32, request="b" * 32, epoch=0, number=1,
+                              transaction="c" * 32, start=7, phase="decode",
+                              history_digest="d" * 64, encoder_tokens=10)
+    assert inputs.digest(step) == step.operation.digest
+    assert StepInput((7, 129264, 8), inputs.text_mask).digest(step) != step.operation.digest
+    assert StepInput(inputs.tokens, (True, True, True)).digest(step) != step.operation.digest
+    assert source_closures(step, 2) == ((3, 4), (7, 9))
+    assert source_closures(step, 1) == ((7, 8, 9), (7, 8, 9))
+    assert source_closures(replace(step, phase="target"), 2) == ((), ())

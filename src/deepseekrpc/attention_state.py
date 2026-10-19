@@ -37,6 +37,14 @@ class AttentionWindow:
         return tuple((position + 1) // ratio for position in range(
             self.operation.start, self.operation.start + self.operation.rows))
 
+    def target_head_rows(self):
+        """Vocabulary projection is needed at the prompt tail or verification."""
+        if self.phase == "decode":
+            return 0, self.operation.rows
+        if self.phase == "target" and self.operation.start + self.operation.rows == self.encoder_tokens:
+            return self.operation.rows - 1, self.operation.rows
+        return None
+
 
 class AttentionState:
     """Only admitted owned pools and explicit replicas can enter the graph.
@@ -119,6 +127,29 @@ class AttentionState:
             self._cancelled = cancelled
             self._selections.clear()
             self._begun_compressors.clear()
+
+    @property
+    def active_operation(self):
+        return None if self._window is None else self._window.operation
+
+    @property
+    def next_reset_epoch(self):
+        return 1 + max([pool.map.epoch for pool in self._pools] +
+                       [state.epoch for state in self._compressors.values()])
+
+    def discard_session(self, session: str, epoch: int):
+        """Recover a faulted session with existing eager pools and weights."""
+        with self._mutex:
+            if not self._failed:
+                raise ValidationError("forced cache invalidation requires an explicitly faulted session")
+            if epoch < self.next_reset_epoch:
+                raise ValidationError("recovery epoch does not supersede every partially reset resource")
+            for resource in [*self._pools, *self._compressors.values()]:
+                resource.discard_for_reset(session, epoch)
+            self._window = self._cancelled = None
+            self._selections.clear()
+            self._begun_compressors.clear()
+            self._failed = False
 
     @property
     def current(self) -> AttentionWindow:

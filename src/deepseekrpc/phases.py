@@ -159,7 +159,7 @@ class PhaseLedger:
                 raise ValidationError("draft proposal rows never enter persistent target context")
         elif not accepted and pending_token is not None:
             raise ValidationError("an aborted decode cannot publish a new pending output")
-        if window.phase == "decode" and pending_token is not None and self.processed + accepted >= 1048576:
+        if window.phase == "decode" and pending_token is not None and window.operation.start + accepted >= 1048576:
             raise ValidationError("no pending output token fits beyond the full context")
         return {"window": asdict(window), "accepted": accepted, "result_digest": result_digest,
                 "pending_token": pending_token}

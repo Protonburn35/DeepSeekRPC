@@ -45,7 +45,7 @@ class SamplingPolicy:
     def as_dict(self):
         return asdict(self)
 
-    def probabilities(self, logits, *, counts=None, logit_bias=None, allowed=None):
+    def probabilities(self, logits, *, counts=None, generated_counts=None, logit_bias=None, allowed=None):
         values = np.asarray(logits)
         if (values.ndim != 1 or not 1 <= len(values) <= 129280 or values.dtype not in (np.float32, np.float64) or
                 np.any(np.isnan(values)) or np.any(np.isposinf(values))):
@@ -59,7 +59,13 @@ class SamplingPolicy:
             present = counts > 0
             values[present] = np.where(values[present] >= 0, values[present] / self.repetition_penalty,
                                        values[present] * self.repetition_penalty)
-            values -= self.presence_penalty * present + self.frequency_penalty * counts
+            output_counts = counts if generated_counts is None else np.asarray(generated_counts)
+            if (output_counts.shape != values.shape or output_counts.dtype not in (np.int32, np.int64) or
+                    np.any(output_counts < 0) or np.any(output_counts > counts)):
+                raise ValidationError("generated token counts must be a subset of complete sampling history")
+            values -= self.presence_penalty * (output_counts > 0) + self.frequency_penalty * output_counts
+        elif generated_counts is not None:
+            raise ValidationError("generated counts require complete repetition-penalty history")
         if logit_bias is not None:
             if not isinstance(logit_bias, dict) or len(logit_bias) > len(values):
                 raise ValidationError("invalid logit bias mapping")

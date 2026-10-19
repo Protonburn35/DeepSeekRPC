@@ -90,6 +90,18 @@ class DeviceCompressionState:
             self.session, self.epoch, self.position = session, epoch, 0
             self._failed = self._processed = False
 
+    def discard_for_reset(self, session: str, epoch: int):
+        """Drop uncertain pair/undo validity; do not unload learned parameters."""
+        from .protocol import hex_id
+        hex_id(session, 32, "compression session")
+        integer(epoch, "compression epoch", 0, (1 << 63) - 1)
+        with self._mutex:
+            if epoch <= self.epoch or self.closed:
+                raise ValidationError("compression recovery requires live state and a newer epoch")
+            self.stream.synchronize()
+            self.active = None
+            self.reset(session, epoch)
+
     def begin(self, operation: Operation):
         import torch
         with self._mutex, torch.cuda.device(self.device):

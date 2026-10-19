@@ -4,11 +4,50 @@ from __future__ import annotations
 import hashlib
 from importlib import metadata, resources
 import json
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import sys
 
-from .jsonutil import ValidationError
+from .jsonutil import ValidationError, fingerprint
 from .runtime_policy import configure_exact_cuda_math
+
+
+def application_source_identity():
+    """Bind every shipped Python module and data manifest, independent of path."""
+    entries = {}
+
+    def visit(directory, prefix=""):
+        for item in sorted(directory.iterdir(), key=lambda p: p.name):
+            relative = prefix + item.name
+            if item.is_dir() and item.name != "__pycache__":
+                visit(item, relative + "/")
+            elif item.is_file() and (item.name.endswith((".py", ".json")) or item.name == "LICENSE"):
+                data = item.read_bytes()
+                if len(data) > 4 * 1024 * 1024:
+                    raise ValidationError("application identity file exceeds its admitted source size")
+                entries[relative] = hashlib.sha256(data).hexdigest()
+    visit(resources.files("deepseekrpc"))
+    return {"sha256": fingerprint(entries), "files": len(entries)}
+
+
+def _distribution_identity(name):
+    """Hash actual used distributions, including compiled native libraries."""
+    distribution = metadata.distribution(name)
+    entries, total = {}, 0
+    for relative in distribution.files or ():
+        pure = PurePosixPath(str(relative).replace("\\", "/"))
+        if (pure.is_absolute() or ".." in pure.parts or any(part.endswith(".dist-info") for part in pure.parts) or
+                pure.suffix not in {".py", ".json", ".pyd", ".dll"}):
+            continue
+        path = Path(distribution.locate_file(relative))
+        size = path.stat().st_size
+        total += size
+        if not path.is_file() or size > 4 * 1024 ** 3 or total > 8 * 1024 ** 3:
+            raise ValidationError("installed component identity exceeds its admitted source/native bounds")
+        with path.open("rb") as stream:
+            entries[pure.as_posix()] = hashlib.file_digest(stream, "sha256").hexdigest()
+    if not entries:
+        raise ValidationError("installed runtime component has no inspectable source or native files")
+    return {"sha256": fingerprint(entries), "files": len(entries), "bytes": total}
 
 
 def require_windows_runtime(device=0):
@@ -39,6 +78,17 @@ def require_windows_runtime(device=0):
     if (not callable(exllamav3_ext.exl3_gemm) or deepseekrpc_cuda.abi_version() != 2 or
             not callable(getattr(deepseekrpc_cuda, "windows_memory_budget", None))):
         raise ValidationError("the actual packed/native operation ABI does not match")
+    components = {name: _distribution_identity(name) for name in ("vllm", "vllm-exl3", "exllamav3", "deepseekrpc-cuda")}
+    # Compressed extensions may extract the actual loaded .pyd on import.
+    # Bind that binary as well as all files recorded by the wheel installer.
+    for name, module in (("exllamav3_ext", exllamav3_ext), ("deepseekrpc_cuda", deepseekrpc_cuda)):
+        path = Path(module.__file__)
+        if not path.is_file() or path.stat().st_size > 4 * 1024 ** 3:
+            raise ValidationError("loaded native runtime path is not a bounded real component")
+        with path.open("rb") as stream:
+            components[name] = {"sha256": hashlib.file_digest(stream, "sha256").hexdigest()}
+    components["deepseekrpc"] = application_source_identity()
     return {"versions": lock["versions"], "source_fingerprints_verified": True,
+            "components": components, "component_identity": fingerprint({"versions": lock["versions"], "files": components}),
             "architecture": f"sm_{architecture[0]}{architecture[1]}",
             "GPU_execution": "not established by this identity check"}

@@ -290,9 +290,14 @@ class OwnedStageGraph(nn.Module):
                         main_x = first.main_norm(first.main_proj(target_features))
                         for layer in self.model.mtp.values():
                             layer.attn.seed_context(main_x, positions)
-                    logits = self.logits_processor(self.lm_head, self.model.norm(hc_collapse_triton(hidden, pre_mix)))
-                    if logits is None or logits.dtype != torch.float32 or not bool(torch.isfinite(logits).all()):
-                        raise ValidationError("the real target vocabulary projection did not produce finite FP32 logits")
+                    logits = None
+                    head_rows = window.target_head_rows()
+                    if head_rows is not None:
+                        begin, end = head_rows
+                        collapsed = hc_collapse_triton(hidden[begin:end], pre_mix[begin:end])
+                        logits = self.logits_processor(self.lm_head, self.model.norm(collapsed))
+                        if logits is None or logits.dtype != torch.float32 or not bool(torch.isfinite(logits).all()):
+                            raise ValidationError("the real target vocabulary projection did not produce finite FP32 logits")
                     return StageResult(operation, logits=logits, target_features=target_features)
             except BaseException:
                 self.state.fail()

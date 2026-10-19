@@ -186,7 +186,7 @@ def test_terminal_matching_prefix_controls_include_the_seed_and_conditional_mark
         seen.append(prefix)
         return np.array([False, len(prefix) % 2 == 1, len(prefix) % 2 == 0])
     work = sampler.begin_verification(seed_token=1, policy=SamplingPolicy(temperature=0),
-                                      counts=counts, remaining=3, allowed=grammar)
+                                      counts=counts, remaining=3, allowed=grammar, grammar_identity="e" * 64)
     fixture = ControlledLogits()
     assert work.propose(fixture, None) == (2, 1, 2)
     assert fixture.previous == [1, 2, 1]
@@ -226,8 +226,18 @@ def test_terminal_accepted_eos_never_queries_a_distribution_after_finished_gramm
     sampler = TerminalSampler(7, vocabulary=2)
     work = sampler.begin_verification(seed_token=0, policy=SamplingPolicy(),
                                       counts=np.array([1, 0], np.int32), remaining=10,
-                                      eos_ids={1}, allowed=grammar)
+                                      eos_ids={1}, allowed=grammar, grammar_identity="f" * 64)
     assert work.propose(ControlledLogits(), None) == (1,)
     decision = work.verify(np.array([[0., 1.], [0., 1.]], np.float32))
     assert (decision.output_ids, decision.stop_reason, decision.pending_token) == ((1,), "eos", None)
     work.commit(work.prepared()["digest"])
+
+
+def test_presence_and_frequency_penalties_exclude_prompt_counts_but_repetition_includes_them():
+    counts = np.array([5, 1, 0], np.int32)
+    generated = np.array([0, 1, 0], np.int32)
+    values = np.array([2., 2., 0.], np.float32)
+    policy = SamplingPolicy(repetition_penalty=2, presence_penalty=.5, frequency_penalty=.25)
+    actual = policy.probabilities(values, counts=counts, generated_counts=generated)
+    expected = np.exp(np.array([1., .25, 0.]) - 1)
+    np.testing.assert_allclose(actual, expected / expected.sum(), rtol=1e-15, atol=0)

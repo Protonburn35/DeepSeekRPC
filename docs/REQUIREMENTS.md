@@ -6,31 +6,30 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 
 | ID | Current implementation/evidence | Remaining gate |
 | --- | --- | --- |
-| R01 Exact 1017 | Source/model locks, complete inventory; selective local loader verifies index/header/publisher payload SHA in bounded reads and rejects unowned tensors | Actual graph loading, packed marker/rotation execution and hardware qualification |
-| R02 Three real stages | TCP/TLS/fragments and test_three_real_processes_fragmented_tcp_commit_cancel_resume (test-only affine computation) | Actual owned CUDA model stages; compiled production entry points |
-| R03 Top-6/shared | CPU route/expert reference compared to extracted official methods; asymmetric clamp and actual-width tests | Quantized CUDA executor, exact GPU tie/routing behavior, all selected expert accumulation |
-| R04 Resident laptop | Boot-only selective loader and LockedOwnedWeights use checked Win32 host locking and permanently close the source; focused portable tests pass, native preload fixture awaiting CI | Full model/device working-set, locked staging and WDDM admission; worst-case hardware proof |
-| R05 Desktop tiers | RAMCache reservations/leases/in-flight dedup/failure tests | Native async SSD policy, GPU tier/events, full runtime memory ledger and integration |
-| R06 Disk Engram | Exact encoded row/scale reads; FP8 decode against CPU Torch; pinned tokenizer/compressed map and original hash operation match upstream frozen odd-chunk/image-mask fixtures with partial acceptance/reset | Learned project/gate integration, real image pipeline, full graph and Windows large-file qualification |
-| R07 Unquantized BF16 caches | User selected BF16-only; planner/wire/native operators reject other storage; native sparse/index/scatter source exists | Compile/test both SMs, integrate actual full-context model/backend and replicas; no quantized fallback |
-| R08 Eager 1M | Derived source/shadow byte plan; bounded 64-bit file offsets | Real eager GPU pools and bounded exact schedule, complete lifetime/metadata budget and hardware validation |
-| R09 Replicas | Derived dependency graph; local slot generation/journal checks | Actual deltas, independent GPU slot scatter and candidate/top-k ordering |
-| R10 mHC/CED | Four-stream hc_pre/hc_post against official methods | Complete exact phase scheduler, graph and decoder-state replay |
-| R11 Exact SWA | Upstream bounded default identified in compatibility report | Effective adapter setting and exact/bounded differential fixtures |
-| R12 Sampling | Not implemented | Requested controls, RNG/distribution/EOS/output boundaries |
-| R13 DSpark | Partial/full/zero prefix journal rollback tests are state checks only | Draft execution, target probabilities, exact sampled verifier and all-rank rollback; remains off |
-| R14 Vision | Official encoding and upstream image marker cases | Actual tower/aligner and downstream mask/position/SM120 execution |
-| R15 Cancel | Three real processes cancel and immediately resume; persistent fixture identities | API cancellation wired through actual model and every phase/window |
-| R16 Prefix reuse | Not implemented | Full token/image/component/state identity and CED-aware replay |
+| R01 Exact 1017 | Complete inventory, publisher-verified selective loader and actual owned graph/bootstrap source | Actual GPU constructors/loading and full-model qualification |
+| R02 Three real stages | StageExecution, typed phase ledger and TCP/TLS control/data components; separate affine three-process fixture | Production service/coordinator integration and real three-PC graph |
+| R03 Top-6/shared | Bounded actual EXL3 executor retains every choice, official pre-w2 weighting and actual shared expert path | GPU routing/tie/numerical qualification |
+| R04 Resident laptop | VirtualLocked preload, all-page Win32 residency tests, closed disk source and one shared MiB pinned transfer | Full 16.4 GiB preload, WDDM/device working set and worst-case hardware proof |
+| R05 Desktop tiers | Bounded RAM reads, permanent packed arena, GPU expert arena and event/lease ownership | Complete service integration, prefetch performance and measured memory peaks |
+| R06 Disk Engram | Original encoded rows/hash history, real learned projection/gate adapter and bounded pinned/native decode | Original image pipeline, CUDA numerical and large-file full-model qualification |
+| R07 Unquantized BF16 caches | BF16-only planner/wire/native operations/actual adapter source; both architectures compiled | Actual GPU model/backend/replica execution; no quantized fallback |
+| R08 Eager 1M | Whole-stage header budget, eager fixed GPU pools and Windows CUDA-LUID/DXGI counters | Complete cluster schedule, actual free-memory admission and hardware validation |
+| R09 Replicas | Independent GPU maps/scatter, exact closure exports/imports and source selection validation | Production transfer ordering, all-stage barriers and GPU qualification |
+| R10 mHC/CED | Actual delayed mHC and graph, complete-pass phase ledger/worker and rewind preserving full encoder sources | Cluster coordinator, exact long-context replay and GPU differential checks |
+| R11 Exact SWA | Adapter explicitly disables bounded replay and uses 128-row windows with prefix undo | Actual exact/bounded differential hardware fixtures |
+| R12 Sampling | Requested probability controls, separate output penalties, transactional RNG, exact correction/EOS/length and frozen-prefix grammar callback | Production API/coordinator integration and stop-string handling |
+| R13 DSpark | Actual three-block graph, target-context features, Markov calls and Stage C sampled verifier source | Full cluster acceptance/rollback, output publication and GPU qualification |
+| R14 Vision | Owned actual tower/aligner/native weights and image-row merge source; original encoding fixtures | Original preprocessing/cache/API and SM120 execution |
+| R15 Cancel | Real TLS control cancellation during queued work, per-layer/expert/fragment observers and session invalidation | Production API wiring, every-phase cancellation and hardware recovery |
+| R16 Prefix reuse | Exact original token/image/component history identity and explicit full replay | Saved CED-aware prefix checkpoints and integration |
 | R17 Snapshots | Protocol/design only | Bounded three-stage save/seal/restore and fault tests |
-| R18 OpenCode | Official October encoding + frozen upstream cases | Streaming API, tool/reasoning loops, client adapter/version and context accounting |
-| R19 Windows/SM89/SM120 | First Windows CI passed 129 tests including real Win32 lock and sparse-file cases, wheel build/install; installed CLI path correction awaiting repeat | Complete Windows check, build actual runtime and both CUDA targets; then hardware execution |
-| R20 ISA/no INT8 | Explicit ExLlama policy disables cached INT8/GatedResidual shortcuts before import; subprocess regression checks policy mutation refusal | Wire policy into real adapter and qualify native baseline/dispatch; optional ISA optimization later |
-| R21 Auth/bounds | Mutual TLS stage SAN/run/plane checks; length overflow, digest, deadline, bad-auth tests | Full coordinator admission/queues, control priority during model execution, real deployment cert/port setup |
-| R22 Preserve Qwen | Existing repo and distinct project paths; no original installation changes | Future launcher/config/package isolation and port conflict tests |
-| R23 Honest provenance | Capabilities command, manifest and CI report explicitly classify incomplete/unrun statuses | Exact candidate source/build/review archive, real runtime diagnostics |
-| R24 Speed goals | Payload arithmetic only | Matched measured full-model workloads, no throughput promise |
-
+| R18 OpenCode | Original October encoding, pinned tokenizer and frozen upstream fixtures | Streaming API, tool/reasoning parser/loops and client/context qualification |
+| R19 Windows/SM89/SM120 | Windows CPU CI, project ABI 2 and full EXLlama native builds pass; vLLM build in progress | Full runtime dependency bundle, complete vLLM build and actual GPU execution |
+| R20 ISA/no INT8 | Before-import EXL3 policy, exact CUDA auxiliary math and actual packed adapter with shortcuts disabled | Packed GPU differential/dispatch qualification; optional ISA work later |
+| R21 Auth/bounds | Mutual TLS SAN/run/plane, bounded data/control queues/RPC, deadlines, errors, mesh arrival-order tests | Complete production dispatch/admission and certificate/port setup |
+| R22 Preserve Qwen | Existing repo, independent paths and no changes to working installation | Windows launcher/package isolation and port-conflict qualification |
+| R23 Honest provenance | Locks, native reports, component identities and explicit incomplete/unrun status | Complete candidate archive, diagnostics and repeated independent Astra cycles |
+| R24 Speed goals | Header admission arithmetic and bounded execution source | Matched measured full-model workloads, no throughput promise |
 ## Oracle provenance and tolerances
 
 The official October encoding file is vendored unchanged, with SHA-256 and MIT
