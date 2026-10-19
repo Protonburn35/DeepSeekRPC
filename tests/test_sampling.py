@@ -144,3 +144,90 @@ def test_rng_snapshot_restore_is_atomic_and_resumes_the_same_domain_sequences():
     for domain in ("draft", "accept", "target"):
         assert [left.random(domain) for _ in range(5)] == [right.random(domain) for _ in range(5)]
     assert left.commit() == right.commit()
+
+
+def test_terminal_seed_and_normal_decode_commit_only_the_matching_decision():
+    from deepseekrpc.terminal_sampling import TerminalSampler
+    sampler = TerminalSampler(1017, vocabulary=3)
+    counts = np.array([1, 0, 0], np.int32)
+    policy = SamplingPolicy(temperature=0)
+    seed = sampler.begin_seed(np.array([[0., 4., 0.]], np.float32), policy=policy,
+                              counts=counts, remaining=10)
+    assert seed.decision.output_ids == (1,)
+    assert seed.decision.accepted_target_rows == 0
+    with pytest.raises(ValidationError, match="match"):
+        seed.commit("0" * 64)
+    seed.commit(seed.prepared()["digest"])
+    counts[1] += 1  # Published seed belongs to counts before being forwarded.
+    work = sampler.begin_verification(seed_token=1, policy=policy, counts=counts, remaining=1)
+    work.use_normal_decode()
+    decision = work.verify(np.array([[0., 0., 4.]], np.float32))
+    assert (decision.accepted_target_rows, decision.output_ids, decision.pending_token, decision.stop_reason) == (
+        1, (2,), 2, "length")
+    work.commit(work.prepared()["digest"])
+    assert sampler.active is None
+
+
+def test_terminal_matching_prefix_controls_include_the_seed_and_conditional_markov_history():
+    from deepseekrpc.terminal_sampling import TerminalSampler
+    class ControlledLogits:
+        """Sampling fixture only; this does not emulate a model graph."""
+        def __init__(self):
+            self.previous = []
+
+        def draft_conditional_logits(self, result, row, previous):
+            self.previous.append(previous)
+            return np.array([[0., 0., 0.]], np.float32), None
+
+    sampler = TerminalSampler(2, vocabulary=3)
+    counts = np.array([5, 1, 0], np.int32)  # Pending seed 1 is already published.
+    seen = []
+    def grammar(prefix):
+        seen.append(prefix)
+        return np.array([False, len(prefix) % 2 == 1, len(prefix) % 2 == 0])
+    work = sampler.begin_verification(seed_token=1, policy=SamplingPolicy(temperature=0),
+                                      counts=counts, remaining=3, allowed=grammar)
+    fixture = ControlledLogits()
+    assert work.propose(fixture, None) == (2, 1, 2)
+    assert fixture.previous == [1, 2, 1]
+    assert seen == [(), (2,), (2, 1)]
+    target = np.zeros((4, 3), np.float32)
+    decision = work.verify(target)
+    assert seen[3:] == [(), (2,), (2, 1)]  # No distribution after the length stop.
+    assert (decision.output_ids, decision.pending_token, decision.accepted_target_rows) == ((2, 1, 2), None, 4)
+    work.commit(work.prepared()["digest"])
+    assert counts.tolist() == [5, 1, 0]  # No tentative proposal mutated published counts.
+
+
+def test_terminal_invalid_target_restores_proposal_rng_and_releases_the_transaction():
+    from deepseekrpc.terminal_sampling import TerminalSampler
+    class ControlledLogits:
+        def draft_conditional_logits(self, result, row, previous):
+            return np.array([[0., 0.]], np.float32), None
+    sampler = TerminalSampler(7, vocabulary=2)
+    before = sampler.random.snapshot()
+    work = sampler.begin_verification(seed_token=0, policy=SamplingPolicy(),
+                                      counts=np.array([1, 0], np.int32), remaining=10)
+    work.propose(ControlledLogits(), None)
+    with pytest.raises(ValidationError, match="vocabulary"):
+        work.verify(np.zeros((5, 2), np.float32))  # Need seed + five rows.
+    assert sampler.active is None
+    assert sampler.random.snapshot() == before
+
+
+def test_terminal_accepted_eos_never_queries_a_distribution_after_finished_grammar():
+    from deepseekrpc.terminal_sampling import TerminalSampler
+    class ControlledLogits:
+        def draft_conditional_logits(self, result, row, previous):
+            return np.array([[0., 1.]], np.float32), None
+    def grammar(prefix):
+        assert not prefix, "EOS has ended this grammar; no later distribution exists"
+        return np.array([False, True])
+    sampler = TerminalSampler(7, vocabulary=2)
+    work = sampler.begin_verification(seed_token=0, policy=SamplingPolicy(),
+                                      counts=np.array([1, 0], np.int32), remaining=10,
+                                      eos_ids={1}, allowed=grammar)
+    assert work.propose(ControlledLogits(), None) == (1,)
+    decision = work.verify(np.array([[0., 1.], [0., 1.]], np.float32))
+    assert (decision.output_ids, decision.stop_reason, decision.pending_token) == ((1,), "eos", None)
+    work.commit(work.prepared()["digest"])

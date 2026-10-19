@@ -59,3 +59,22 @@ def test_admission_refuses_device_or_physical_host_shortfall_and_missing_experts
     with pytest.raises(ValidationError, match="every owned"):
         plan_runtime_memory(incomplete, plan, Role.MIDDLE,
                             available_gpu_bytes=8 * GIB, available_host_bytes=24 * GIB)
+
+
+def test_bootstrap_allocates_every_admitted_pool_including_independent_shadow_maps(physical_metadata):
+    from deepseekrpc.bootstrap import _pool_specs, deployment_manifest
+    from deepseekrpc.weights import ShardPin
+    plan, entries = physical_metadata
+    manifest = deployment_manifest()
+    assert len(ShardPin.from_lock(manifest["shards"])) == 43
+    assert len(ShardPin.from_lock(manifest["shards"], model="official")) == 2
+    for role, capacity in zip(Role, (24, 8, 16)):
+        report = plan_runtime_memory(entries[role], plan, role,
+                                     available_gpu_bytes=capacity * GIB, available_host_bytes=24 * GIB)
+        specs = list(_pool_specs(plan, role))
+        assert len({(kind, layer) for kind, layer, _, _ in specs}) == len(specs)
+        device = sum(slots * (width * 2 + 8) + 64 * (width * 2 + 256) + 64 * (width * 2 + 32)
+                     for _, _, slots, width in specs)
+        host = sum(slots * 16 for _, _, slots, _ in specs)
+        assert device == report.gpu["BF16_source_index_shadow_payload"] + report.gpu["SWA_generations_undo_and_pool_scratch"]
+        assert host == report.host["fixed_pool_logical_generation_maps"]

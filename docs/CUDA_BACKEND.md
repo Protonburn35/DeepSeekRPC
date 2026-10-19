@@ -2,7 +2,10 @@
 
 The native extension is part of the unfinished runtime. Windows compile/link,
 wheel install, CPU import and both SM89/SM120 cubins passed in run 39314752138.
-The expanded checks also passed in run 39316435141. Actual GPU execution remains unrun.
+The expanded checks also passed in run 39316435141. ABI 2 compile/link/import,
+both architectures and imports without the compiler SDK passed in 39334269334;
+its report/listing are retained as evidence/native-abi2-*. Actual GPU execution
+remains unrun.
 The CUDA build workflow uses a CPU Windows runner and never executes kernels.
 The intended deployment OS is Windows 11 on all three PCs.
 
@@ -55,7 +58,10 @@ compile/link, wheel installation, native/Python imports, dependency consistency
 and both SM89/SM120 cubins. The retained wheel SHA and build report are in
 `evidence/exllama-first-build.json`. The first run's import used the SDK PATH;
 future qualifications also remove SDK DLL directories for a separate installed
-native import check. No EXL3 GPU product or actual model has executed here.
+native import check. Run 39326981917 also passed the full build and package
+imports, but predates that new separate native import check. Run 39336142655
+includes the new check and remains pending. No EXL3 GPU product or actual model
+has executed here.
 
 `windows-vllm.yml` separately builds the full pinned upstream native wheel with
 its native build dependencies. This job checks the actual installed Torch

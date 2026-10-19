@@ -21,18 +21,15 @@ def fragments(template: Frame, descriptor: TensorDescriptor, storage,
                       payload=bytes(view[offset:offset + length]))
 
 
-class FragmentReceiver:
-    """Storage is preallocated by local policy, never sized from an incoming frame."""
+class FragmentCursor:
+    """Validate a stream before a CPU/GPU consumer writes an admitted range."""
 
-    def __init__(self, template: Frame, descriptor: TensorDescriptor, storage):
-        self.storage = memoryview(storage).cast("B")
-        if self.storage.readonly or len(self.storage) != descriptor.nbytes:
-            raise ValidationError("destination must be admitted, writable, and exactly sized")
+    def __init__(self, template: Frame, descriptor: TensorDescriptor):
         self.template, self.descriptor = template, descriptor
         self.offset, self.sequence = 0, template.sequence
         self.complete = False
 
-    def accept(self, frame: Frame) -> bool:
+    def accept(self, frame: Frame) -> tuple[int, int]:
         if self.complete or frame.tensor is None:
             raise ValidationError("unexpected fragment after completion or without descriptor")
         # Bind every fragment to the operation/timeline, not just the tensor ID.
@@ -49,9 +46,24 @@ class FragmentReceiver:
         if not d.fragment_bytes and d.nbytes:
             raise ValidationError("zero-progress fragment")
         end = self.offset + d.fragment_bytes
-        if end > len(self.storage):
+        if end > self.descriptor.nbytes:
             raise ValidationError("fragment overflows admitted storage")
-        self.storage[self.offset:end] = frame.payload
+        start = self.offset
         self.offset, self.sequence = end, self.sequence + 1
-        self.complete = end == len(self.storage)
+        self.complete = end == self.descriptor.nbytes
+        return start, end
+
+
+class FragmentReceiver(FragmentCursor):
+    """Storage is preallocated by local policy, never sized from an incoming frame."""
+
+    def __init__(self, template: Frame, descriptor: TensorDescriptor, storage):
+        self.storage = memoryview(storage).cast("B")
+        if self.storage.readonly or len(self.storage) != descriptor.nbytes:
+            raise ValidationError("destination must be admitted, writable, and exactly sized")
+        super().__init__(template, descriptor)
+
+    def accept(self, frame: Frame) -> bool:
+        start, end = super().accept(frame)
+        self.storage[start:end] = frame.payload
         return self.complete

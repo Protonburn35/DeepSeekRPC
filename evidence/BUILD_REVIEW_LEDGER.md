@@ -333,3 +333,30 @@ vLLM native run 39329361817 reached 80/203 units and failed on an upstream
 Windows INFINITY macro expanding to an overflowing float cast. An additional
 exact-source patch represents the same negative infinity via CUDA numeric_limits.
 The next actual compiler run must validate it.
+
+## 2026-10-19 — actual startup assembly and phase/terminal control source
+
+Added local publisher-pinned deployment metadata, exact configuration of the
+real vLLM classes, current Windows budget admission and owned stage bootstrap.
+The bootstrap eagerly allocates every BF16 pool, preloads B's locked canonical
+weights, binds complete packed/native/expert catalogues and original Engram,
+loads the actual graph and invokes the small CUDA checks. It returns LOADED;
+distributed readiness still needs the peer barrier and real graph qualification.
+On this CPU host the real vLLM config reaches its explicit CUDA-only Engram
+platform guard; no native GPU constructor is claimed as tested.
+
+Stage C now applies actual graph Markov-conditioning calls around the local
+sampler. Target distributions are lazy so an accepted EOS/length limit does
+not request undefined grammar state afterward. The phase ledger enforces full
+fixed-chunk encoder and target passes, all-stage receipts, separate processed
+and pending positions, duplicate-commit identity and fault/reset rules. These
+are production components, not yet a complete worker/API/coordinator service.
+
+Added a CUDA tensor-wire implementation with one fixed MiB pinned tile and
+bounded CPU staging per connection. Its metadata checks share the exercised
+fragment cursor. Transport/state/three-process CPU regressions: 43 passed;
+sampling/admission/phase checks: 30 passed. Actual GPU transfers remain unrun.
+
+Full EXLlama run 39326981917 passed compile/link, install, Python/native imports,
+both SM cubins and pip consistency. This run predates the separate SDK-free
+native-import check; the newer run 39336142655 must qualify that requirement.

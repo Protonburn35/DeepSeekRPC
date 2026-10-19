@@ -250,16 +250,23 @@ def verify_drafts(target_rows, proposal_rows, proposal_ids, transaction: RandomT
     integer(output_limit, "remaining output limit", 1, 1048576)
     if type(greedy) is not bool or len(proposal_rows) != len(proposal_ids) or len(target_rows) != len(proposal_ids) + 1:
         raise ValidationError("target/proposal verification row counts differ")
-    target_rows = tuple(_distribution(row) for row in target_rows)
     proposal_rows = tuple(_distribution(row) for row in proposal_rows)
-    vocabulary = len(target_rows[0])
-    if any(len(row) != vocabulary for row in (*target_rows, *proposal_rows)):
+    first_target = _distribution(target_rows[0])
+    vocabulary = len(first_target)
+    if any(len(row) != vocabulary for row in proposal_rows):
         raise ValidationError("verification probability vocabularies differ")
+    def target_at(index):
+        # Terminal grammar may end at an accepted EOS. A later distribution
+        # is then undefined and never needed; construct only used prefixes.
+        result = first_target if index == 0 else _distribution(target_rows[index])
+        if len(result) != vocabulary:
+            raise ValidationError("verification probability vocabularies differ")
+        return result
     for token in (*proposal_ids, *eos_ids):
         integer(token, "verification token", 0, vocabulary - 1)
     output = []
     for index, token in enumerate(proposal_ids):
-        target, proposal = target_rows[index], proposal_rows[index]
+        target, proposal = target_at(index), proposal_rows[index]
         if proposal[token] <= 0:
             raise ValidationError("a proposed token has zero probability under its claimed conditional proposal")
         if greedy:
@@ -274,7 +281,8 @@ def verify_drafts(target_rows, proposal_rows, proposal_ids, transaction: RandomT
         output.append(token)
         if token in eos_ids or len(output) >= output_limit:
             return VerificationDecision(index + 1, tuple(output), None, "eos" if token in eos_ids else "length")
-    bonus = (int(np.argmax(target_rows[-1])) if greedy else
-             categorical(target_rows[-1], lambda: transaction.random("target")))
+    bonus_target = target_at(len(proposal_ids))
+    bonus = (int(np.argmax(bonus_target)) if greedy else
+             categorical(bonus_target, lambda: transaction.random("target")))
     return VerificationDecision(len(proposal_ids), tuple(output) + (bonus,), bonus,
                                 "eos" if bonus in eos_ids else "length" if len(output) + 1 >= output_limit else None)
