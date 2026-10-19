@@ -2,7 +2,13 @@ name: Native Windows CPU checks
 
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

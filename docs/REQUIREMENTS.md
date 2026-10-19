@@ -6,10 +6,10 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 
 | ID | Current implementation/evidence | Remaining gate |
 | --- | --- | --- |
-| R01 Exact 1017 | Source/model locks, complete header inventory; test_actual_source_map_and_replica_bytes, selective/malformed file tests | Real owned loader, full local payload integrity, packed marker/rotation execution |
+| R01 Exact 1017 | Source/model locks, complete inventory; selective local loader verifies index/header/publisher payload SHA in bounded reads and rejects unowned tensors | Actual graph loading, packed marker/rotation execution and hardware qualification |
 | R02 Three real stages | TCP/TLS/fragments and test_three_real_processes_fragmented_tcp_commit_cancel_resume (test-only affine computation) | Actual owned CUDA model stages; compiled production entry points |
 | R03 Top-6/shared | CPU route/expert reference compared to extracted official methods; asymmetric clamp and actual-width tests | Quantized CUDA executor, exact GPU tie/routing behavior, all selected expert accumulation |
-| R04 Resident laptop | ResidentStore structurally has no inference loader; Win32 LockedBuffer refuses failed locks | Full preload, model/device working-set and WDDM admission; native Windows and worst-case hardware proof |
+| R04 Resident laptop | Boot-only selective loader and LockedOwnedWeights use checked Win32 host locking and permanently close the source; focused portable tests pass, native preload fixture awaiting CI | Full model/device working-set, locked staging and WDDM admission; worst-case hardware proof |
 | R05 Desktop tiers | RAMCache reservations/leases/in-flight dedup/failure tests | Native async SSD policy, GPU tier/events, full runtime memory ledger and integration |
 | R06 Disk Engram | Exact encoded row/scale reads; FP8 decode against CPU Torch; pinned tokenizer/compressed map and original hash operation match upstream frozen odd-chunk/image-mask fixtures with partial acceptance/reset | Learned project/gate integration, real image pipeline, full graph and Windows large-file qualification |
 | R07 FP16 default | Source audit identifies unsupported upstream paths; no fallback advertised | Implement/compile/test actual FP16 sparse KV and index backend on both SMs |
@@ -25,7 +25,7 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 | R17 Snapshots | Protocol/design only | Bounded three-stage save/seal/restore and fault tests |
 | R18 OpenCode | Official October encoding + frozen upstream cases | Streaming API, tool/reasoning loops, client adapter/version and context accounting |
 | R19 Windows/SM89/SM120 | First Windows CI passed 129 tests including real Win32 lock and sparse-file cases, wheel build/install; installed CLI path correction awaiting repeat | Complete Windows check, build actual runtime and both CUDA targets; then hardware execution |
-| R20 ISA/no INT8 | No added activation INT8 or optional AVX-512 path enabled | Native baseline/dispatch qualification; optional ISA optimization later |
+| R20 ISA/no INT8 | Explicit ExLlama policy disables cached INT8/GatedResidual shortcuts before import; subprocess regression checks policy mutation refusal | Wire policy into real adapter and qualify native baseline/dispatch; optional ISA optimization later |
 | R21 Auth/bounds | Mutual TLS stage SAN/run/plane checks; length overflow, digest, deadline, bad-auth tests | Full coordinator admission/queues, control priority during model execution, real deployment cert/port setup |
 | R22 Preserve Qwen | Existing repo and distinct project paths; no original installation changes | Future launcher/config/package isolation and port conflict tests |
 | R23 Honest provenance | Capabilities command, manifest and CI report explicitly classify incomplete/unrun statuses | Exact candidate source/build/review archive, real runtime diagnostics |

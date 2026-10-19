@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from pathlib import Path
 import os
+import hashlib
 import re
 import struct
 import threading
@@ -101,9 +102,35 @@ class TensorFile:
             if len(data) != length:
                 raise ValidationError("short header read")
             self.tensors = parse_header(data, size)
+            self.file_bytes = size
+            self.header_sha256 = hashlib.sha256(data).hexdigest()
+            self._identity = self._stat_identity()
         except BaseException:
             self._file.close()
             raise
+
+    def _stat_identity(self):
+        stat = os.fstat(self._file.fileno())
+        return stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns
+
+    def verify_file(self, expected_sha256: str):
+        """Verify the local publisher payload in bounded buffers before loading.
+
+        Model files must remain immutable after verification. This check reads
+        the entire selected shard at boot, including any unowned bytes; it does
+        not materialize unowned tensors or download anything.
+        """
+        from .protocol import hex_id
+        hex_id(expected_sha256, 64, "publisher shard")
+        with self._lock:
+            if self._file.closed or self._stat_identity() != self._identity:
+                raise ValidationError("model shard closed or changed before integrity verification")
+            self._file.seek(0)
+            digest = hashlib.sha256()
+            while chunk := self._file.read(MAX_READ):
+                digest.update(chunk)
+            if digest.hexdigest() != expected_sha256 or self._stat_identity() != self._identity:
+                raise ValidationError("local model shard publisher SHA-256 mismatch or concurrent mutation")
 
     def read_range(self, name: str, offset: int, length: int) -> bytes:
         info = self.tensors[name]
@@ -112,6 +139,8 @@ class TensorFile:
         with self._lock:
             if self._file.closed:
                 raise ValidationError("payload file is closed")
+            if self._stat_identity() != self._identity:
+                raise ValidationError("model shard changed after admission")
             self._file.seek(info.offset + offset)
             data = self._file.read(length)
             if len(data) != length:

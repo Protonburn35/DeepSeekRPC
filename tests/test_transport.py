@@ -73,7 +73,8 @@ def test_untrusted_ca_rejected(certificates, tmp_path):
     other = make_certificates(tmp_path / "other-ca")
     with listen("127.0.0.1", 0) as listener, ThreadPoolExecutor(max_workers=1) as pool:
         def server():
-            with pytest.raises(ssl.SSLError):
+            # Windows may deliver the rejecting client's TLS close as WSAECONNRESET.
+            with pytest.raises((ssl.SSLError, ConnectionResetError)):
                 accept(listener, certificates[Role.MIDDLE], local=Role.MIDDLE, peer=Role.HOST,
                        run=RUN, plane="control", timeout=2)
         result = pool.submit(server)

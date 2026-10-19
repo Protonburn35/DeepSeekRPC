@@ -56,3 +56,26 @@
   install and CLI outside the checkout passed. Exact committed-source evidence
   follows the checkpoint. Build tools are now included in the hash-pinned dev
   lock and wheel builds use those installed tools without build isolation.
+
+## 2026-10-19 — owned loading and resident boot admission
+
+- SelectiveWeights validates the pinned index, header and full publisher shard
+  SHA-256 with bounded local reads, then exposes owned tensor ranges only.
+  Corrupt payload, mutation, unsafe shard names, unowned access and absent
+  non-owned files have focused regression coverage. No weights were downloaded.
+- LockedOwnedWeights implements B's boot-only locked host allocation and closes
+  every model file handle permanently. Its real Win32 fixture deletes the local
+  synthetic model files after preload; native CI execution pending. End-to-end
+  laptop/device/staging residency remains unqualified.
+- DSR-AUDIT-002 documents conflicting cached Python/CUDA INT8 defaults and the
+  explicit pre-import policy. It is not yet wired into a full model executor.
+- Windows run 39310450571: 134 passed, one failed, one skipped. The untrusted-CA
+  negative case was rejected, but Windows exposed the peer TLS close as an
+  expected connection reset. Narrowed the assertion to accept SSLError or that
+  reset on the server; it still requires handshake failure.
+- Reusable cloud installer validation uncovered Hugging Face Hub 2.x selected by
+  the CPU tools, conflicting with the installed source-audit Transformers <2
+  constraint. Pinned Hub 1.33.0 in all tool/application locks; pip check passes.
+  Refreshed installer passed 141 tests, two Win32-only skips and native C++ check.
+- User authorized merging and direct main commits after checks, and explicitly
+  deferred Astra handoff until the complete CUDA/application implementation.

@@ -89,3 +89,26 @@ repeated Astra review packets before asking for hardware trials.
 
 No new repo/worktree, full model download, rented GPU, public service or changes
 to the working StrataRPC installation are authorized by these development tools.
+
+## Latest local follow-up
+
+SelectiveWeights verifies the pinned index/header and full local publisher file
+SHA with bounded reads, rejects unowned tensor access and post-admission file
+mutation. LockedOwnedWeights preloads B into checked Win32 locked host pages and
+permanently closes the disk source. This does not qualify GPU copies, staging,
+physical WDDM residency or a full-model run. Exact ExLlama policy explicitly
+zeros GEMV/GatedResidual INT8 before import (DSR-AUDIT-002).
+
+The first expanded Windows run 39310450571 found an OS-specific negative-test
+expectation: the client rejects an untrusted CA and Windows delivers its close
+to the server as ConnectionResetError rather than SSLError. The test now accepts
+that specific reset while still requiring authentication to fail. New loader,
+policy and affected transport/metadata tests: 39 passed, two Win32-only skips
+locally. Refreshed reusable cloud installer: 141 passed, two Win32-only skips,
+pip check and native C++ toolchain check passed.
+
+The user explicitly authorizes merges/direct main commits and wants the first
+Astra review only after the full application is implemented, including all real
+CUDA execution paths compiled for SM89/SM120. Keep working after successful CI;
+do not ask for intermediate reviews or early hardware trials. Actual hardware
+validation remains later, after repeated complete-candidate reviews and fixes.

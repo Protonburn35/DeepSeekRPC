@@ -17,6 +17,9 @@ October text/tool/vision encoding, and independent CPU operation fixtures.
 The pinned tokenizer and original Engram compressed token map/hash operation
 also run on CPU with bounded transactional validity; learned Engram execution
 remains unfinished.
+Selective local loading verifies publisher file hashes and exposes only owned
+tensor ranges. A boot-only Win32 locked preload closes the laptop disk source;
+full device residency and model execution are still unqualified.
 The vLLM stage adapter, CUDA/FP16 attention integration and complete application
 features remain unfinished. See [requirements](docs/REQUIREMENTS.md),
 [compatibility](docs/COMPATIBILITY.md), [memory](docs/MEMORY_PLAN.md),

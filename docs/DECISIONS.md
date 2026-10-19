@@ -27,3 +27,6 @@
 9. Keep the user's personal identity private. New commits use the neutral
    DeepSeekRPC Automation identity. Do not include personal names or email
    addresses in generated commits, PR text, documents or build metadata.
+10. The user authorized merges and direct commits to main, and asked for the
+    Astra handoff after the full application is implemented. Continue internal
+    checks and development checkpoints; do not pause for intermediate reviews.

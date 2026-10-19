@@ -28,3 +28,18 @@ Evidence: all finite FP8 values across synthetic scale bytes 0/64/126/127/130
 match Torch CPU exactly in test_all_finite_fp8_codes_against_pytorch_cpu. A named
 byte-zero regression fixes the expected reference interpretation. Status: source
 discrepancy documented; future GPU adapter and independent review remain pending.
+
+## DSR-AUDIT-002 — ExLlama cached defaults disagree across Python/CUDA
+
+The pinned `exllamav3/util/backend.py` defaults INT8_GEMV_MODE to 2 on CUDA,
+while `exllamav3_ext/quant/exl3_gemv_int8.cu` defaults the cached native mode to
+zero. Documentation also calls mode 2 the default. Do not infer effective
+precision from any one of these sources. `modules/hyperconnections.py` also
+defaults EXL3_GR_INT8 to 1 for its gated-residual shortcut.
+
+runtime_policy.configure_exact_exl3 sets both EXL3_INT8_GEMV and EXL3_GR_INT8
+to zero before ExLlama import, refuses configuration after import, and detects
+subsequent environment changes. Its subprocess regression starts with both
+shortcuts enabled and verifies explicit zero plus refusal after mutation.
+The future native adapter must call this before importing any ExLlama module.
+This establishes policy code, not native execution or a full graph fidelity pass.
