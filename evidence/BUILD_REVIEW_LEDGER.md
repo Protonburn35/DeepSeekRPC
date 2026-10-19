@@ -79,3 +79,22 @@
   Refreshed installer passed 141 tests, two Win32-only skips and native C++ check.
 - User authorized merging and direct main commits after checks, and explicitly
   deferred Astra handoff until the complete CUDA/application implementation.
+
+## 2026-10-19 — first fully passing native Windows foundation checkpoint
+
+- Windows run 39311940687, job 118263493278, passed 142 tests and one explicitly
+  non-Windows-only skip, wheel build/install, installed CLI outside the checkout.
+  This includes real Win32 locked preload after closing/deleting the synthetic
+  model files. Source tested by GitHub was merge tree 745f8d24286aa8de273762a1f94159f87e4a51fd;
+  its implementation head is d2be9102b206a0ff6dcd6c32bc181d7a2541d341.
+- Integrated the tested head into main by fast-forward, preserving neutral commit
+  metadata. Closed draft PR #1 because its source is now completely included.
+  Tagged checkpoint/m2-d2be910 and retained a source archive plus SHA256SUMS.
+- Added actual CUDA source for FP16 sparse attention/index scores, original
+  Engram decode and generation-checked scatter, with an explicit extension ABI
+  and no CPU inference fallback. Three new independent CPU equation fixtures
+  pass. CUDA build qualification is pending the newly prepared Windows workflow;
+  no GPU execution or full distributed graph completion is inferred.
+- Windows CUDA build dependencies and compiler SDK packages are hash-pinned.
+  The Windows SDK helper refuses installation on the Linux cloud host. Future
+  native evidence verifies both sm_89 and sm_120 cubins plus no-GPU import.

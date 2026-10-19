@@ -30,3 +30,6 @@
 10. The user authorized merges and direct commits to main, and asked for the
     Astra handoff after the full application is implemented. Continue internal
     checks and development checkpoints; do not pause for intermediate reviews.
+11. All deployment PCs run Windows 11. Stage C is the RTX 5070 Ti with a
+    Ryzen 7 9800X3D. "Terminal" is an internal last-stage protocol role, not an
+    operating-system choice. User-facing launch instructions identify stages A/B/C.

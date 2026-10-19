@@ -1,0 +1,50 @@
+{
+  "version": "13.2.0",
+  "platform": "windows-x86_64",
+  "metadata_url": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_13.2.0.json",
+  "metadata_sha256": "8ce26ee1cb7ff13286f20dd2c6efbe268776bb13d71108c69cd04453b9d85d2b",
+  "packages": [
+    {
+      "component": "cuda_nvcc",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-13.2.51-archive.zip",
+      "bytes": 31259959,
+      "sha256": "a6bacac79adb923e310eb39f2b86d4d9e756c896d035dfead50c69403eca4661"
+    },
+    {
+      "component": "cuda_crt",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_crt/windows-x86_64/cuda_crt-windows-x86_64-13.2.51-archive.zip",
+      "bytes": 139371,
+      "sha256": "02892bd6bc7ec832c5fc6fc794491803166ee8455bd87d52976c4b195b76c8e7"
+    },
+    {
+      "component": "libnvvm",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/libnvvm/windows-x86_64/libnvvm-windows-x86_64-13.2.51-archive.zip",
+      "bytes": 55236024,
+      "sha256": "ef2a24cf40f9394e2f13df5a8a7315c65325103006a53692cd12b8c48431e372"
+    },
+    {
+      "component": "cuda_cudart",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-13.2.51-archive.zip",
+      "bytes": 3092970,
+      "sha256": "906b430b53e6396f7cbaa6874fbe7f9307a184e830b119a4ad3f58dc6e0165c6"
+    },
+    {
+      "component": "cuda_cccl",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cccl/windows-x86_64/cuda_cccl-windows-x86_64-13.2.27-archive.zip",
+      "bytes": 3519546,
+      "sha256": "fb61bbca384ea9e5722f3b77cfdd635c916f33593d187562510ce14831aa629a"
+    },
+    {
+      "component": "libcublas",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-13.3.0.5-archive.zip",
+      "bytes": 387053964,
+      "sha256": "438a88f07af3721eda15ed1f4d2b957ea810e29061b2a6292837f35520dbd212"
+    },
+    {
+      "component": "cuda_cuobjdump",
+      "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cuobjdump/windows-x86_64/cuda_cuobjdump-windows-x86_64-13.2.51-archive.zip",
+      "bytes": 6190067,
+      "sha256": "85df7d24fa3dc534be028b655d77ec778f854eb3d9cef82b004bea65fe320976"
+    }
+  ]
+}

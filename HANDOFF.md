@@ -112,3 +112,14 @@ Astra review only after the full application is implemented, including all real
 CUDA execution paths compiled for SM89/SM120. Keep working after successful CI;
 do not ask for intermediate reviews or early hardware trials. Actual hardware
 validation remains later, after repeated complete-candidate reviews and fixes.
+
+Windows foundation checkpoint d2be910 is now integrated into main; draft PR #1
+was closed after integration. CI run 39311940687 passed 142 tests, one
+non-Windows-only skip, wheel/install/CLI. Archive:
+/workspace/deepseekrpc-evidence/milestones/d2be910/DeepSeekRPC-source.tar.gz.
+Native CUDA operation source and a pinned Windows compile workflow now exist;
+its build evidence is pending. See docs/CUDA_BACKEND.md. Next continue actual
+packed EXL3 device loading, bounded caches and the vLLM layer-stage graph,
+transactional FP16 source pools/index selection, exact CED scheduling, Engram
+projection/gate, and the remaining application features. Do not request Astra
+review until the complete application is implemented.

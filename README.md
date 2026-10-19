@@ -4,8 +4,9 @@ Native Windows three-PC inference for DeepSeek-V4.1-Flash-1017 EXL3 2.9 is the
 project goal. This repository is currently an **incomplete engineering
 checkpoint**, not a release candidate or a model-serving application.
 
-The planned topology is 4090 host → resident 4060 laptop → 5070 Ti terminal,
+The planned topology is 4090 stage A → resident 4060 laptop stage B → 5070 Ti stage C,
 default layers 18/5/17, full eager 1M context, FP16 KV/index and exact SWA replay.
+All three deployment PCs run Windows 11; stage C uses a Ryzen 7 9800X3D.
 The Windows vLLM graph remains the intended foundation. The working Qwen
 StrataRPC deployment is kept separate.
 

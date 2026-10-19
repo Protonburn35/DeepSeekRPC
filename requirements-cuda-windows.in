@@ -1,0 +1,7 @@
+# Native Windows compile stack. Never install this in the CPU cloud environment.
+torch==2.11.0+cu130
+setuptools==80.10.2
+wheel==0.48.0
+pip==26.2.1
+build==1.6.1
+ninja==1.13.2
