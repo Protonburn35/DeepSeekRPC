@@ -1,0 +1,20 @@
+{
+  "upstream_repository": "SystemPanic/vllm-windows",
+  "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "patch": "vllm-windows-exl3-build.patch",
+  "patch_sha256": "8ba0cd5efe7f2cca93f1715d8b2fae85d800f9308f8eea100bb838634b0307cc",
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "sha256_before": "bd9d163fdfc679f6200064ca9f660f0602adae3e4762eb60aaa0e8e163927e44",
+      "sha256_after": "5352cce43d4f5df7ed9decdf57af5f02643a0f9b6543e4ed895040db816434ba"
+    },
+    {
+      "path": "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_entry.cu",
+      "sha256_before": "4dc6a4e80cc34fb6b770031009feaad5c12b660e06d99f2e3e356f82e34a6110",
+      "sha256_after": "d22bc64f36e5d8debaba1e92af8b089cff1a8482225bafd4a2a70967e68cc49d"
+    }
+  ],
+  "scope": "Explicit Windows EXL3 build profile: omit unused SM12x FP8/NVFP4 GEMMs; report compiled capabilities truthfully; no CUDA SDK or tensor-map ABI changes",
+  "cmake_args": "-DVLLM_DEEPSEEKRPC_EXL3=ON"
+}

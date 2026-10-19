@@ -59,6 +59,14 @@ submodule state, and hashes of upstream-applied build patches. Four exact
 non-build `.claude/skills` aliases are omitted during Windows extraction, avoiding
 a symlink privilege requirement; runtime/build source files remain intact.
 
+The vLLM wheel selects the explicit `VLLM_DEEPSEEKRPC_EXL3` build profile and
+version `0.31.0+deepseekrpc1`. Exact before/after hashes and patch hashes are
+recorded under `patches/`. This profile omits upstream SM12x FP8/NVFP4 matrix
+and MoE kernels, which are unused by this model and fail MSVC C2719 in the
+unmodified build. It preserves CUDA's descriptor alignment. Native capability
+probes must reject those excluded formats; this wheel is for the selected
+EXL3 application. The new build profile has not yet passed Windows qualification.
+
 `deepseekrpc selftest-cuda` now runs independent small attention, index, Engram
 and scatter comparisons on an actual SM89 or SM120 GPU. It is intentionally
 excluded from CPU CI and remains unrun here. It loads no model and establishes

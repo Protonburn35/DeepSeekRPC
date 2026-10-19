@@ -103,3 +103,20 @@ on auxiliary compute streams. The permanent packed store records and enforces
 one compute stream. The complete layer adapter must also disable upstream
 auxiliary GEMM overlap and join expert-cache work before consuming results.
 This is an execution dependency, not a reason to change packed arithmetic.
+
+## DSR-AUDIT-007 — MSVC rejects upstream SM12x quantized GEMM launch parameters
+
+Native Windows run 39320169086 reached the actual compiler and failed with
+C2719 in SM120 FP8 CUTLASS GEMM host launch stubs: parameters request alignment
+128, which MSVC cannot pass by value. Both the official CUDA 13.2 and 13.0.2
+headers retain 128-byte tensor-map alignment. Reducing that alignment in a
+global CUDA header would change a GPU descriptor's ABI and is not an admitted
+repair.
+
+The exact-source build patch introduces an explicit Windows EXL3 profile that
+omits the unused SM12x FP8 and NVFP4 matrix/MoE families. The selected application
+uses EXL3 weights and BF16 vision/KV/index storage. Query FP8 preparation remains
+separate and available. Capability probes now report only compiled dispatches;
+an omitted SM12x call fails rather than dispatching to an unrelated SM80 kernel.
+The profile changes no CUDA SDK file. Its Windows compile/link and runtime
+execution still require qualification; this finding remains open.

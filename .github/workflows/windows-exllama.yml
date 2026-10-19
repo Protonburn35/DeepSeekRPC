@@ -17,12 +17,14 @@ permissions:
 
 concurrency:
   group: windows-exllama-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve long native compilations when shared tooling changes. GitHub
+  # retains one running qualification and the newest pending qualification.
+  cancel-in-progress: false
 
 jobs:
   compile:
     runs-on: windows-2025
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       PYTHONUTF8: "1"
       PIP_DISABLE_PIP_VERSION_CHECK: "1"

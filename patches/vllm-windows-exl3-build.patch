@@ -1,0 +1,114 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,6 +12,14 @@
+ # cmake --build . --target _C
+ # cmake --install . --component _C
+ project(vllm_extensions LANGUAGES CXX)
++
++# EXL3 weights, BF16 KV/index rows and native BF16 vision do not call the
++# SM12x FP8/NVFP4 GEMMs. Their CUTLASS launch stubs pass 128-aligned structs
++# by value, which MSVC rejects (C2719). Keep the CUDA descriptor ABI intact.
++option(VLLM_DEEPSEEKRPC_EXL3 "Build the Windows DeepSeekRPC EXL3 profile" OFF)
++if(VLLM_DEEPSEEKRPC_EXL3 AND NOT WIN32)
++  message(FATAL_ERROR "The DeepSeekRPC EXL3 build profile requires Windows")
++endif()
+ 
+ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+@@ -847,7 +855,7 @@
+   else()
+     cuda_archs_loose_intersection(SCALED_MM_ARCHS "12.0a;12.1a" "${CUDA_ARCHS}")
+   endif()
+-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
++  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS AND NOT VLLM_DEEPSEEKRPC_EXL3)
+     set(SCALED_MM_SM120_SRCS
+       "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_c3x_sm120.cu"
+       "csrc/libtorch_stable/quantization/w8a8/cutlass/c3x/scaled_mm_sm120_fp8.cu"
+@@ -1021,7 +1029,7 @@
+   else()
+     cuda_archs_loose_intersection(FP4_SM120_ARCHS "12.0a;12.1a" "${CUDA_ARCHS}")
+   endif()
+-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_SM120_ARCHS)
++  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_SM120_ARCHS AND NOT VLLM_DEEPSEEKRPC_EXL3)
+     set(FP4_SM120_SRCS
+       "csrc/libtorch_stable/quantization/fp4/nvfp4_quant_kernels.cu"
+       "csrc/libtorch_stable/quantization/fp4/activation_nvfp4_quant_fusion_kernels.cu"
+--- a/csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_entry.cu
++++ b/csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_entry.cu
+@@ -143,33 +143,42 @@
+ #endif
+ 
+ bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability) {
+-  // CUTLASS FP8 kernels need at least
+-  //   CUDA 12.0 on SM90 systems (Hopper)
+-  //   CUDA 12.4 on SM89 systems (Lovelace)
+-
++  // Report only dispatches actually compiled into this wheel.
+ #if defined CUDA_VERSION
+-  if (cuda_device_capability >= 90) {
++#if defined ENABLE_SCALED_MM_SM120 && ENABLE_SCALED_MM_SM120
++  if (cuda_device_capability >= 120 && cuda_device_capability < 130)
++    return CUDA_VERSION >= 12080;
++#endif
++#if defined ENABLE_SCALED_MM_SM100 && ENABLE_SCALED_MM_SM100
++  if (cuda_device_capability >= 100 && cuda_device_capability < 120)
++    return CUDA_VERSION >= 12080;
++#endif
++#if defined ENABLE_SCALED_MM_SM90 && ENABLE_SCALED_MM_SM90
++  if (cuda_device_capability >= 90 && cuda_device_capability < 100)
+     return CUDA_VERSION >= 12000;
+-  } else if (cuda_device_capability >= 89) {
+-    return CUDA_VERSION >= 12040;
+-  }
+-#endif
+-
++#endif
++#if defined ENABLE_SCALED_MM_C2X && ENABLE_SCALED_MM_C2X
++  if (cuda_device_capability == 89) return CUDA_VERSION >= 12040;
++#endif
++#endif
+   return false;
+ }
+ 
+ bool cutlass_scaled_mm_supports_block_fp8(int64_t cuda_device_capability) {
+-  // CUTLASS block-quantized FP8 kernels need at least CUDA 12.0
+-  // and at least SM90 (Hopper)
+-
+ #if defined CUDA_VERSION
+-  if (cuda_device_capability >= 100) {
++#if defined ENABLE_SCALED_MM_SM120 && ENABLE_SCALED_MM_SM120
++  if (cuda_device_capability >= 120 && cuda_device_capability < 130)
+     return CUDA_VERSION >= 12080;
+-  } else if (cuda_device_capability >= 90) {
++#endif
++#if defined ENABLE_SCALED_MM_SM100 && ENABLE_SCALED_MM_SM100
++  if (cuda_device_capability >= 100 && cuda_device_capability < 120)
++    return CUDA_VERSION >= 12080;
++#endif
++#if defined ENABLE_SCALED_MM_SM90 && ENABLE_SCALED_MM_SM90
++  if (cuda_device_capability >= 90 && cuda_device_capability < 100)
+     return CUDA_VERSION >= 12000;
+-  }
+-#endif
+-
++#endif
++#endif
+   return false;
+ }
+ 
+@@ -249,13 +258,13 @@
+     return;
+   }
+ 
+-  if (version_num >= 80) {
++  if (version_num >= 80 && version_num < 90) {
+     // Ampere
+     cutlass_scaled_mm_sm80(c, a, b, a_scales, b_scales, bias);
+     return;
+   }
+ 
+-  if (version_num >= 75) {
++  if (version_num >= 75 && version_num < 80) {
+     // Turing
+     cutlass_scaled_mm_sm75(c, a, b, a_scales, b_scales, bias);
+     return;

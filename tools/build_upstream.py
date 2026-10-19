@@ -89,7 +89,8 @@ def main():
     env["PATH"] = os.pathsep.join([str(sdk / "bin"), str(sdk / "bin/x64"), env["PATH"]])
     if args.component == "vllm-windows":
         env.update(VLLM_TARGET_DEVICE="cuda", VLLM_USE_PRECOMPILED="0", VLLM_USE_PRECOMPILED_RUST="0",
-                   SETUPTOOLS_SCM_PRETEND_VERSION="0.31.0", NVCC_THREADS="1")
+                   SETUPTOOLS_SCM_PRETEND_VERSION="0.31.0+deepseekrpc1", NVCC_THREADS="1",
+                   CMAKE_ARGS="-DVLLM_DEEPSEEKRPC_EXL3=ON")
     report = {"scope": f"pinned {args.component} Windows native compile/link/import; no GPU execution",
               "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
               "worktree_clean": not bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=root, text=True)),
@@ -112,6 +113,9 @@ def main():
         source = work / args.component
         report["omitted_nonbuild_agent_links"] = extract_source(archive, source)
         if args.component == "vllm-windows":
+            from patch_vllm_for_rpc import apply
+            report["patches"] = [apply(source), apply(source, "vllm-windows-exl3-build.lock.json")]
+            report["native_build_profile"] = "Windows DeepSeekRPC EXL3; SM12x FP8/NVFP4 GEMMs excluded"
             dependency_lock = json.loads((root / "provenance/vllm-native-deps.lock.json").read_text(encoding="utf-8"))
             for item in dependency_lock["dependencies"]:
                 if "tag" in item:
@@ -139,7 +143,10 @@ def main():
             query = ("import torch; from importlib.metadata import distribution; "
                      "d=distribution('vllm'); p,=[d.locate_file(f) for f in d.files "
                      "if str(f).startswith('vllm/_C_stable_libtorch') and str(f).endswith('.pyd')]; "
-                     "torch.ops.load_library(str(p)); assert callable(torch.ops._C.rms_norm); print(p)")
+                     "torch.ops.load_library(str(p)); assert callable(torch.ops._C.rms_norm); "
+                     "assert not torch.ops._C.cutlass_scaled_mm_supports_fp8(120); "
+                     "assert not torch.ops._C.cutlass_scaled_mm_supports_block_fp8(120); "
+                     "assert not torch.ops._C.cutlass_scaled_mm_supports_fp4(120); print(p)")
         run("import-native", [sys.executable, "-c", query], cwd=output)
         module = Path((output / "import-native.log").read_text(encoding="utf-8").strip().splitlines()[-1])
         run("fatbin", [str(sdk / "bin/cuobjdump.exe"), "--list-elf", str(module)])

@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - tools/build_upstream.py
+      - tools/patch_vllm_for_rpc.py
+      - patches/**
       - requirements-vllm-build-windows.lock
       - provenance/sources.lock.json
       - provenance/cuda-sdk-windows.lock.json
