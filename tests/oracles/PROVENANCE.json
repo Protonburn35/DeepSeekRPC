@@ -1,0 +1,33 @@
+{
+  "repository": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+  "source_file": "inference/model.py",
+  "source_file_sha256": "e5decd76fe70fd56ef2f10124d245c6f64fb6a0003cc9068a1d3182a168b8d2d",
+  "adaptations": [
+    "Extracted selected methods; kept method bodies and signatures.",
+    "Unquantized float32 router linear is bound to torch.nn.functional.linear for CPU fixtures.",
+    "No GPU-only module initialization or quantized inference is represented."
+  ],
+  "methods": [
+    {
+      "symbol": "Gate.forward",
+      "source_line": 811,
+      "source_segment_sha256": "263beea0616738fabb35c7543159714322bc85aa9b13f9f3a6773e9f832714a1"
+    },
+    {
+      "symbol": "Expert.forward",
+      "source_line": 843,
+      "source_segment_sha256": "d7cfad37351b98a1eda020be3454a64c234fd7a50d797cd0a94aa27fcbb29563"
+    },
+    {
+      "symbol": "Block.hc_pre",
+      "source_line": 959,
+      "source_segment_sha256": "000bba74e549728fa33b2b6870ae379c6644eb8b5dcfc863570cfaa553a91bc1"
+    },
+    {
+      "symbol": "Block.hc_post",
+      "source_line": 964,
+      "source_segment_sha256": "9a9be709f0d44db28a25b94153083ee9cc8629f52ec9390e28dca4abf4afb791"
+    }
+  ]
+}

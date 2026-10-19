@@ -1,0 +1,72 @@
+import json
+import struct
+
+import numpy as np
+import pytest
+
+from deepseekrpc.engram_storage import EngramRows, decode_fp8_rows
+from deepseekrpc.jsonutil import ValidationError
+
+
+def table(tmp_path):
+    weights = np.arange(16 * 256, dtype=np.uint8).reshape(16, 256) % 127
+    scales = np.full((16, 8), 127, dtype=np.uint8)
+    raw = weights.tobytes() + scales.tobytes()
+    metadata = {"layers.1.engram.embed.weight": {"dtype": "F8_E4M3", "shape": [16, 256],
+                                                "data_offsets": [0, weights.nbytes]},
+                "layers.1.engram.embed.scale": {"dtype": "F8_E8M0", "shape": [16, 8],
+                                               "data_offsets": [weights.nbytes, len(raw)]}}
+    header = json.dumps(metadata).encode()
+    path = tmp_path / "synthetic_engram.safetensors"
+    path.write_bytes(struct.pack("<Q", len(header)) + header + raw)
+    return path, weights, scales
+
+
+def test_exact_encoded_rows_and_bounded_cache(tmp_path):
+    path, weights, scales = table(tmp_path)
+    with EngramRows(path, layer=1, cache_bytes=1040) as store:
+        ids = np.array([3, 8, 3], dtype=np.int64)
+        values = store.gather_encoded(ids)
+        np.testing.assert_array_equal(values[:, :256], weights[ids])
+        np.testing.assert_array_equal(values[:, 256:], scales[ids])
+        assert store.disk_row_reads == 2 and store.cache_hits == 1
+        store.gather_encoded(np.array([7, 8, 9, 10], dtype=np.int32))
+        assert len(store._cache) <= 2
+        with pytest.raises(ValidationError):
+            store.gather_encoded(np.array([16], dtype=np.int64))
+    with pytest.raises(ValidationError):
+        store.gather_encoded(np.array([3], dtype=np.int64))
+
+
+def test_no_cache_preserves_every_exact_row(tmp_path):
+    path, weights, scales = table(tmp_path)
+    with EngramRows(path, layer=1, cache_bytes=0) as store:
+        ids = np.array([3, 8, 3], dtype=np.int64)
+        actual = store.gather_encoded(ids)
+        np.testing.assert_array_equal(actual, np.concatenate((weights[ids], scales[ids]), axis=1))
+        assert store.disk_row_reads == 3 and not store._cache
+
+
+@pytest.mark.reference
+def test_all_finite_fp8_codes_against_pytorch_cpu():
+    torch = pytest.importorskip("torch")
+    codes = np.arange(256, dtype=np.uint8)
+    finite = codes[(codes & 127) != 127]
+    for exponent in (0, 64, 126, 127, 130):
+        encoded = np.zeros((1, 264), dtype=np.uint8)
+        encoded[0, :len(finite)] = finite
+        encoded[0, 256:] = exponent
+        actual = decode_fp8_rows(encoded)
+        weights = torch.from_numpy(encoded[:, :256].copy()).view(torch.float8_e4m3fn).float()
+        scales = torch.from_numpy(encoded[:, 256:].copy()).view(torch.float8_e8m0fnu).float()
+        expected = (weights.reshape(1, 8, 32) * scales[..., None]).reshape(1, 256).numpy()
+        np.testing.assert_array_equal(actual.view(np.uint32), expected.view(np.uint32))
+
+
+@pytest.mark.parametrize("bad", [127, 255])
+def test_nonfinite_fp8_rows_rejected(bad):
+    encoded = np.zeros((1, 264), dtype=np.uint8)
+    encoded[0, 0] = bad
+    encoded[0, 256:] = 127
+    with pytest.raises(ValidationError):
+        decode_fp8_rows(encoded)

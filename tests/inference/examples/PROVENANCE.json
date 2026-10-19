@@ -1,0 +1,14 @@
+[
+  {
+    "path": "inference/examples/example.txt",
+    "revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+    "sha256": "8456a2f1d5a15b7aa1f697567e34f79af0522fb694df7ac789dae9853fff165d",
+    "bytes": 332
+  },
+  {
+    "path": "inference/examples/example_harmony.json",
+    "revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+    "sha256": "44ae84a3cbd360b1b8d303ed4006756afb77e5d014c4abb7c61ff9b9a094f6ea",
+    "bytes": 2156
+  }
+]

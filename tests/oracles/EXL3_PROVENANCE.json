@@ -1,0 +1,9 @@
+{
+  "repository": "vcruz305/vllm-exl3",
+  "commit": "2a740a3773601c994072295fde45738ef8cea55e",
+  "source_file": "src/vllm_exl3/dequant.py",
+  "sha256": "c0b24b26129eb2281d0de14aaf484abbe947be01fb80b7f3e7de0ed9974aa671",
+  "license": "AGPL-3.0-only",
+  "patches": [],
+  "purpose": "test-only scalar codebook oracle"
+}

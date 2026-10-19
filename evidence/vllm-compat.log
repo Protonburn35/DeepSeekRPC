@@ -1,0 +1,36 @@
+vLLM tree: /workspace/deepseekrpc-references/source/vllm-windows/vllm
+
+== plugin entry-point group ==
+  groups in vLLM: vllm.endpoint_plugins, vllm.general_plugins, vllm.io_processor_plugins, vllm.platform_plugins, vllm.stat_logger_plugins
+  OK    vllm.general_plugins is still a registered group
+
+== imports ==
+  NOTICE src/vllm_exl3/exl3.py:4487  vllm.utils.direct_register_custom_op not defined in __init__.py (fallback in an except handler)
+  OK    every vLLM import in src/ and tools/ resolves
+
+== FusedMoEMethodBase abstract surface ==
+  vLLM requires: create_weights, get_fused_moe_quant_config
+  Exl3MoEMethod implements: create_weights, get_fused_moe_quant_config
+  OK    Exl3MoEMethod satisfies the abstract surface
+
+== tools/patch_vllm_qwen4_exp anchors ==
+  OK    patch_vllm_mtp_lmhead.py: patched /tmp/tmp4hh2x27i/models/qwen4_exp/nvidia/mtp.py (backup /tmp/tmp4hh2x27i/models/qwen4_exp/nvidia/mtp.py.orig)
+  OK    patch_vllm_qwen4_ple.py: obsolete on this vLLM: ple_layer.py already builds the n-gram table with a quant config and selects its storage format through Qwen4ExpPLEEmbeddingMethod.from_quant_config. Nothing to patch. An EXL3-quantized n-gram table needs the adapter described in docs/VLLM_COMPATIBILITY.md.
+  OK    patch_vllm_vision_split.py: patched /tmp/tmp4hh2x27i/models/qwen4_exp/nvidia/model.py (backup /tmp/tmp4hh2x27i/models/qwen4_exp/nvidia/model.py.orig2)
+
+== vLLM paths cited by this repo's docs ==
+  OK    models/deepseek_v41/common/engram.py
+  OK    model_executor/offloader/uva.py
+  OK    model_executor/model_loader/ep_weight_filter.py
+  OK    models/qwen4_exp/nvidia/model.py
+  OK    models/qwen4_exp/nvidia/ple_layer.py
+  OK    models/qwen4_exp/nvidia/mtp.py
+
+== APIs vLLM removed (plugin must not reference them) ==
+  BAD   docs/VLLM_COMPATIBILITY.md references seq_lens_cpu
+  BAD   docs/VLLM_COMPATIBILITY.md references num_computed_tokens_cpu
+  BAD   docs/VLLM_COMPATIBILITY.md references VLLM_PREFIX_CACHE_RETENTION_INTERVAL
+  BAD   docs/VLLM_COMPATIBILITY.md references VLLM_MM_HASHER_ALGORITHM
+
+== summary ==
+  OK    integration surface checked; see NOTICE lines for items needing a decision

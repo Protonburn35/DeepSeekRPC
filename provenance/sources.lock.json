@@ -1,0 +1,88 @@
+{
+  "sources": [
+    {
+      "repository": "SystemPanic/vllm-windows",
+      "url": "https://codeload.github.com/SystemPanic/vllm-windows/tar.gz/3b5b6bcac87589cf35297c0283f0ba500e867645",
+      "commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+      "archive": "/workspace/deepseekrpc-references/archives/vllm-windows-3b5b6bcac87589cf35297c0283f0ba500e867645.tar.gz",
+      "archive_sha256": "7ce3ed8f7d353d599c734b4dae2f0874302b013d33f3b18245b1b7eec5bc152d",
+      "archive_bytes": 43287234,
+      "path": "/workspace/deepseekrpc-references/source/vllm-windows",
+      "patches": [],
+      "license_observed": "Apache-2.0",
+      "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "vcruz305/vllm-exl3",
+      "url": "https://codeload.github.com/vcruz305/vllm-exl3/tar.gz/2a740a3773601c994072295fde45738ef8cea55e",
+      "commit": "2a740a3773601c994072295fde45738ef8cea55e",
+      "archive": "/workspace/deepseekrpc-references/archives/vllm-exl3-2a740a3773601c994072295fde45738ef8cea55e.tar.gz",
+      "archive_sha256": "50257af2c7775a214b5680e377fe807b4e2687fbd286a8a57a91415580dbbec3",
+      "archive_bytes": 1800023,
+      "path": "/workspace/deepseekrpc-references/source/vllm-exl3",
+      "patches": [],
+      "license_observed": "AGPL-3.0-only",
+      "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "vcruz305/exllamav3",
+      "url": "https://codeload.github.com/vcruz305/exllamav3/tar.gz/475461e9a1a288e7c10eb472056239d3fb78b625",
+      "commit": "475461e9a1a288e7c10eb472056239d3fb78b625",
+      "archive": "/workspace/deepseekrpc-references/archives/exllamav3-475461e9a1a288e7c10eb472056239d3fb78b625.tar.gz",
+      "archive_sha256": "eaff2507332bc6ed6cd3e5da0a6ad50e929027935ec06c744b25e3fef063a18c",
+      "archive_bytes": 9465082,
+      "path": "/workspace/deepseekrpc-references/source/exllamav3",
+      "patches": [],
+      "license_observed": "MIT",
+      "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "sybil-solutions/dsv41-flash-offload",
+      "url": "https://codeload.github.com/sybil-solutions/dsv41-flash-offload/tar.gz/08802b6fe00101830d75733d2a7c2dd386e121e3",
+      "commit": "08802b6fe00101830d75733d2a7c2dd386e121e3",
+      "archive": "/workspace/deepseekrpc-references/archives/dsv41-flash-offload-08802b6fe00101830d75733d2a7c2dd386e121e3.tar.gz",
+      "archive_sha256": "5656c7be4f2350358fc6b7ec1a3c27ad883ca1b2025cea916cc788ce9cf89e02",
+      "archive_bytes": 269306,
+      "path": "/workspace/deepseekrpc-references/source/dsv41-flash-offload",
+      "patches": [],
+      "license_observed": "MIT",
+      "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "Zanooda/deepseek-v4.1-flash-cmp170hx",
+      "url": "https://codeload.github.com/Zanooda/deepseek-v4.1-flash-cmp170hx/tar.gz/31318fd35837403a78ea1609d158613452257a1e",
+      "commit": "31318fd35837403a78ea1609d158613452257a1e",
+      "archive": "/workspace/deepseekrpc-references/archives/deepseek-v4.1-flash-cmp170hx-31318fd35837403a78ea1609d158613452257a1e.tar.gz",
+      "archive_sha256": "3e05aeeed421249285c06b529966f783f25eeedb55897bad4db3e6267abc2513",
+      "archive_bytes": 345905,
+      "path": "/workspace/deepseekrpc-references/source/deepseek-v4.1-flash-cmp170hx",
+      "patches": [],
+      "license_observed": "Apache-2.0",
+      "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "Protonburn35/StrataRPC",
+      "url": "https://codeload.github.com/Protonburn35/StrataRPC/tar.gz/9bd85e5b0ad0f71cabc578fa5c38f5c438bbd5a7",
+      "commit": "9bd85e5b0ad0f71cabc578fa5c38f5c438bbd5a7",
+      "archive": "/workspace/deepseekrpc-references/archives/StrataRPC-9bd85e5b0ad0f71cabc578fa5c38f5c438bbd5a7.tar.gz",
+      "archive_sha256": "1a96cd110d4b5dc644e0df280c976ca4ec7fd64d76f7d8cb92cf2488e56d86f0",
+      "archive_bytes": 19902622,
+      "path": "/workspace/deepseekrpc-references/source/StrataRPC",
+      "patches": [],
+      "license_observed": "MIT",
+      "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "MiaAI-Lab/DeepSeek-v4.1-Flash-EXL3-2x-DGX-Sparks",
+      "url": "https://codeload.github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-EXL3-2x-DGX-Sparks/tar.gz/6f7d1590ad49a2b8995188e45d7b9db31e677452",
+      "commit": "6f7d1590ad49a2b8995188e45d7b9db31e677452",
+      "archive": "/workspace/deepseekrpc-references/archives/DeepSeek-v4.1-Flash-EXL3-2x-DGX-Sparks-6f7d1590ad49a2b8995188e45d7b9db31e677452.tar.gz",
+      "archive_sha256": "9c404eed26a33211b7f2a35a1aea5f0eb4104595013a1df53df5ee302caaad9f",
+      "archive_bytes": 471084,
+      "path": "/workspace/deepseekrpc-references/source/DeepSeek-v4.1-Flash-EXL3-2x-DGX-Sparks",
+      "patches": [],
+      "license_observed": "AGPL-3.0",
+      "use": "source reference; not yet integrated"
+    }
+  ]
+}

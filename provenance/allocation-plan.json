@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "status": "header-derived weight bytes; prospective state allocations",
+  "plan": {
+    "split": [
+      18,
+      5,
+      17
+    ],
+    "bounds_half_open": {
+      "host": [
+        0,
+        18
+      ],
+      "middle": [
+        18,
+        23
+      ],
+      "terminal": [
+        23,
+        40
+      ]
+    },
+    "dependencies": [
+      {
+        "field": "index_k",
+        "source_layer": 14,
+        "owner": "host",
+        "recipient": "middle"
+      },
+      {
+        "field": "kv",
+        "source_layer": 14,
+        "owner": "host",
+        "recipient": "middle"
+      },
+      {
+        "field": "topk",
+        "source_layer": 14,
+        "owner": "host",
+        "recipient": "middle"
+      },
+      {
+        "field": "candidates",
+        "source_layer": 20,
+        "owner": "middle",
+        "recipient": "terminal"
+      },
+      {
+        "field": "index_k",
+        "source_layer": 20,
+        "owner": "middle",
+        "recipient": "terminal"
+      },
+      {
+        "field": "kv",
+        "source_layer": 20,
+        "owner": "middle",
+        "recipient": "terminal"
+      },
+      {
+        "field": "topk",
+        "source_layer": 20,
+        "owner": "middle",
+        "recipient": "terminal"
+      }
+    ],
+    "fp16_source_and_shadow_bytes": {
+      "host": 2013265920,
+      "middle": 2013265920,
+      "terminal": 1342177280
+    },
+    "allocation_status": "prospective arithmetic; not allocated or hardware measured"
+  },
+  "tensor_records": 192499,
+  "pack_payload_bytes": 210721837240,
+  "pack_owned_component_bytes": {
+    "host": {
+      "embedding": 1323827200,
+      "routed_experts": 92037399552,
+      "shared_expert": 367967448,
+      "layer_other": 141971760,
+      "attention_index": 1450202512,
+      "engram_projection": 177401864,
+      "vision": 970536960
+    },
+    "middle": {
+      "routed_experts": 17072478720,
+      "shared_expert": 88696380,
+      "layer_other": 39436600,
+      "attention_index": 402029564
+    },
+    "terminal": {
+      "routed_experts": 86924210688,
+      "shared_expert": 347279052,
+      "layer_other": 134084440,
+      "attention_index": 1363229248,
+      "head_norm": 496714244,
+      "draft": 7384371008
+    }
+  },
+  "pack_owned_total_bytes": {
+    "host": 96469307296,
+    "middle": 17602641264,
+    "terminal": 96649888680
+  },
+  "external_host_table_payload_bytes": {
+    "engram_table": 202758032400
+  },
+  "quantized_module_count_by_k": {
+    "2": 5760,
+    "3": 40320,
+    "4": 1209,
+    "5": 558,
+    "6": 49,
+    "8": 4
+  },
+  "quant_metadata_missing_tensor_descriptors": 5389,
+  "manifest_sha256": "db36ddebb58249ade397b376ae84aa054f569423cf1d58c0cc597aa8826a632a",
+  "hardware_allocations_measured": false,
+  "not_included_in_weight_totals": [
+    "host/device duplicate copies",
+    "source/shadow/SWA state",
+    "workspaces/staging/allocator overhead",
+    "OS/display/runtime reserve",
+    "resident locking/WDDM admission",
+    "draft embedding duplicate on C"
+  ]
+}

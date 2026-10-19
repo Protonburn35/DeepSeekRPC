@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools==82.0.1", "wheel==0.46.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepseekrpc"
+version = "0.0.1.dev0"
+description = "Three-stage native Windows DeepSeek EXL3 runtime development"
+requires-python = ">=3.12,<3.13"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/deepseekrpc/_vendor/deepseek_1017/LICENSE"]
+dependencies = ["numpy==2.5.4", "safetensors==0.8.0"]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1", "cryptography==49.0.0", "pip==26.2.1"]
+
+[project.scripts]
+deepseekrpc = "deepseekrpc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"deepseekrpc._vendor.deepseek_1017" = ["LICENSE", "PROVENANCE.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+markers = ["integration: real subprocess and TCP integration checks", "reference: requires separately pinned CPU PyTorch reference tools"]
