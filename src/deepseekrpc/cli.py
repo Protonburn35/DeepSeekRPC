@@ -29,6 +29,7 @@ def main(argv=None):
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("capabilities", help="report implemented and missing capabilities truthfully")
+    commands.add_parser("selftest-cuda", help="run small native CUDA operation checks on a real GPU")
     plan = commands.add_parser("plan", help="derive ownership and prospective source/shadow bytes from config")
     plan.add_argument("--model-config", type=Path, required=True)
     plan.add_argument("--split", default="18,5,17")
@@ -37,14 +38,17 @@ def main(argv=None):
     try:
         if args.command == "capabilities":
             result = capabilities()
+        elif args.command == "selftest-cuda":
+            from .gpu_selftest import run_cuda_checks
+            result = run_cuda_checks()
         else:
             config = loads(args.model_config.read_bytes(), limit=128 * 1024)
             split = tuple(int(value) for value in args.split.split(","))
             result = StagePlan(Geometry.from_config(config), split, layer_stage_wire=args.layer_stage_wire).as_dict()
         print(json.dumps(result, indent=2))
         return 0
-    except (ValidationError, OSError, KeyError, TypeError, ValueError) as exc:
-        parser.exit(2, f"Invalid plan input: {exc}\n")
+    except (ValidationError, OSError, KeyError, TypeError, ValueError, RuntimeError) as exc:
+        parser.exit(2, f"DeepSeekRPC: {exc}\n")
 
 
 if __name__ == "__main__":

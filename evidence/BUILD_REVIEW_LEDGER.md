@@ -156,3 +156,21 @@ four kernels but not upstream Torch CUDA headers. Added NVIDIA-published hashes
 and byte bounds for cuSPARSE, cuSOLVER, cuRAND, cuFFT, NVRTC and NVTX components;
 source is unchanged. Also constrained llguidance below 1.8 to match vLLM common
 requirements. Repeat full upstream Windows build pending.
+
+## 2026-10-19 — bounded routed executor and native vLLM build source
+
+Implemented the owned expert catalogue, all-route partitioning, bounded CUDA
+expert execution and a real FusedMoEMethodBase adapter. The adapter prevents
+per-layer/all-expert CUDA Parameter allocation; the complete graph/owned loader
+integration is still pending. Preserved official routing-weight placement before
+the down projection's FP16 conversion (DSR-AUDIT-003). Added a real-GPU operation
+self-test command, not executed on this CPU host.
+
+Local expanded suite: 166 passed, three actual-Win32-only skips. An earlier
+full run showed a router CPU-reference mismatch (24/42 weights, maximum error
+4.6253204e-05, exact selected IDs unchanged). The isolated test, preceding math
+suite and subsequent complete run passed at the original tolerance. No tolerance
+was widened; retain this intermittent observation for further diagnosis.
+
+Added source/dep-pinned native vLLM wheel build qualification on Windows. Full
+serving dependency consistency, GPU execution and full model remain unqualified.

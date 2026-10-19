@@ -43,3 +43,19 @@ subsequent environment changes. Its subprocess regression starts with both
 shortcuts enabled and verifies explicit zero plus refusal after mutation.
 The future native adapter must call this before importing any ExLlama module.
 This establishes policy code, not native execution or a full graph fidelity pass.
+
+## DSR-AUDIT-003 — routed weight placement differs in the upstream EXL3 loop
+
+Official October Expert.forward multiplies the FP32 SwiGLU activation by its
+routing weight before converting that input for w2. The pinned plugin's
+apply_exl3_python_loop instead multiplies the FP32 down-projection output by
+that weight. These orders have the same exact-real algebra but differ under
+FP16 input conversion and packed matrix execution. Do not infer full-model
+equivalence from that algebra.
+
+The bounded executor preserves the official pre-w2 weighting and asymmetric
+clamp (gate maximum 10, up range -10..10). Its CPU activation regression
+compares the unchanged official Expert.forward body and demonstrates that
+moving the multiply across the half conversion changes the result. Actual
+quantized GPU output and independent review remain pending. Shared experts
+remain a separate contribution from the real vLLM runner.

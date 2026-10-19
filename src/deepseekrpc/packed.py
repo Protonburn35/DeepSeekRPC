@@ -94,7 +94,10 @@ class DevicePackedLinear:
             dtype = {"F16": torch.float16, "I16": torch.int16, "I32": torch.int32}[part.info.dtype]
             views[part.info.name.rsplit(".", 1)[1]] = storage.narrow(0, part.offset, part.info.nbytes).view(dtype).view(part.info.shape)
         with torch.cuda.device(storage.device):
-            self.inner = plugin.make_linear_exl3(**views, out_dtype=torch.float32)
+            # ExLlama sizes its persistent one-row Hadamard scratch from the
+            # default output dtype. Its native input scratch is always FP16;
+            # request FP32 outputs explicitly in forward below.
+            self.inner = plugin.make_linear_exl3(**views, out_dtype=torch.float16)
             # Avoid persistent dense reconstruction at every row count.
             self.inner.config.infer_params.no_reconstruct = True
         self.layout, self.storage = layout, storage

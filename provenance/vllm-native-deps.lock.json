@@ -1,0 +1,15 @@
+{
+  "scope": "External CMake source commits selected by the pinned Windows vLLM build",
+  "dependencies": [
+    {"component":"cutlass","directory":"cutlass-src","repository":"https://github.com/nvidia/cutlass.git","tag":"v4.7.1","commit":"cb4247394dd82148787aed73e5dc7cef33cbf862"},
+    {"component":"triton_kernels","directory":"triton_kernels-src","repository":"https://github.com/triton-lang/triton-windows.git","tag":"v3.6.0-windows.post26","commit":"963e615e544faf20b14bb34753291a0fe755f8ae"},
+    {"component":"deepgemm","directory":"deepgemm-src","repository":"https://github.com/SystemPanic/DeepGEMM-windows.git","commit":"4f9c91d7d930238ebfd84f0ae5aeee57afd49fb1"},
+    {"component":"deepselect","directory":"deepselect-src","repository":"https://github.com/vllm-project/DeepSelect.git","commit":"d96d33afe1fab0d6066da49cdc91e64c2bee65ea"},
+    {"component":"fmha_sm100","directory":"fmha_sm100-src","repository":"https://github.com/vllm-project/MSA.git","commit":"f355c37eb4e1413f21ee2ad8bbad25079e6bef9d"},
+    {"component":"flashmla","directory":"flashmla-src","repository":"https://github.com/vllm-project/FlashMLA.git","commit":"0eee43b12f034b657133cf2afca6a72ebb6efccf"},
+    {"component":"flashkda","directory":"flashkda-src","repository":"https://github.com/vllm-project/FlashKDA.git","commit":"17a037d98da546deb4591e967cf961a43c034d8b"},
+    {"component":"qutlass","directory":"qutlass-src","repository":"https://github.com/SystemPanic/qutlass.git","commit":"83b9d7f80dc73b4c1bf01c16b575da3041a97a73"},
+    {"component":"tml_fa4","directory":"tml_fa4-src","repository":"https://github.com/vllm-project/tml-fa4.git","commit":"75765e76a9c2c012c1f6ecd64577eb646eb4d303"},
+    {"component":"vllm-flash-attn","directory":"vllm-flash-attn-src","repository":"https://github.com/vllm-project/flash-attention.git","commit":"9cd61de38763d712bb6ce56e2a02cc2bf718c89f"}
+  ]
+}

@@ -49,3 +49,19 @@ architectures, imports the installed native extension and Python package, and
 checks dependency consistency. This is separate from the four project kernels
 and from the still-required native vLLM build. The upstream compiler math flags
 are preserved; numerical packed-weight execution must be qualified separately.
+
+`windows-vllm.yml` separately builds the full pinned upstream native wheel with
+its native build dependencies. This job checks the actual installed Torch
+library and cubins; it does not qualify the complete serving dependency stack.
+External CMake source commits are recorded in vllm-native-deps.lock.json. The
+helper checks the two upstream tag references and retains fetched commit IDs,
+submodule state, and hashes of upstream-applied build patches. Four exact
+non-build `.claude/skills` aliases are omitted during Windows extraction, avoiding
+a symlink privilege requirement; runtime/build source files remain intact.
+
+`deepseekrpc selftest-cuda` now runs independent small attention, index, Engram
+and scatter comparisons on an actual SM89 or SM120 GPU. It is intentionally
+excluded from CPU CI and remains unrun here. It loads no model and establishes
+neither full-model correctness nor physical residency. The bounded expert
+executor and vLLM quant-method adapter still need integration into the complete
+owned staged graph and separate real packed-weight GPU comparisons.
