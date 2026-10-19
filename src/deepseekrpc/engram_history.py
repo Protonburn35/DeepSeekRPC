@@ -78,6 +78,38 @@ class EngramHistory:
             self._pending = None
             return self.position
 
+    def replay(self, tokens: list[int], *, start: int, text_mask: list[bool] | None = None) -> np.ndarray:
+        """Recompute committed hash rows for the second exact encoder pass.
+
+        The phase scheduler must separately bind the immutable full token/image
+        identity. Compressed token-map equality is only an Engram-state check;
+        different token IDs can share that compressed map entry.
+        """
+        import torch
+        with self._mutex:
+            if self._pending is not None:
+                raise ValidationError("Engram replay requires no tentative hash transaction")
+            integer(start, "Engram replay position", 0, self.position)
+            integer(len(tokens), "Engram replay rows", 1, self.max_rows)
+            if start + len(tokens) > self.position:
+                raise ValidationError("Engram replay exceeds committed history")
+            for token in tokens:
+                integer(token, "token ID", 0, self.vocab_size - 1)
+            if text_mask is not None and (len(text_mask) != len(tokens) or any(type(v) is not bool for v in text_mask)):
+                raise ValidationError("Engram replay text/image mask must match token rows")
+            ids = torch.tensor([tokens], dtype=torch.int64, device="cpu")
+            mask = None if text_mask is None else torch.tensor([text_mask], dtype=torch.bool, device="cpu")
+            compressed = self._state.token_map[ids]
+            if mask is not None:
+                compressed = torch.where(mask, compressed, self._state.DEAD)
+            if not torch.equal(compressed, self._state.cache[:, start:start + len(tokens)]):
+                raise ValidationError("Engram replay would change committed hash history")
+            # The unchanged original operation rewrites exactly these same
+            # compressed values, then reads the original absolute lookback.
+            result = self._state(ids, start, mask).squeeze(0).numpy()
+            result.setflags(write=False)
+            return result
+
     def abort(self):
         return self.commit(0)
 

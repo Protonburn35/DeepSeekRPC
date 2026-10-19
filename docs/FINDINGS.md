@@ -78,3 +78,28 @@ source patch binds this backend in the V4.1 decoder and defers unused TileLang
 imports on Windows. Its arithmetic helpers compare against independent FP64
 equations on CPU. Native Windows graph import, patched wheel qualification and
 actual CUDA differential execution remain pending; the finding is still open.
+
+## DSR-AUDIT-005 — packed compressor/index keys and independent output rotations
+
+The complete pack has 668 non-routed packed matrices, including the head and
+three draft blocks. The pinned compressor constructor and indexer's `wk`
+constructor instead force dense weights. The input-projection helper directly
+reads compressor `.weight`, and stock output projection assumes a different
+grouped layout. Each of the eight `wo_a.slice.G` matrices has its own `suh` and
+`svh`; merging those matrices under one shared rotation changes the model.
+
+`dense_weights` explicitly maps every physical non-routed matrix, keeps one
+admitted packed arena and binds the actual EXL3 implementation through the real
+vLLM linear interface. Compressor projections explicitly return FP32. A complete
+inventory check covers all 668 matrices exactly once. The layer constructor,
+attention overrides and actual CUDA execution still require integration; this
+finding remains open.
+
+## DSR-AUDIT-006 — single-token EXL3 scratch is shared between projections
+
+The pinned backend caches single-row Hadamard scratch by input shape, so
+independent packed linears cannot safely launch overlapping single-row products
+on auxiliary compute streams. The permanent packed store records and enforces
+one compute stream. The complete layer adapter must also disable upstream
+auxiliary GEMM overlap and join expert-cache work before consuming results.
+This is an execution dependency, not a reason to change packed arithmetic.

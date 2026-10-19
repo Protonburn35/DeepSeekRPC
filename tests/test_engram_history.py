@@ -92,3 +92,28 @@ def test_full_capacity_hash_metadata_is_eager_not_full_model_validation(tokenize
     state = history(tokenizer, context=1048576)
     assert state.persistent_history_bytes == 1048576 * 8
     assert state.position == 0
+
+
+def test_exact_second_pass_replays_frozen_hashes_without_advancing_history(tokenizer, fixture):
+    state = history(tokenizer)
+    state.begin(fixture["input_ids"], fixture["text_mask"])
+    state.commit(len(fixture["input_ids"]))
+    before = state._state.cache.clone()
+    for start, end in ((0, 1), (1, 4), (4, 11), (11, 15)):
+        hashes = state.replay(fixture["input_ids"][start:end], start=start, text_mask=fixture["text_mask"][start:end])
+        np.testing.assert_array_equal(hashes, fixture["hashes"][start:end])
+        assert not hashes.flags.writeable
+    assert state.position == 15 and state._pending is None
+    assert state._state.cache.equal(before)
+
+
+def test_second_pass_rejects_future_or_changed_hash_history_without_mutation(tokenizer, fixture):
+    state = history(tokenizer)
+    state.begin(fixture["input_ids"], fixture["text_mask"])
+    state.commit(15)
+    before = state._state.cache.clone()
+    with pytest.raises(ValidationError, match="committed history"):
+        state.replay([fixture["input_ids"][-1]], start=15)
+    with pytest.raises(ValidationError, match="change committed"):
+        state.replay([129264], start=0, text_mask=[False])
+    assert state.position == 15 and state._state.cache.equal(before)

@@ -18,8 +18,8 @@ from .storage import ExpertKey, RAMCache
 
 
 class DesktopUploader:
-    """Two MiB of fixed upload staging, separate from the admitted RAM cache."""
-    staging_bytes = 2 * MAX_READ
+    """Two fixed MiB plus a bounded one-MiB transient read/slice reservation."""
+    staging_bytes = 3 * MAX_READ
 
     def __init__(self, source, cache: RAMCache):
         import torch

@@ -95,3 +95,11 @@ disables TF32 and reduced-precision auxiliary GEMM reductions before execution
 and refuses later policy changes. The patch selects this path explicitly and
 retains a real deferred TileLang import for unused operations; it supplies no
 placeholder kernel/module. Complete patched model execution remains unqualified.
+
+`dense_weights.FixedPackedWeights` holds owned non-routed EXL3 matrices in one
+admitted GPU arena and uses the real plugin's packed kernels. Its physical
+bindings cover all 668 matrices, including independent output-group rotations
+and packed compressor/index-key projections. Startup reads remain bounded; B
+requires its completed locked resident store. Dense input/output workspaces and
+upstream scratch count separately in the full graph's memory ledger. Actual
+packed execution and the complete layer construction remain unqualified.
