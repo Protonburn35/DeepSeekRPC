@@ -25,7 +25,7 @@ def make_vllm_config(model_root: Path):
                         skip_tokenizer_init=True, trust_remote_code=False,
                         dtype=torch.bfloat16, quantization="exl3", enforce_eager=True,
                         max_model_len=1048576, enable_sleep_mode=False,
-                        enable_cumem_allocator=False)
+                        enable_cumem_allocator=False, mm_encoder_attn_backend="TORCH_SDPA")
     # No stock loader, cache manager, whole Engram table, speculative worker,
     # scheduler or executor is instantiated. Actual decoder modules consume
     # these validated config objects through the explicit owned adapters.

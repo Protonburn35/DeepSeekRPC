@@ -158,3 +158,20 @@ to float, which overflows during constant evaluation. The exact-source patch
 uses the already included CUDA standard library's numeric_limits<float>
 infinity directly. Its negative-infinity score semantics are unchanged. The
 next native compile/link run must qualify this repair; no GPU result is claimed.
+
+## DSR-AUDIT-011 — intermittent Linux CPU reference sqrt discrepancy
+
+The frozen official router occasionally disagrees with the independent NumPy
+baseline on this cloud host. The new real-ATen observer narrows it to sqrt:
+matrix-multiply errors stay below 1.1e-6 and softplus below 5.9e-7 against FP64,
+while sqrt can differ by 3.0e-4 on part of the [7,384] result. The resulting
+router weight error reaches 4.6e-5. Expert IDs remain equal on the fixture.
+
+This is observed with Torch 2.13.0+cpu, Intel MKL 2024.2, AVX512 and two Torch
+threads. A subsequent diagnostic suite passed, and 16 fresh cold plus 16 warmed
+isolated processes did not reproduce it. Those passes are not a repair. The
+failure diagnostic now captures sqrt input/output immediately, checks later
+mutation and repeats the same actual input; optional bounded synthetic array
+artifacts support diagnosis if it recurs. Keep the frozen oracle body and
+rtol=2e-6/atol=1e-6 unchanged. Native Windows CPU/runtime and GPU qualification
+remain separate; no CUDA model discrepancy is established by this CPU failure.

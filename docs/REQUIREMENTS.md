@@ -17,9 +17,9 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 | R09 Replicas | Independent GPU maps/scatter, exact closures/selections, derived mesh ordering and all-stage GPU/history barriers | Actual GPU/network execution and differential qualification |
 | R10 mHC/CED | Actual delayed mHC/graph, full two-pass cluster scheduler and rewind preserving all encoder sources | Exact long-context replay and GPU differential checks |
 | R11 Exact SWA | Adapter explicitly disables bounded replay and uses 128-row windows with prefix undo | Actual exact/bounded differential hardware fixtures |
-| R12 Sampling | Requested probability controls, separate output penalties, transactional RNG, exact correction/EOS/length and frozen-prefix grammar callback | Production API/coordinator integration and stop-string handling |
+| R12 Sampling | Probability controls, separate output penalties, transactional RNG, exact correction/EOS/length, frozen-prefix grammar callback and token-aligned stops before commit | Production API/grammar integration and hardware qualification |
 | R13 DSpark | Actual three-block graph, target-context/Markov sampled verifier, complete coordinator/publication and explicit context-tail normal decode source | API integration, full cluster acceptance/rollback and GPU qualification |
-| R14 Vision | Owned actual tower/aligner/native weights and image-row merge source; original encoding fixtures | Original preprocessing/cache/API and SM120 execution |
+| R14 Vision | Actual tower/aligner, unchanged original preprocessing, exact spans and bounded original/feature storage with two-pass window resolver | API integration and SM89/SM120 execution |
 | R15 Cancel | Real TLS control cancellation during queued work, per-layer/expert/fragment observers and session invalidation | Production API wiring, every-phase cancellation and hardware recovery |
 | R16 Prefix reuse | Exact original token/image/component history identity and explicit full replay | Saved CED-aware prefix checkpoints and integration |
 | R17 Snapshots | Protocol/design only | Bounded three-stage save/seal/restore and fault tests |

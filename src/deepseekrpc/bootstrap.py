@@ -210,6 +210,9 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
             vllm_config.quant_config = OwnedExl3Config.bind(vllm_config.quant_config, executors,
                                                            packed_weights=packed, dense_bindings=bindings)
             stores, tokenizer, history = {}, None, None
+            if role in {Role.HOST, Role.TERMINAL}:
+                tokenizer = TokenizerAdapter(root / "tokenizer.json",
+                                             expected_sha256=manifest["token_map"]["tokenizer_sha256"])
             if role == Role.HOST:
                 original = engram_root.resolve(strict=True)
                 original_pins = ShardPin.from_lock(manifest["shards"], model="official")
@@ -221,8 +224,6 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
                     stores[layer] = EngramRows(path, layer=layer, cache_bytes=128 * 1024 ** 2,
                                                pin=original_pins[filename])
                     cleanup.callback(stores[layer].close)
-                tokenizer = TokenizerAdapter(root / "tokenizer.json",
-                                             expected_sha256=manifest["token_map"]["tokenizer_sha256"])
                 history = EngramHistory(config, tokenizer,
                                          expected_map_sha256=manifest["token_map"]["canonical_lookup_sha256"])
             graph = OwnedStageGraph(vllm_config, attention, row_stores=stores)

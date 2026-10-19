@@ -3,7 +3,7 @@
 Full probability vectors stay local. The coordinator receives compact token
 decisions plus a digest, and authorizes RNG commit after coherent GPU commits.
 """
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import hashlib
 
 import numpy as np
@@ -51,7 +51,7 @@ class TerminalSampler:
         self.vocabulary = integer(vocabulary, "sampling vocabulary", 1, 129280)
         self.active = None
 
-    def _begin(self, policy, counts, remaining, eos_ids, *, generated_counts, logit_bias, allowed, grammar_identity):
+    def _begin(self, policy, counts, remaining, eos_ids, *, generated_counts, logit_bias, allowed, grammar_identity, stop_identity):
         integer(remaining, "remaining output capacity", 1, 1048576)
         if self.active is not None or not isinstance(policy, SamplingPolicy):
             raise ValidationError("terminal sampling is active or its policy is invalid")
@@ -67,6 +67,8 @@ class TerminalSampler:
             raise ValidationError("a grammar mask requires its frozen grammar/prefix identity")
         if grammar_identity is not None:
             hex_id(grammar_identity, 64, "frozen grammar and committed-prefix identity")
+        if stop_identity is not None:
+            hex_id(stop_identity, 64, "frozen original detokenizer and stop-prefix identity")
         generated_counts = counts if generated_counts is None else np.asarray(generated_counts)
         if (generated_counts.shape != counts.shape or generated_counts.dtype not in (np.int32, np.int64) or
                 np.any(generated_counts < 0) or np.any(generated_counts > counts)):
@@ -74,14 +76,14 @@ class TerminalSampler:
         # Never let a caller mutate sampling controls during a transaction.
         bias = None if logit_bias is None else dict(logit_bias)
         work = SamplingWork(self, self.random.begin(), policy, counts.copy(), generated_counts.copy(), remaining,
-                            frozenset(eos_ids), bias, allowed, grammar_identity)
+                            frozenset(eos_ids), bias, allowed, grammar_identity, stop_identity)
         self.active = work
         return work
 
     def begin_seed(self, logits, *, policy, counts, remaining, eos_ids=frozenset(),
-                   generated_counts=None, logit_bias=None, allowed=None, grammar_identity=None):
+                   generated_counts=None, logit_bias=None, allowed=None, grammar_identity=None, stop_identity=None):
         work = self._begin(policy, counts, remaining, eos_ids, generated_counts=generated_counts,
-                           logit_bias=logit_bias, allowed=allowed, grammar_identity=grammar_identity)
+                           logit_bias=logit_bias, allowed=allowed, grammar_identity=grammar_identity, stop_identity=stop_identity)
         try:
             values = _logits_cpu(logits, 1, self.vocabulary)[0]
             distribution = work.distribution(values, ())
@@ -93,10 +95,10 @@ class TerminalSampler:
             raise
 
     def begin_verification(self, *, seed_token, policy, counts, remaining, eos_ids=frozenset(),
-                           generated_counts=None, logit_bias=None, allowed=None, grammar_identity=None):
+                           generated_counts=None, logit_bias=None, allowed=None, grammar_identity=None, stop_identity=None):
         integer(seed_token, "pending verification seed", 0, self.vocabulary - 1)
         work = self._begin(policy, counts, remaining, eos_ids, generated_counts=generated_counts,
-                           logit_bias=logit_bias, allowed=allowed, grammar_identity=grammar_identity)
+                           logit_bias=logit_bias, allowed=allowed, grammar_identity=grammar_identity, stop_identity=stop_identity)
         if work.counts[seed_token] < 1 or work.generated_counts[seed_token] < 1:
             work.abort()
             raise ValidationError("pending seed must already belong to published sampling history")
@@ -105,12 +107,14 @@ class TerminalSampler:
 
 
 class SamplingWork:
-    def __init__(self, owner, transaction, policy, counts, generated_counts, remaining, eos_ids, logit_bias, allowed, grammar_identity):
+    def __init__(self, owner, transaction, policy, counts, generated_counts, remaining, eos_ids, logit_bias, allowed, grammar_identity, stop_identity):
         self.owner, self.transaction, self.policy = owner, transaction, policy
         self.counts, self.remaining, self.eos_ids = counts, remaining, eos_ids
         self.generated_counts = generated_counts
         self.logit_bias, self.allowed = logit_bias, allowed
         self.grammar_identity = grammar_identity
+        self.stop_identity = stop_identity
+        self._stop_checked = stop_identity is None
         self.seed_token = None
         self.proposal_ids, self.proposal_rows = [], []
         self.decision, self.closed = None, False
@@ -180,7 +184,7 @@ class SamplingWork:
 
     def prepared(self):
         self._open()
-        if self.decision is None:
+        if self.decision is None or not self._stop_checked:
             raise ValidationError("terminal decision has not been computed")
         data = {"decision": asdict(self.decision), "accepted_target_rows": self.decision.accepted_target_rows,
                 "policy": self.policy.as_dict(), "RNG": self.transaction.prepared_state(),
@@ -188,9 +192,28 @@ class SamplingWork:
                 "counts_sha256": hashlib.sha256(self.counts.astype("<i8").tobytes()).hexdigest(),
                 "generated_counts_sha256": hashlib.sha256(self.generated_counts.astype("<i8").tobytes()).hexdigest(),
                 "logit_bias": self.logit_bias, "grammar_identity": self.grammar_identity,
+                "stop_identity": self.stop_identity,
                 "remaining": self.remaining, "eos_ids": sorted(self.eos_ids)}
         return {"decision": asdict(self.decision), "accepted_target_rows": self.decision.accepted_target_rows,
                 "digest": fingerprint(data)}
+
+    def apply_stop(self, tracker):
+        """Trim a stop inside accepted proposals before any target GPU finish."""
+        self._open()
+        if self.decision is None or self._stop_checked or self.stop_identity != tracker.identity:
+            raise ValidationError("stop processing lacks the exact frozen terminal decision/prefix")
+        preview = tracker.preview(self.decision.output_ids)
+        if preview.matched is not None:
+            count = preview.token_count
+            if isinstance(self.decision, SeedDecision):
+                self.decision = replace(self.decision, stop_reason="stop")
+            elif count <= self.decision.accepted_drafts:
+                self.decision = replace(self.decision, accepted_drafts=count,
+                    output_ids=self.decision.output_ids[:count], pending_token=None, stop_reason="stop")
+            else:
+                self.decision = replace(self.decision, output_ids=self.decision.output_ids[:count], stop_reason="stop")
+        self._stop_checked = True
+        return self.decision
 
     def commit(self, expected_digest):
         self._open()

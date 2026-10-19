@@ -151,9 +151,9 @@ class PublicationLedger:
         try:
             self.history.append(plan.output_ids, expected_digest=plan.history_digest)
             if plan.initial_seed:
-                self.phase.publish_seed(token=plan.pending_token, history_digest=plan.history_digest)
+                self.phase.publish_seed(token=plan.pending_token, history_digest=plan.history_digest, stop_reason=plan.stop_reason)
             else:
-                self.phase.publish_history(history_digest=plan.history_digest)
+                self.phase.publish_history(history_digest=plan.history_digest, stop_reason=plan.stop_reason)
             receipt = self._receipt(plan, "committed")
             cached["committed"] = receipt
             return receipt

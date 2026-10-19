@@ -32,11 +32,17 @@ def test_reference_router_unbiased_weights_and_image_bias(oracle):
         def __init__(self):
             super().__init__()
             self.values = {}
+            self.sqrt_input = self.sqrt_output = None
 
         def __torch_dispatch__(self, function, types, args=(), kwargs=None):
             result = function(*args, **(kwargs or {}))
             if str(function) in {"aten.mm.default", "aten.softplus.default", "aten.sqrt.default"}:
                 self.values[str(function)] = result
+            if str(function) == "aten.sqrt.default":
+                # Retain the real operation's bytes at dispatch time. This
+                # distinguishes a bad sqrt from later aliasing/mutation.
+                self.sqrt_input = args[0].numpy().copy()
+                self.sqrt_output = result.numpy().copy()
             return result
     rng = np.random.default_rng(41017)
     x = rng.normal(size=(7, 5120)).astype(np.float32) / 10
@@ -66,10 +72,24 @@ def test_reference_router_unbiased_weights_and_image_bias(oracle):
                                ("aten.sqrt.default", scores64)):
             if key in observed.values:
                 intermediates[key] = np.max(abs(observed.values[key].numpy() - reference), axis=1).tolist()
+        sqrt_probe = {}
+        if observed.sqrt_input is not None:
+            reference = np.sqrt(observed.sqrt_input.astype(np.float64))
+            sqrt_probe["immediate_output_error"] = np.max(abs(observed.sqrt_output - reference), axis=1).tolist()
+            sqrt_probe["later_output_mutation"] = float(np.max(abs(observed.sqrt_output - observed.values["aten.sqrt.default"].numpy())))
+            source = torch.from_numpy(observed.sqrt_input)
+            sqrt_probe["repeat_same_input_error"] = [float(np.max(abs(torch.sqrt(source).numpy() - reference))) for _ in range(3)]
+            from pathlib import Path
+            import os
+            if directory := os.environ.get("DEEPSEEKRPC_MATH_DIAGNOSTICS"):
+                destination = Path(directory)
+                destination.mkdir(parents=True, exist_ok=True)
+                np.savez_compressed(destination / "router-sqrt-failure.npz", input=observed.sqrt_input,
+                                    output=observed.sqrt_output, reference=reference)
         raise AssertionError(
             f"router error vs FP64 by row: numpy={np.max(abs(weights - chosen64), axis=1)}; "
             f"torch={np.max(abs(expected_weights.numpy() - chosen64), axis=1)}; "
-            f"actual ATen intermediate errors={intermediates}"
+            f"actual ATen intermediate errors={intermediates}; sqrt probe={sqrt_probe}"
         ) from failure
     np.testing.assert_allclose(weights.sum(axis=1), 1.5, rtol=1e-6)
 

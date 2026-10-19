@@ -58,9 +58,13 @@ hardware, BF16-only caches, FP32 wire and complete implementation before review.
   full-prompt data transfer, full two-pass CED and speculative coordinator source.
   Output publication waits for all actual GPU receipts, all-stage history commits
   and Stage C RNG finalization. The new GPU/service integration remains unrun.
+- Unchanged original image processing, exact token-span expansion, bounded
+  original/feature storage and A's actual tower/aligner window resolver source.
+  Exact incremental ByteLevel/UTF-8 and transactional stops trim speculative
+  accepted prefixes before GPU finish and retain partial stop text for streaming.
 
 These components have not executed a complete model. Startup and interrupted-mesh
-recovery integration, original image preprocessing/cache, streaming
+recovery integration, streaming
 OpenAI/OpenCode API and parser, exact prefix checkpoint reuse, state snapshots,
 Windows installation/launchers, full runtime dependency bundle and complete
 GPU self-tests/diagnostics still require implementation and integration.
@@ -76,8 +80,10 @@ Windows compiler repairs. Build reports distinguish native-only qualification
 from complete Python serving dependencies. No GPU kernel/model has executed.
 
 Windows CPU run 39340172589 passed checkpoint a24b96f. The expanded local suite
-passed 250 tests with four actual-Win32-only skips after the service/coordinator
-source additions. Focused tests include actual thread invalidation/queue bounds,
+passed 265 tests with four actual-Win32-only skips after image and stop additions.
+The preceding stop suite reproduced the open CPU issue; the real ATen observer
+narrows it to sqrt (up to 3e-4), while matrix multiply/softplus stay near FP32 error.
+The next passing suite does not resolve it. Focused tests include actual thread invalidation/queue bounds,
 history/RNG publication and a real TLS million-token prompt transfer. The full follow-up
 caught the intermittent CPU Torch router discrepancy again: the FP64 diagnostic
 puts NumPy error below 7e-8 and Torch up to 4.6e-5 on the first four rows. Keep

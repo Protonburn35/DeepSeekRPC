@@ -45,6 +45,7 @@ class StageService:
             raise ValidationError("control mesh contains a duplicate channel")
         self.image_rows = image_rows
         self._ready, self._settings, self._sampler, self._sampling, self._outputs = False, None, None, None, None
+        self._stops = None
         self._reset_context = None
         self._status_lock = threading.Lock()
         self._status = {}
@@ -68,6 +69,7 @@ class StageService:
                   "status": "READY" if self._ready else "LOADED", "phase": ledger.phase,
                   "session": ledger.session, "request": ledger.request, "epoch": ledger.epoch,
                   "processed": ledger.processed, "pending_token": ledger.pending_token,
+                  "stop_reason": ledger.stop_reason,
                   "history_digest": ledger.history_digest,
                   "minimum_next_epoch": max(ledger.epoch + 1, self.execution.stage.attention.next_reset_epoch)}
         if self._reset_context is not None:
@@ -165,13 +167,16 @@ class StageService:
 
     def _controls(self):
         history = self.execution.history
+        if self.execution.ledger.stop_reason is not None:
+            raise ValidationError("this request has already committed EOS, a stop or its output/context limit")
         remaining = min(self._settings.max_tokens - int(history.generated_counts().sum()),
                         history.capacity - history.length)
         if remaining < 1:
             raise ValidationError("the output/context limit has already ended this request")
         return {"policy": self._settings.policy, "counts": history.counts(),
                 "generated_counts": history.generated_counts(), "remaining": remaining,
-                "eos_ids": frozenset(self._settings.eos_ids), "logit_bias": dict(self._settings.logit_bias)}
+                "eos_ids": frozenset(self._settings.eos_ids), "logit_bias": dict(self._settings.logit_bias),
+                "stop_identity": self._stops.identity}
 
     def _terminal(self):
         if self.role != Role.TERMINAL or self._sampler is None:
@@ -194,6 +199,10 @@ class StageService:
     def _finalize_sampling(self, plan):
         if not self._validate_sampling(plan):
             raise ValidationError("published decision differs from stage C's actual sampling transaction")
+        preview = self._stops.preview(plan.output_ids)
+        if preview.token_count != len(plan.output_ids) or (preview.matched is not None) != (plan.stop_reason == "stop"):
+            raise ValidationError("published stop state differs from the exact accepted output token prefix")
+        self._stops.commit(preview)
         self._sampling.commit(plan.sampling_digest)
         self._sampling = None
 
@@ -243,6 +252,9 @@ class StageService:
                 self._reset_context = None
                 self._settings = settings
                 self._sampler = TerminalSampler(settings.seed) if self.role == Role.TERMINAL else None
+                if self.role == Role.TERMINAL:
+                    from .detokenize import StopTracker, TokenBytes
+                    self._stops = StopTracker(TokenBytes(self.execution.stage.tokenizer), settings.stop)
                 self._outputs = PublicationLedger(self.execution.ledger, self.execution.history,
                     **({"validate_sampling": self._validate_sampling, "finalize_sampling": self._finalize_sampling}
                        if self.role == Role.TERMINAL else {}))
@@ -290,6 +302,7 @@ class StageService:
                 fields(body, ("action",))
                 self._terminal()
                 self._sampling = self.execution.sample_seed(self._sampler, **self._controls())
+                self._sampling.apply_stop(self._stops)
                 return self._compact_decision()
             if action == "sample_begin":
                 fields(body, ("action",))
@@ -311,6 +324,7 @@ class StageService:
                 if self._sampling is None:
                     raise ValidationError("target verification has no admitted sampling transaction")
                 self.execution.verify(self._sampling)
+                self._sampling.apply_stop(self._stops)
                 return self._compact_decision()
             if action in {"output_prepare", "output_commit", "output_finalize"}:
                 fields(body, ("action", "plan") if action == "output_prepare" else ("action", "plan", "receipts"))

@@ -7,11 +7,11 @@ import platform
 import numpy as np
 
 from .jsonutil import ValidationError
-from .runtime_policy import configure_exact_exl3
+from .runtime_policy import configure_exact_cuda_math
 
 
 def run_cuda_checks():
-    configure_exact_exl3()
+    configure_exact_cuda_math()
     import torch
     from . import cuda_ops
     from .engram_storage import decode_fp8_rows
@@ -162,12 +162,79 @@ def run_cuda_checks():
         finally:
             pool.close()
 
+    def vision_attention_shape():
+        from torch.nn.attention import SDPBackend, sdpa_kernel
+        # The actual tower's maximum admitted patch shape. Only four query
+        # rows need independent CPU equations; the GPU computes every row.
+        count, heads, width = 9216, 16, 64
+        query, q = bf16_array(rng.normal(0, .2, (1, heads, count, width)))
+        key, k = bf16_array(rng.normal(0, .2, (1, heads, count, width)))
+        value, v = bf16_array(rng.normal(0, .2, (1, heads, count, width)))
+        with sdpa_kernel([SDPBackend.FLASH_ATTENTION, SDPBackend.EFFICIENT_ATTENTION]):
+            actual = torch.nn.functional.scaled_dot_product_attention(query, key, value, dropout_p=0., is_causal=False)
+        if not bool(torch.isfinite(actual).all()):
+            raise AssertionError("full-size fused vision attention produced nonfinite output")
+        selected = [0, 305, 3001, count - 1]
+        scores = np.einsum("hrd,hnd->hrn", q[0][:, selected, :].astype(np.float64),
+                           k[0].astype(np.float64)) / np.sqrt(width)
+        scores -= scores.max(axis=-1, keepdims=True)
+        weights = np.exp(scores)
+        weights /= weights.sum(axis=-1, keepdims=True)
+        expected = np.einsum("hrn,hnd->hrd", weights, v[0].astype(np.float64))
+        observed = actual[0][:, selected, :].float().cpu().numpy()
+        # BF16 output has a 1/128 maximum relative ULP. The small absolute
+        # allowance handles values around zero; this is not a model tolerance.
+        np.testing.assert_allclose(observed, expected, rtol=1 / 128, atol=4e-6)
+
+    def compression_pair_rollback():
+        from .compression_state import DeviceCompressionState
+        from .state import Operation
+        norm, norm_ref = bf16_array(rng.uniform(.8, 1.2, 512))
+        scores = rng.normal(0, .3, (5, 1024)).astype(np.float32)
+        state = DeviceCompressionState(2, norm, eps=1e-6, context=32, admitted_bytes=1024 * 1024)
+        state.reset("a" * 32, 0)
+        def operation(number, start, rows):
+            return Operation("a" * 32, "b" * 32, 0, number, f"{number:032x}", "c" * 64, start, rows)
+        def expected(pair):
+            values, gates = pair[:, :512].astype(np.float64), pair[:, 512:].astype(np.float64)
+            probability = np.exp(gates - gates.max(axis=0))
+            probability /= probability.sum(axis=0)
+            latent = (values * probability).sum(axis=0)
+            return latent / np.sqrt(np.mean(latent ** 2) + 1e-6) * norm_ref.astype(np.float64)
+        try:
+            first = operation(1, 0, 1)
+            state.begin(first)
+            assert state.forward(first, tensor(scores[:1], torch.float32)).values.shape == (0, 512)
+            state.finish(first, 1)
+            tentative = operation(2, 1, 3)
+            state.begin(tentative)
+            closed = state.forward(tentative, tensor(scores[1:4], torch.float32))
+            assert closed.logical_positions == (0, 1) and closed.token_positions == (1, 3)
+            reference = np.stack([expected(scores[:2]), expected(scores[2:4])])
+            np.testing.assert_allclose(closed.values.float().cpu().numpy(), reference, rtol=1 / 128, atol=2e-5)
+            state.finish(tentative, 2)  # Accept positions 1,2; reject position 3.
+            torch.testing.assert_close(state._ring[0, 0], tensor(scores[2], torch.float32), rtol=0, atol=0)
+            torch.testing.assert_close(state._ring[0, 1], tensor(scores[1], torch.float32), rtol=0, atol=0)
+            retry = operation(3, 3, 1)
+            state.begin(retry)
+            closed = state.forward(retry, tensor(scores[4:5], torch.float32))
+            np.testing.assert_allclose(closed.values[0].float().cpu().numpy(), expected(scores[[2, 4]]),
+                                       rtol=1 / 128, atol=2e-5)
+            state.finish(retry, 0)
+            assert state.position == 3
+            torch.testing.assert_close(state._ring[0, 0], tensor(scores[2], torch.float32), rtol=0, atol=0)
+            torch.testing.assert_close(state._ring[0, 1], tensor(scores[1], torch.float32), rtol=0, atol=0)
+        finally:
+            state.close()
+
     record("BF16 sparse attention: sink, duplicates and empty rows", attention)
     record("BF16 index scores: signed weights and causal visibility", index_scores)
     record("Engram: finite E4M3 codes and UE8M0 byte zero", engram_decode)
     record("BF16 scatter: bit preservation and stale generation refusal", scatter)
     record("BF16 row pool: partial acceptance, ring overwrite and abort", row_pool_rollback)
     record("BF16 tiled index: independent slots, global ranking and candidate restriction", tiled_index)
+    record("BF16 vision attention: fused 9216 patches, 16 heads, head width 64", vision_attention_shape)
+    record("FP32 compressor: odd chunks, exact pair closures, partial acceptance and retry", compression_pair_rollback)
     return report
 
 

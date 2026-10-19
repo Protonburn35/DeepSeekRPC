@@ -215,6 +215,49 @@ class OwnedStageGraph(nn.Module):
         return manifest
 
     @torch.inference_mode()
+    def run_image(self, patches, types, *, vit_h, vit_w, cancelled):
+        """Actual owned tower/aligner; bounded fused SDPA and per-block cancel."""
+        from vllm.config import set_current_vllm_config
+        from vllm.forward_context import set_forward_context
+        from vllm.models.deepseek_v4.common.vision import get_vision_cos_sin
+        from vllm.models.deepseek_v41.common.vl_cudagraph import DeepseekV4VLEncoderCudaGraphMixin
+        from torch.nn.attention import SDPBackend, sdpa_kernel
+        from ._vendor.deepseek_1017.image_processor import image_token_types
+        from .jsonutil import integer
+        integer(vit_h, "vision grid height", 1, 4096)
+        integer(vit_w, "vision grid width", 1, 4096)
+        expected_types = image_token_types((vit_h + 2) // 3, (vit_w + 2) // 3)
+        with self._mutex:
+            if (self.role != Role.HOST or not self._ready or not callable(cancelled) or
+                    vit_h * vit_w > 9216 or expected_types.numel() > 1024 or
+                    patches.device != self.state.device or patches.dtype != torch.bfloat16 or
+                    patches.shape != (vit_h * vit_w, 3, 14, 14) or not patches.is_contiguous() or
+                    types.device != self.state.device or types.dtype != torch.int64 or
+                    types.shape != expected_types.shape or not torch.equal(types.cpu(), expected_types)):
+                raise ValidationError("vision inputs differ from the admitted original BF16 patch/span geometry")
+            with set_current_vllm_config(self.config), set_forward_context({}, self.config, num_tokens=patches.shape[0], skip_compiled=True), \
+                    sdpa_kernel([SDPBackend.FLASH_ATTENTION, SDPBackend.EFFICIENT_ATTENTION]):
+                # The unchanged ViT operations, with cancellation boundaries
+                # between actual blocks. An unsupported fused SDPA fails here;
+                # no quadratic math-attention fallback is enabled.
+                with torch.device("cpu"):
+                    cos, sin = get_vision_cos_sin(vit_h, vit_w, self.vision.rope_dim, self.vision.rope_theta)
+                cos, sin = cos.to(patches.device), sin.to(patches.device)
+                hidden = self.vision.patch_embed(patches)
+                for block in self.vision.blocks:
+                    if cancelled():
+                        raise InterruptedError("vision cancelled between actual tower blocks")
+                    hidden = block(hidden, cos, sin)
+                hidden = self.vision.norm(hidden)
+                if cancelled():
+                    raise InterruptedError("vision cancelled before original aligner")
+                embeds = self.aligner(hidden, vit_h, vit_w)
+                span = DeepseekV4VLEncoderCudaGraphMixin._build_image_span(self, embeds, types)
+                if span.dtype != torch.bfloat16 or span.shape != (types.numel(), 5120) or not bool(torch.isfinite(span).all()):
+                    raise ValidationError("owned vision graph did not produce its exact finite BF16 image span")
+                return span.contiguous()
+
+    @torch.inference_mode()
     def run_target(self, token_ids, *, incoming: StageBoundary | None = None,
                    engram_hashes=None, text_mask=None, image_rows=None):
         from vllm.forward_context import set_forward_context

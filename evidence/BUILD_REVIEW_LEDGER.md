@@ -432,3 +432,30 @@ SM89/SM120 inspection and SDK-free import. Full EXLlama run 39336142655 passed
 the corresponding native checks, SDK-free native import, Python package import
 and pip consistency; its report is retained as exllama-sdk-free-build.json.
 Full vLLM native run 39336142640 remains in progress. None ran GPU kernels.
+
+## 2026-10-19 — original images and transactional stop handling
+
+Vendored the unchanged original October image processor with its source hash.
+Bounded input inspection/expansion preserves the original image ID, pad-free
+span/grid, BF16 patches, original bytes and processor/model identity. Dedicated
+opaque storage has pinned assets, payload/entry/RAM budgets, atomic writes,
+checksums and <=64-row reads. The actual A tower/aligner resolves a single image
+at a time and reuses its exact stored BF16 features for both CED passes. Its
+attention permits fused Torch SDPA only; quadratic math fallback is disabled.
+GPU image execution remains unrun.
+
+The tokenizer byte decoder matches the real Rust tokenizer across all 129,280
+IDs and preserves split UTF-8. Transactional stops buffer partial stop strings,
+bind the prefix state into C's sampling digest and trim accepted speculative
+rows before GPU commit. Initial/replacement tokens remain distinct pending
+inputs. A stopped request cannot admit another decode window. New CUDA checks
+cover the maximum vision attention shape and odd/partial compressor rollback;
+their actual GPU execution remains unrun.
+
+Windows CPU run 39342333068 passed 5684afb. Original image/storage focused
+checks passed 12 tests, and stop/sampling/metadata checks passed 30. The earlier
+expanded image suite passed 257 tests/four Win32-only skips. The following full
+stop suite caught the intermittent reference failure (264 passed, one failed,
+four skipped), narrowing it to real ATen sqrt; see DSR-AUDIT-011. With added
+failure-only diagnostics the next full suite passed 265 tests/four skips. This
+does not resolve the host issue. No comparison tolerance was changed.

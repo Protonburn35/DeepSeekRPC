@@ -71,6 +71,7 @@ class PhaseLedger:
         self.session = self.request = self.history_digest = None
         self.encoder_tokens = self.encoder_cursor = self.target_cursor = self.processed = 0
         self.pending_token = None
+        self.stop_reason = None
         self._next, self._active, self._prepared = 1, None, None
         self._receipts = OrderedDict()
         self._encoder_barrier = None
@@ -91,6 +92,7 @@ class PhaseLedger:
         self.history_digest, self.encoder_tokens = history_digest, encoder_tokens
         self.encoder_cursor = self.target_cursor = self.processed = 0
         self.pending_token, self.phase = None, "encoder"
+        self.stop_reason = None
         self._next, self._prepared, self._encoder_barrier = 1, None, None
         self._awaiting, self._sealed_number = None, 0
         self._seeded = False
@@ -120,7 +122,7 @@ class PhaseLedger:
                     operation.start != cursor or operation.rows != expected_rows or not expected_rows):
                 raise ValidationError("exact CED must traverse the whole prompt in identical fixed 64-row chunks")
         else:
-            if self.pending_token is None or operation.start != self.processed:
+            if self.stop_reason is not None or self.pending_token is None or operation.start != self.processed:
                 raise ValidationError("decode requires the published pending seed at the processed cursor")
             if window.phase == "draft":
                 if operation.rows != 5:
@@ -227,11 +229,13 @@ class PhaseLedger:
         self.phase, self.target_cursor = "target", 0
         self._encoder_barrier = None
 
-    def publish_seed(self, *, token, history_digest):
+    def publish_seed(self, *, token, history_digest, stop_reason=None):
         """Record a globally acknowledged seed without pretending it was forwarded."""
         self.validate_seed(token=token, history_digest=history_digest)
+        self._validate_stop(stop_reason)
         self.pending_token, self.history_digest = token, history_digest
         self._seeded = True
+        self.stop_reason = stop_reason
 
     def validate_seed(self, *, token, history_digest):
         integer(token, "published pending seed", 0, 129279)
@@ -242,11 +246,18 @@ class PhaseLedger:
         if self.processed >= 1048576:
             raise ValidationError("context is full; no new pending token may be emitted")
 
-    def publish_history(self, *, history_digest):
+    @staticmethod
+    def _validate_stop(reason):
+        if reason is not None and (not isinstance(reason, str) or reason not in {"eos", "length", "stop"}):
+            raise ValidationError("invalid committed request stop reason")
+
+    def publish_history(self, *, history_digest, stop_reason=None):
         hex_id(history_digest, 64, "published token/image history")
+        self._validate_stop(stop_reason)
         if self.phase != "decode" or self._active is not None or self._awaiting is not None:
             raise ValidationError("history publication requires a committed idle decode boundary")
         self.history_digest = history_digest
+        self.stop_reason = stop_reason
 
     @property
     def quiescent(self):

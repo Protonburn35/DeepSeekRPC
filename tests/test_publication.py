@@ -124,6 +124,7 @@ def test_rejection_and_accepted_eos_publish_only_the_verified_prefix_and_actual_
     for phase, history in zip(phases, histories):
         assert (phase.processed, phase.pending_token, history.length) == (7, None, 7)
         assert history.generated_counts()[1] == 1
+        assert phase.stop_reason == "eos"
 
 
 def test_publication_rejects_wrong_history_pending_prefix_and_reset_epoch():
