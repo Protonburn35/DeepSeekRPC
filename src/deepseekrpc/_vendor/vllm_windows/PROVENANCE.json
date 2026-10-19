@@ -21,6 +21,20 @@
         "Use admitted unquantized BF16 source/shadow/SWA pools and native sparse operations with exact phase visibility.",
         "Preserve independent output-group rotations and FP32 compressor projections; disable auxiliary packed GEMM overlap."
       ]
+    },
+    {
+      "source": "vllm/models/deepseek_v41/nvidia/dspark.py",
+      "sha256": "30e5362e96491a2b7c99b03998de3bf359e053f2d189bbffc250084e17678326",
+      "derived_files": [
+        "deepseekrpc/vllm_attention.py",
+        "deepseekrpc/stage_graph.py"
+      ],
+      "adaptations": [
+        "Retain the real DeepSeek decoder and shared DSpark head implementations.",
+        "Seed bounded BF16 draft context from projected target attention-input features.",
+        "Use an explicit five-row bidirectional proposal mask without publishing draft rows into persistent context.",
+        "Add exact FP32 stage boundaries, owned native loading and separate conditional Markov/confidence projection."
+      ]
     }
   ]
 }

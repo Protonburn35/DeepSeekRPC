@@ -61,6 +61,33 @@ def layer_bindings(prefixes, *, source_layer: str, module_layer: str):
     return bindings
 
 
+def stage_bindings(plan, role: Role, prefixes, *, include_draft=True):
+    """Bind constructor prefixes, including absolute draft layer IDs 40..42."""
+    prefixes = set(prefixes)
+    result = {}
+    begin, end = plan.bounds(role)
+    for layer in range(begin, end):
+        result.update(layer_bindings(prefixes, source_layer=f"layers.{layer}", module_layer=f"model.layers.{layer}"))
+    if role == Role.TERMINAL:
+        if "head" not in prefixes:
+            raise ValidationError("stage C is missing its packed vocabulary head")
+        result["lm_head"] = DenseBinding(("head",), output_fp32=True)
+        if include_draft:
+            for draft in range(3):
+                result.update(layer_bindings(prefixes, source_layer=f"mtp.{draft}",
+                                             module_layer=f"model.layers.{plan.geometry.layers + draft}"))
+            # The shared context combiner is a member of the first draft
+            # block, while the decoder constructor uses absolute layer 40.
+            result["model.mtp.0.main_proj"] = result.pop("model.layers.40.main_proj")
+    consumed = {name for binding in result.values() for name in binding.prefixes}
+    expected = {name for name in prefixes if ".ffn.experts." not in name}
+    if role == Role.TERMINAL and not include_draft:
+        expected = {name for name in expected if not name.startswith("mtp.")}
+    if consumed != expected:
+        raise ValidationError("owned permanent packed inventory contains an unmapped constructor projection")
+    return result
+
+
 class PackedBootUploader:
     """Bounded startup-only copies; B always reads its locked resident store."""
     def __init__(self, source):

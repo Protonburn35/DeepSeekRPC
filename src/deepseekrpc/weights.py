@@ -62,9 +62,12 @@ class SelectiveWeights:
     I/O component, not proof of physical residency or a model executor.
     """
     def __init__(self, root: Path, index: Path, *, index_sha256: str,
-                 pins: dict[str, ShardPin], plan: StagePlan, role: Role):
+                 pins: dict[str, ShardPin], plan: StagePlan, role: Role,
+                 replicate_draft_embedding: bool = False):
         if not isinstance(role, Role):
             raise ValidationError("weight owner must be an explicit stage role")
+        if type(replicate_draft_embedding) is not bool or replicate_draft_embedding and role != Role.TERMINAL:
+            raise ValidationError("only stage C may admit the explicit DSpark text-embedding replica")
         hex_id(index_sha256, 64, "checkpoint index")
         with index.open("rb") as stream:
             data = stream.read(MAX_INDEX + 1)
@@ -88,6 +91,10 @@ class SelectiveWeights:
                 selected.add(name)
         if not selected:
             raise ValidationError("checkpoint index has no owned tensors")
+        self.replicated_names = frozenset({"embed.weight"}) if replicate_draft_embedding else frozenset()
+        if not self.replicated_names <= mapping.keys():
+            raise ValidationError("DSpark embedding replica is absent from the pinned checkpoint index")
+        selected.update(self.replicated_names)
         self.names = frozenset(selected)
         self._files: dict[str, TensorFile] = {}
         self._mutex = threading.RLock()

@@ -83,6 +83,7 @@ class AttentionState:
         self._mutex = threading.RLock()
         self._window, self._selections, self._begun_compressors = None, {}, []
         self._failed = False
+        self._cancelled = None
 
     def attach_compressor(self, layer: int, state: DeviceCompressionState):
         if (layer in self._compressors or layer not in self.plan.geometry.kv_sources or
@@ -101,9 +102,9 @@ class AttentionState:
             self._selections.clear()
             self._failed = False
 
-    def begin(self, window: AttentionWindow):
+    def begin(self, window: AttentionWindow, *, cancelled=None):
         with self._mutex:
-            if self._window is not None or self._failed:
+            if self._window is not None or self._failed or cancelled is not None and not callable(cancelled):
                 raise ValidationError("attention state is active or needs coherent session recovery")
             begun = []
             try:
@@ -115,6 +116,7 @@ class AttentionState:
                     pool.finish(window.operation, 0)
                 raise
             self._window = window
+            self._cancelled = cancelled
             self._selections.clear()
             self._begun_compressors.clear()
 
@@ -123,6 +125,9 @@ class AttentionState:
         if self._window is None or self._failed:
             raise ValidationError("attention graph has no valid current window")
         return self._window
+
+    def cancelled(self):
+        return self._cancelled is not None and bool(self._cancelled())
 
     def compress(self, layer: int, scores):
         window = self.current
@@ -229,6 +234,7 @@ class AttentionState:
                 self._failed = True
                 raise
             self._window = None
+            self._cancelled = None
             self._selections.clear()
             self._begun_compressors.clear()
             self._failed = False

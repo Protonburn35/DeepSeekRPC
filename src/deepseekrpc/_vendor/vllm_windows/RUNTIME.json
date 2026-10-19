@@ -1,0 +1,41 @@
+{
+  "scope": "Required source identities for actual Windows stage construction; no GPU qualification claim",
+  "versions": {
+    "vllm": "0.31.0+deepseekrpc2",
+    "vllm-exl3": "0.5.0",
+    "exllamav3": "1.6.1.post1",
+    "torch": "2.11.0+cu130"
+  },
+  "files": [
+    {
+      "distribution": "exllamav3",
+      "path": "exllamav3/modules/quant/exl3.py",
+      "sha256": "3f285c0a34d4bee9bd1ccbbc476036254f8427f1c7279583efad9b1ca4b1eddf"
+    },
+    {
+      "distribution": "exllamav3",
+      "path": "exllamav3/util/backend.py",
+      "sha256": "1a10f089b9db4492b2b49a843235bfe2ad0b804d6ada2eeb937005b1b84d0296"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/models/deepseek_v4/nvidia/model.py",
+      "sha256": "1bf29b0d2543975e2474bf42b184a504dc7ed90c5eee8afafa4031518fda3a33"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/models/deepseek_v41/nvidia/model.py",
+      "sha256": "6ecef14e39598f7cf028f8425317ce0db0a07e6a4ea47a6ff3238beed1ed21f4"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/tilelang_utils/__init__.py",
+      "sha256": "9029932935593d4d220a4c27c7db13f96c54b21906445bf8121ec6e924743df7"
+    },
+    {
+      "distribution": "vllm-exl3",
+      "path": "vllm_exl3/exl3.py",
+      "sha256": "349c6af3debab6273d4a147a25a4a31f2e7806ac94f9a6fb619c4f4d47000df3"
+    }
+  ]
+}

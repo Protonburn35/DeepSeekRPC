@@ -24,6 +24,8 @@ def checkpoint(tmp_path):
         filename = f"model-{part:05}-of-00003.safetensors"
         name = f"layers.{layer}.ffn.experts.0.w1.suh"
         tensors = {name: np.arange(128, dtype=np.float16)}
+        if layer == 0:
+            tensors["embed.weight"] = np.arange(256, dtype=np.float16).reshape(16, 16)
         if layer == 18:
             # An unowned tensor in the same physical shard must remain unreadable.
             tensors["layers.23.ffn.experts.1.w1.suh"] = np.full(16, 7, dtype=np.float16)
@@ -74,6 +76,22 @@ def test_publisher_hash_detects_corrupt_payload_with_unchanged_header(checkpoint
         with pytest.raises(ValidationError, match="publisher SHA-256"):
             weights.info(next(iter(weights.names)))
         assert weights.verified_shards == 0
+
+
+def test_only_explicit_stage_c_dspark_replica_can_read_the_pinned_text_embedding(checkpoint):
+    root, index, digest, pins, plan, values = checkpoint
+    with source(checkpoint, Role.TERMINAL) as ordinary:
+        with pytest.raises(ValidationError, match="not owned"):
+            ordinary.read_range("embed.weight", 0, 2)
+    with SelectiveWeights(root, index, index_sha256=digest, pins=pins, plan=plan,
+                          role=Role.TERMINAL, replicate_draft_embedding=True) as replica:
+        assert replica.replicated_names == {"embed.weight"}
+        assert replica.read_range("embed.weight", 0, 512) == values["embed.weight"].tobytes()
+        with pytest.raises(ValidationError, match="not owned"):
+            replica.read_range("layers.0.ffn.experts.0.w1.suh", 0, 2)
+    with pytest.raises(ValidationError, match="only stage C"):
+        SelectiveWeights(root, index, index_sha256=digest, pins=pins, plan=plan,
+                         role=Role.MIDDLE, replicate_draft_embedding=True)
 
 
 def test_index_fingerprint_and_unsafe_shard_path_are_rejected(checkpoint):

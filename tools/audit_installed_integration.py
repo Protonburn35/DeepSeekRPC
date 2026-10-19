@@ -61,7 +61,7 @@ def main():
         configure_exact_exl3()
         from deepseekrpc.vllm_experts import BoundedMoEMethod
         from deepseekrpc.vllm_engram import DiskEngram
-        from deepseekrpc.vllm_attention import OwnedBF16Attention
+        from deepseekrpc.vllm_attention import OwnedBF16Attention, OwnedDSparkAttention
         from vllm.models.deepseek_v41.attention import DeepseekV4Attention
         from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
         from vllm.models.deepseek_v41.common.engram import Engram
@@ -69,6 +69,8 @@ def main():
             raise RuntimeError("owned adapters do not bind the real upstream model classes")
         if not issubclass(OwnedBF16Attention, DeepseekV4Attention) or OwnedBF16Attention.__abstractmethods__:
             raise RuntimeError("owned BF16 attention is not a concrete real upstream subclass")
+        if not issubclass(OwnedDSparkAttention, OwnedBF16Attention) or OwnedDSparkAttention.__abstractmethods__:
+            raise RuntimeError("owned DSpark attention is not its concrete explicit draft backend")
         return "actual vLLM routed-method, learned Engram and concrete BF16 attention classes; CUDA constructors/execution not run"
 
     try:

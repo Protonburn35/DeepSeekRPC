@@ -62,6 +62,7 @@ class OwnedIndexerProjection(nn.Module):
 class OwnedBF16Attention(DeepseekV4Attention):
     """Actual vLLM attention subclass with bounded source-aware CUDA execution."""
     use_fp8_ds_mla_layout = False
+    _draft_backend = False
 
     def __init__(self, vllm_config, prefix, *, state: AttentionState,
                  topk_indices_buffer=None, aux_stream_list=None, candidate_block_buffer=None,
@@ -86,6 +87,8 @@ class OwnedBF16Attention(DeepseekV4Attention):
         self.layer_id = extract_layer_index(prefix)
         if self.layer_id not in state.windows:
             raise ValidationError("vLLM attempted to construct an unowned attention layer")
+        if (self.layer_id >= state.plan.geometry.layers) != self._draft_backend:
+            raise ValidationError("target and DSpark attention require their explicit distinct cache/mask backends")
         self.prefix, self.state = prefix, state
         self.hidden_size, self.q_lora_rank, self.o_lora_rank = 5120, 1280, 1024
         self.n_heads = self.n_local_heads = self.padded_heads = 64
@@ -221,7 +224,8 @@ class OwnedBF16Attention(DeepseekV4Attention):
             # is folded into weights. Stored index K remains BF16 throughout.
             if not isinstance(prepared, torch.Tensor) or prepared.dtype != torch.float8_e4m3fn:
                 raise ValidationError("unexpected index-query precision profile")
-            self.state.select(self.layer_id, prepared.float().contiguous(), weights.contiguous())
+            self.state.select(self.layer_id, prepared.float().contiguous(), weights.contiguous(),
+                              cancelled=self.state.cancelled)
         self.forward_mqa(q, kv, positions, attn_out)
 
     def forward_mqa(self, q, kv, positions, output):
@@ -261,3 +265,47 @@ class OwnedBF16Attention(DeepseekV4Attention):
         self.rotary_emb.forward_cuda(positions, attn_out, inverse=True)
         grouped = attn_out.reshape(len(attn_out), 8, 4096)
         return self.wo_b(self.wo_a(grouped))
+
+
+class OwnedDSparkAttention(OwnedBF16Attention):
+    """Five bidirectional draft rows attend to target-derived context KV.
+
+    Draft rows never enter the persistent SWA ring. Accepted target verification
+    supplies each layer's context through its own wkv/norm/RoPE projection.
+    """
+    _draft_backend = True
+
+    def seed_context(self, main_x, positions):
+        window = self.state.current
+        operation = window.operation
+        if (not self._ready or window.phase not in {"target", "decode"} or
+                main_x.device != self.state.device or main_x.dtype != torch.bfloat16 or
+                main_x.shape != (operation.rows, 5120) or positions.device != self.state.device or
+                positions.dtype != torch.int64 or positions.shape != (operation.rows,) or
+                positions.tolist() != list(range(operation.start, operation.start + operation.rows))):
+            raise ValidationError("DSpark context must come from the current target verification rows")
+        try:
+            projected, _ = self.fused_wqa_wkv(main_x)
+            kv = self.kv_norm(projected[:, self.q_lora_rank:]).contiguous()
+            self.rotary_emb.forward_cuda(positions, kv.unsqueeze(1))
+            tokens = list(range(operation.start, operation.start + operation.rows))
+            self.state.windows[self.layer_id].write(tokens, tokens, kv)
+        except BaseException:
+            self.state.fail()
+            raise
+
+    def forward_mqa(self, q, kv, positions, output):
+        window = self.state.current
+        operation = window.operation
+        if window.phase != "draft" or operation.rows != 5 or operation.start < 1:
+            raise ValidationError("DSpark attention requires its five-row proposal block after real target context")
+        pool = self.state.windows[self.layer_id]
+        past = range(max(0, operation.start - 128), operation.start)
+        with pool.read_window(operation):
+            slots = torch.tensor(pool.physical(past), dtype=torch.int64, device=self.state.device)
+            staging = torch.cat((pool.data.index_select(0, slots), kv), dim=0)
+            indices = torch.arange(len(staging), dtype=torch.int32, device=self.state.device)
+            indices = indices.expand(operation.rows, -1).contiguous()
+            result = sparse_attention(q.float().contiguous(), staging, self._empty_source,
+                                      indices, self.attn_sink, scale=self.scale)
+            output.copy_(result.to(torch.bfloat16))

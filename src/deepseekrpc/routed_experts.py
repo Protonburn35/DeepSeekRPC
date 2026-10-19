@@ -74,11 +74,14 @@ class BoundedRoutedExperts:
     The vLLM runner computes/adds its shared expert separately. This operation
     consumes only the routed contribution and does not alter that shared path.
     """
-    def __init__(self, catalog: ExpertCatalog, cache, *, topk: int = 6):
+    def __init__(self, catalog: ExpertCatalog, cache, *, topk: int = 6, cancelled=None):
         integer(topk, "routed top-k", 1, min(6, len(catalog.keys)))
         if catalog.slot_bytes > cache.slot_bytes:
             raise ValidationError("largest owned expert exceeds the admitted GPU slot")
+        if cancelled is not None and not callable(cancelled):
+            raise ValidationError("expert cancellation observer must be a callable")
         self.catalog, self.cache, self.topk = catalog, cache, topk
+        self.cancelled = cancelled
 
     def forward(self, inputs, topk_weights, topk_ids):
         import torch
@@ -97,6 +100,8 @@ class BoundedRoutedExperts:
         groups = partition_routes(topk_ids.tolist(), experts=len(catalog.keys), topk=self.topk)
         output = torch.zeros(inputs.shape, dtype=torch.float32, device=inputs.device)
         for expert, positions in groups:
+            if self.cancelled is not None and self.cancelled():
+                raise InterruptedError("routed work cancelled at an expert boundary")
             rows, ranks = zip(*positions)
             # Every route appears once. No expert cap or probability threshold.
             row_ids = torch.tensor(rows, dtype=torch.long, device=inputs.device)

@@ -269,3 +269,24 @@ Added FP64 diagnostic reporting on failure without changing the frozen oracle
 or widening tolerance. Another 500 isolated comparisons passed. The root cause
 of this intermittent host numerical discrepancy remains unresolved; a passing
 rerun is not its repair.
+
+## 2026-10-19 — owned stage construction and explicit draft graph source
+
+Added actual decoder/vision/draft stage construction, complete native parameter
+binding, exact FP32 boundary promotion/validation and local real Gloo-group setup.
+Source 20 has a separate encoder-projection path. Target features are the mean
+HC streams entering layers 37/38/39, preserving the official attention-input
+convention rather than reading those layers' final outputs. Draft blocks use
+bidirectional five-row attention over verified target context and never insert
+proposal rows. Original Markov/confidence heads remain explicit operations.
+
+Stage C's input embedding is an explicit publisher-verified 1.23 GiB replica,
+not an implicit transfer or unrestricted ownership exception. The runtime source
+identity manifest is packaged with the wheel. Complete application bootstrap,
+distributed phases, sampling/acceptance, API/vision input handling and persistence
+still require implementation. No GPU constructor/model operation has run.
+
+Local suite: 192 passed, three actual-Win32-only skips. Updated constructor
+prefix coverage uses the complete physical pack, including all draft matrices.
+Installed CPU adapter imports passed; Windows CPU run 39329361879 also passed
+the previous checkpoint. Native vLLM run 39329361817 remains in progress.

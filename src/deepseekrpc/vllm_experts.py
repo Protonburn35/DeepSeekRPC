@@ -12,7 +12,8 @@ from .dense_weights import DenseBinding, FixedPackedWeights
 from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
 from vllm.model_executor.layers.fused_moe.routed_experts import RoutedExperts
 from vllm_exl3.exl3 import Exl3Config
-from vllm.model_executor.layers.linear import LinearMethodBase
+from vllm.model_executor.layers.linear import LinearBase, LinearMethodBase
+from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
 
 
 class BoundedMoEMethod(FusedMoEMethodBase):
@@ -76,6 +77,8 @@ class OwnedExl3Config(Exl3Config):
             if prefix not in self._owned_executors:
                 raise ValidationError("vLLM attempted to construct unowned routed experts")
             return BoundedMoEMethod(layer.moe_config, self._owned_executors[prefix])
+        if isinstance(layer, (LinearBase, ParallelLMHead)):
+            raise ValidationError("owned EXL3 graph attempted an unbound permanent packed projection")
         return super().get_quant_method(layer, prefix)
 
 

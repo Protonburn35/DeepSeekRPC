@@ -143,3 +143,23 @@ tile, including declared source/destination dtype conversions in its manifest.
 B's source is exclusively the locked resident store. Native parameter memory,
 boot scratch and packed storage require separate explicit admission. The full
 vision/DSpark binding plan and actual graph bootstrap still need integration.
+
+`stage_graph.OwnedStageGraph` now constructs only each stage's actual patched
+decoder layers, the native A vision tower/aligner and both disk Engrams, and C's
+three actual draft blocks and shared DSpark heads. Every native tensor must map
+exactly once to an owned physical source. The packed constructor binding plan
+also covers absolute draft layers 40–42 and the shared context combiner.
+The graph flushes delayed mHC at boundaries, promotes activations to FP32 and
+checks exact reconstruction of internal BF16 values on receipt. The CPU boundary
+test verifies BF16 bit preservation and unchanged FP32 mix coefficients.
+
+Draft attention has a distinct bidirectional five-row backend. Each draft
+layer's persistent context is seeded from that layer's own projection of target
+attention-input features at layers 37/38/39. Proposed rows never enter that ring.
+Graph methods expose full draft logits and sequential Markov bias/confidence;
+the global sampling/acceptance coordinator is still required. C's explicit
+text-embedding replica and its additional memory are recorded in MEMORY_PLAN.md.
+Runtime construction checks pinned package versions and exact patched source
+hashes. All GPU graph constructors/execution remain unrun. Complete bootstrap,
+global CED scheduling/commit, image preprocessing/API, snapshots and prefix reuse
+remain unfinished; these source components are not a finished application.

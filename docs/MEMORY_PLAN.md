@@ -140,3 +140,14 @@ metadata or backup failure before scatter cannot create a valid undo entry.
 The global stage transaction and replica protocol still need to bind these pools
 into the actual model. `selftest-cuda` contains a small real-GPU partial-prefix
 and ring-overwrite regression; it has not executed on this host.
+
+## Stage C draft embedding replica
+
+The draft graph shares the target's input embedding semantically. Stage C now
+admits an explicit local replica of the publisher-pinned `embed.weight`:
+129280 × 5120 × 2 = 1,323,827,200 bytes (about 1.23 GiB). It is a permanent
+native BF16 device weight and counts in addition to C's canonical owned payload.
+The selective loader permits this one replica only on C and still verifies its
+original shard/header/full-file hash. No other unowned tensor becomes readable.
+The replica requires full whole-process/device admission before allocation;
+the five-GiB source/index/shadow estimate does not include it.
