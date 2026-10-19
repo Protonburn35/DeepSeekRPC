@@ -17,6 +17,23 @@ def test_native_locked_host_pages():
         buffer.read(0, 1)
 
 
+@pytest.mark.skipif(os.name != "nt", reason="requires real Win32 working-set/locking APIs")
+def test_large_locked_buffer_reserves_process_quota_and_releases_it():
+    from deepseekrpc.native_windows import _kernel32, _working_set_limits
+    dll = _kernel32()
+    before = _working_set_limits(dll)
+    size = 64 * 1024**2
+    with LockedBuffer(size, admitted_bytes=size) as buffer:
+        buffer.write(size - 8, b"resident")
+        assert buffer.read(size - 8, 8) == b"resident"
+        assert _working_set_limits(dll)[0] >= size
+        # Closing one allocation must preserve another live allocation's quota.
+        with LockedBuffer(4096, admitted_bytes=4096) as second:
+            second.write(0, b"ok")
+        assert buffer.read(size - 8, 8) == b"resident"
+    assert _working_set_limits(dll) == before
+
+
 @pytest.mark.skipif(os.name == "nt", reason="this check exercises explicit refusal on non-Windows hosts")
 def test_other_platform_does_not_claim_windows_residency():
     with pytest.raises(OSError, match="unavailable"):

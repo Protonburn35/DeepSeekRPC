@@ -48,9 +48,9 @@ scheme. Error messages carry bounded codes and never arbitrary exception dumps.
 
 Descriptors identify field semantic, source layer, dtype, shape, logical row
 origin, tensor identity/total length and fragment offset. Supported storage
-dtype IDs are FP16, BF16, FP32, I32, I64 and U8. Activations/pre_mix default to
-FP32, token/position/index values stay integers, cache rows use their actual
-storage format. Validate rank, dimensions, element-byte multiplication, fragment
+dtype IDs are FP16, BF16, FP32, I32, I64 and U8. Activations/pre_mix require
+FP32 (the launch setting is --layer-stage-wire fp32). Token/position/index values
+stay integers; KV/index rows require unquantized BF16 storage. Validate rank, dimensions, element-byte multiplication, fragment
 alignment and all intervals with checked bounds. A frame payload is at most
 1 MiB; consumers stream fragments to a previously budgeted destination. Do not
 buffer an entire prompt or allocate a shape announced by the peer. Reject

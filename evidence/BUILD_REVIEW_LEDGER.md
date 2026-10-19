@@ -120,3 +120,21 @@
 - Planner/protocol/layout focused suite after BF16 policy: 55 passed locally.
   Inventory regenerated with BF16 plan metadata; tensor bytes and ownership are
   unchanged. New native build remains pending; actual GPU execution is unrun.
+
+## 2026-10-19 — native CUDA compilation passes
+
+- Run 39314752138 passed on native Windows for clean source 21fe6b7. Actual
+  CUDA 13.2 compilation, link, install, no-GPU extension ABI import and cuobjdump
+  verification passed; the module contains both sm_89 and sm_120 cubins. Wheel
+  hash and exact checks are retained in evidence/native-first-build.json.
+- The same run passed 160 CPU tests with actual Windows Torch 2.11.0+cu130,
+  one explicitly non-Windows-only skip. GPU kernels were not executed.
+- Added the fixed-allocation CUDA expert tier over bounded desktop RAM or B's
+  locked host store, stream/event protected slot leases and stale-handle refusal.
+  Its actual GPU operation and WDDM residency remain unrun. Original ExLlama
+  native extension and full vLLM graph/build integration are still required.
+- User reaffirmed FP32 stage activation/pre_mix transfers. Planner/inspection
+  CLI now expose the enforced --layer-stage-wire fp32 setting explicitly.
+- Native Windows host-lock admission now reserves process working-set quota
+  before VirtualLock, preserving the current resident runtime. Added a real
+  64 MiB lock/nested allocation/quota release regression; Windows run pending.

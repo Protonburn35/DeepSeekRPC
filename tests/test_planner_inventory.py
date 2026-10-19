@@ -26,6 +26,13 @@ def test_actual_source_map_and_replica_bytes():
     }
     assert [p.persistent_source_bytes(r) for r in Role] == [2013265920, 2013265920, 1342177280]
     assert p.cache_dtype == "bfloat16"
+    assert p.layer_stage_wire == "fp32"
+
+
+def test_stage_activation_wire_cannot_silently_downcast():
+    p = plan()
+    with pytest.raises(ValidationError, match="FP32 wire"):
+        StagePlan(p.geometry, p.split, layer_stage_wire="fp16")
 
 
 @pytest.mark.parametrize("cache_dtype", ["float16", "fp8", "int8", "nvfp4", "auto"])

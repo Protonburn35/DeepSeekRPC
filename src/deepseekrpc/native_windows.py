@@ -14,6 +14,60 @@ import threading
 from .inventory import MAX_READ
 from .jsonutil import ValidationError, integer
 
+_working_set_mutex = threading.Lock()
+_working_set_users = {}
+_working_set_baseline = None
+_working_set_applied = None
+
+
+class _ProcessMemoryCounters(ctypes.Structure):
+    _fields_ = [("cb", wintypes.DWORD), ("faults", wintypes.DWORD),
+                ("peak_working_set", ctypes.c_size_t), ("working_set", ctypes.c_size_t),
+                ("peak_paged_pool", ctypes.c_size_t), ("paged_pool", ctypes.c_size_t),
+                ("peak_nonpaged_pool", ctypes.c_size_t), ("nonpaged_pool", ctypes.c_size_t),
+                ("pagefile", ctypes.c_size_t), ("peak_pagefile", ctypes.c_size_t)]
+
+
+def _working_set_limits(dll):
+    process = dll.GetCurrentProcess()
+    minimum, maximum, flags = ctypes.c_size_t(), ctypes.c_size_t(), wintypes.DWORD()
+    if not dll.GetProcessWorkingSetSizeEx(process, ctypes.byref(minimum), ctypes.byref(maximum), ctypes.byref(flags)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return minimum.value, maximum.value, flags.value
+
+
+def _reserve_working_set(dll, size):
+    global _working_set_baseline, _working_set_applied
+    with _working_set_mutex:
+        current = _working_set_limits(dll)
+        if _working_set_baseline is None or current != _working_set_applied:
+            _working_set_baseline = current
+        counters = _ProcessMemoryCounters()
+        counters.cb = ctypes.sizeof(counters)
+        if not dll.K32GetProcessMemoryInfo(dll.GetCurrentProcess(), ctypes.byref(counters), counters.cb):
+            raise ctypes.WinError(ctypes.get_last_error())
+        minimum = max(current[0], sum(_working_set_users.values()) + size + 4 * 1024**2)
+        # Preserve the existing resident runtime as well as new locked pages.
+        maximum = max(current[1], minimum + 4 * 1024**2, counters.working_set + size + 4 * 1024**2)
+        if not dll.SetProcessWorkingSetSizeEx(dll.GetCurrentProcess(), minimum, maximum, current[2]):
+            raise ctypes.WinError(ctypes.get_last_error())
+        _working_set_applied = _working_set_limits(dll)
+        token = object()
+        _working_set_users[token] = size
+        return token
+
+
+def _release_working_set(dll, token):
+    global _working_set_baseline, _working_set_applied
+    with _working_set_mutex:
+        _working_set_users.pop(token, None)
+        if not _working_set_users and _working_set_baseline is not None:
+            if _working_set_limits(dll) == _working_set_applied:
+                if not dll.SetProcessWorkingSetSizeEx(dll.GetCurrentProcess(), *_working_set_baseline):
+                    raise ctypes.WinError(ctypes.get_last_error())
+            # Preserve an independent caller's changes to the process limits.
+            _working_set_baseline = _working_set_applied = None
+
 
 def _kernel32():
     if os.name != "nt":
@@ -23,6 +77,15 @@ def _kernel32():
     dll.VirtualAlloc.restype = ctypes.c_void_p
     dll.VirtualFree.argtypes = [ctypes.c_void_p, ctypes.c_size_t, wintypes.DWORD]
     dll.VirtualFree.restype = wintypes.BOOL
+    dll.GetCurrentProcess.argtypes = []
+    dll.GetCurrentProcess.restype = wintypes.HANDLE
+    dll.GetProcessWorkingSetSizeEx.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_size_t),
+                                              ctypes.POINTER(ctypes.c_size_t), ctypes.POINTER(wintypes.DWORD)]
+    dll.GetProcessWorkingSetSizeEx.restype = wintypes.BOOL
+    dll.SetProcessWorkingSetSizeEx.argtypes = [wintypes.HANDLE, ctypes.c_size_t, ctypes.c_size_t, wintypes.DWORD]
+    dll.SetProcessWorkingSetSizeEx.restype = wintypes.BOOL
+    dll.K32GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessMemoryCounters), wintypes.DWORD]
+    dll.K32GetProcessMemoryInfo.restype = wintypes.BOOL
     for name in ("VirtualLock", "VirtualUnlock"):
         function = getattr(dll, name)
         function.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
@@ -44,14 +107,19 @@ class LockedBuffer:
             raise ValidationError("page-rounded locked allocation exceeds admitted host budget")
         self._dll = _kernel32()
         self._mutex = threading.Lock()
-        self._pointer = self._dll.VirtualAlloc(None, self.size, 0x3000, 0x04)
-        if not self._pointer:
-            raise ctypes.WinError(ctypes.get_last_error())
-        if not self._dll.VirtualLock(self._pointer, self.size):
-            error = ctypes.get_last_error()
-            self._dll.VirtualFree(self._pointer, 0, 0x8000)
-            self._pointer = None
-            raise ctypes.WinError(error)
+        self._working_set_token = _reserve_working_set(self._dll, self.size)
+        self._pointer = None
+        try:
+            self._pointer = self._dll.VirtualAlloc(None, self.size, 0x3000, 0x04)
+            if not self._pointer or not self._dll.VirtualLock(self._pointer, self.size):
+                raise ctypes.WinError(ctypes.get_last_error())
+        except BaseException:
+            if self._pointer:
+                self._dll.VirtualFree(self._pointer, 0, 0x8000)
+                self._pointer = None
+            _release_working_set(self._dll, self._working_set_token)
+            self._working_set_token = None
+            raise
         self._locked = True
         self._cuda_runtime = None
 
@@ -123,6 +191,9 @@ class LockedBuffer:
                 if not self._dll.VirtualFree(self._pointer, 0, 0x8000):
                     raise ctypes.WinError(ctypes.get_last_error())
                 self._pointer = None
+            if self._working_set_token is not None:
+                _release_working_set(self._dll, self._working_set_token)
+                self._working_set_token = None
 
     def __enter__(self):
         return self

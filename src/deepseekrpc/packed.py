@@ -55,6 +55,25 @@ class PackedLinearLayout:
         return cls(prefix, inputs, outputs, k, tuple(parts), (offset + 255) // 256 * 256)
 
 
+@dataclass(frozen=True)
+class PackedBundleLayout:
+    matrices: tuple[tuple[str, int, PackedLinearLayout], ...]
+    nbytes: int
+
+    @classmethod
+    def from_source(cls, source, prefix: str):
+        matrices, offset = [], 0
+        for name in ("w1", "w2", "w3"):
+            layout = PackedLinearLayout.from_source(source, f"{prefix}.{name}")
+            matrices.append((name, offset, layout))
+            offset += layout.nbytes
+        gate, down, up = [item[2] for item in matrices]
+        if ((gate.in_features, gate.out_features) != (up.in_features, up.out_features) or
+                (down.in_features, down.out_features) != (gate.out_features, gate.in_features)):
+            raise ValidationError("expert gate/up/down dimensions do not form a complete projection bundle")
+        return cls(tuple(matrices), offset)
+
+
 class DevicePackedLinear:
     """A real BC_LinearEXL3 binding over an admitted live CUDA allocation.
 
@@ -67,13 +86,15 @@ class DevicePackedLinear:
         if (not storage.is_cuda or storage.dtype != torch.uint8 or storage.ndim != 1 or
                 not storage.is_contiguous() or storage.numel() < layout.nbytes):
             raise ValidationError("packed linear needs admitted contiguous CUDA byte storage")
-        from vllm_exl3.exl3 import make_linear_exl3
+        import vllm_exl3.exl3 as plugin
+        if not plugin._VLLM_AVAILABLE:
+            raise RuntimeError("the real installed vLLM plugin integration is required")
         views = {}
         for part in layout.parts:
             dtype = {"F16": torch.float16, "I16": torch.int16, "I32": torch.int32}[part.info.dtype]
             views[part.info.name.rsplit(".", 1)[1]] = storage.narrow(0, part.offset, part.info.nbytes).view(dtype).view(part.info.shape)
         with torch.cuda.device(storage.device):
-            self.inner = make_linear_exl3(**views, out_dtype=torch.float32)
+            self.inner = plugin.make_linear_exl3(**views, out_dtype=torch.float32)
             # Avoid persistent dense reconstruction at every row count.
             self.inner.config.infer_params.no_reconstruct = True
         self.layout, self.storage = layout, storage
@@ -93,3 +114,5 @@ class DevicePackedLinear:
     def close(self):
         # CUDA cache owner retains storage until the recorded last-use event.
         self.closed = True
+        self.inner = None
+        self.storage = None

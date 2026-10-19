@@ -66,6 +66,7 @@
       }
     ],
     "cache_dtype": "bfloat16",
+    "layer_stage_wire": "fp32",
     "source_and_shadow_bytes": {
       "host": 2013265920,
       "middle": 2013265920,

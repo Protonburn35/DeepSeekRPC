@@ -38,3 +38,6 @@
     and prohibit FP8/FP4/INT8 or automatic quantized-cache fallback. This explicit
     instruction supersedes the original prompt's FP16 default/native alternatives.
     Existing FP16 EXL3 weight-kernel inputs/rotations are a separate format.
+13. The user reaffirmed --layer-stage-wire fp32 as the default. Stage activations
+    and mHC pre_mix require FP32 throughout the RPC boundary. BF16 KV/index
+    storage and lossless integer metadata remain separate typed semantics.

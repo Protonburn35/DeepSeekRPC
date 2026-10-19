@@ -123,3 +123,15 @@ packed EXL3 device loading, bounded caches and the vLLM layer-stage graph,
 transactional BF16 source pools/index selection, exact CED scheduling, Engram
 projection/gate, and the remaining application features. Do not request Astra
 review until the complete application is implemented.
+
+Latest precision requirements: BF16-only, unquantized KV/index caches; no FP16
+cache option and no FP8/FP4/INT8 fallback. Stage activation/pre_mix wire is FP32,
+explicit --layer-stage-wire fp32. These current user instructions override the
+original spec's cache precision language. Weight-kernel FP16 is separate.
+
+Native CUDA run 39314752138 passed for 21fe6b7: compile/link/install/import and
+sm_89/sm_120 cubins verified, 160 CPU tests passed with actual Windows CUDA Torch,
+one non-Windows-only skip. GPU operations have not executed. Compact evidence
+is tracked. Full EXLlama/vLLM native integration and the actual staged model
+are still required. New CUDA cache code uses fixed slots and event-held leases;
+B's host path registers already locked pages instead of a second host mirror.

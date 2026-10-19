@@ -32,6 +32,7 @@ def main(argv=None):
     plan = commands.add_parser("plan", help="derive ownership and prospective source/shadow bytes from config")
     plan.add_argument("--model-config", type=Path, required=True)
     plan.add_argument("--split", default="18,5,17")
+    plan.add_argument("--layer-stage-wire", choices=["fp32"], default="fp32")
     args = parser.parse_args(argv)
     try:
         if args.command == "capabilities":
@@ -39,7 +40,7 @@ def main(argv=None):
         else:
             config = loads(args.model_config.read_bytes(), limit=128 * 1024)
             split = tuple(int(value) for value in args.split.split(","))
-            result = StagePlan(Geometry.from_config(config), split).as_dict()
+            result = StagePlan(Geometry.from_config(config), split, layer_stage_wire=args.layer_stage_wire).as_dict()
         print(json.dumps(result, indent=2))
         return 0
     except (ValidationError, OSError, KeyError, TypeError, ValueError) as exc:

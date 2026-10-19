@@ -73,7 +73,11 @@ __global__ void sparse_kernel(
     }
     for (int item = 0; item < 2; ++item) {
         const int dim = threadIdx.x + item * 256;
-        if (dim < width) out[(static_cast<int64_t>(row) * heads + head) * width + dim] = acc[item] / denominator;
+        if (dim < width) {
+            const float value = acc[item] / denominator;
+            if (!isfinite(value)) atomicCAS(error, 0, 2);
+            out[(static_cast<int64_t>(row) * heads + head) * width + dim] = value;
+        }
     }
 }
 
@@ -103,7 +107,10 @@ __global__ void index_kernel(
             dot += q[(static_cast<int64_t>(row) * heads + head) * width + dim]
                  * unpack(keys[static_cast<int64_t>(id) * width + dim]);
         dot = warp_sum(dot);
-        if (lane == 0) head_scores[head] = fmaxf(dot, 0.0f) * weights[row * heads + head];
+        if (lane == 0) {
+            if (!isfinite(dot) || !isfinite(weights[row * heads + head])) atomicCAS(error, 0, 2);
+            head_scores[head] = fmaxf(dot, 0.0f) * weights[row * heads + head];
+        }
     }
     __syncthreads();
     if (warp == 0) {
@@ -146,8 +153,11 @@ __global__ void scatter_kernel(
         if (threadIdx.x == 0) atomicCAS(error, 0, 3);
         return;
     }
-    for (int dim = threadIdx.x; dim < width; dim += blockDim.x)
-        pool[slot * width + dim] = values[row * width + dim];
+    for (int dim = threadIdx.x; dim < width; dim += blockDim.x) {
+        const uint16_t value = values[row * width + dim];
+        if ((value & 0x7f80) == 0x7f80) atomicCAS(error, 0, 2);
+        else pool[slot * width + dim] = value;
+    }
 }
 
 void launch_sparse(const at::Tensor& q, const at::Tensor& window, const at::Tensor& source,

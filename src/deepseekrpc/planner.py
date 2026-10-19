@@ -90,10 +90,13 @@ class StagePlan:
     geometry: Geometry
     split: tuple[int, int, int]
     cache_dtype: str = "bfloat16"
+    layer_stage_wire: str = "fp32"
 
     def __post_init__(self):
         if self.cache_dtype != "bfloat16":
             raise ValidationError("this deployment requires unquantized BF16 KV/index caches")
+        if self.layer_stage_wire != "fp32":
+            raise ValidationError("layer-stage activations require FP32 wire")
         if len(self.split) != 3:
             raise ValidationError("exactly three nonempty stages required")
         for count in self.split:
@@ -152,6 +155,7 @@ class StagePlan:
             "dependencies": [dict(asdict(d), owner=d.owner.label, recipient=d.recipient.label)
                              for d in self.dependencies()],
             "cache_dtype": self.cache_dtype,
+            "layer_stage_wire": self.layer_stage_wire,
             "source_and_shadow_bytes": {r.label: self.persistent_source_bytes(r) for r in Role},
             "allocation_status": "prospective arithmetic; not allocated or hardware measured",
         }
