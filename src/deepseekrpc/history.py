@@ -140,3 +140,7 @@ class TokenHistory:
 
     def image_manifest(self):
         return canonical([asdict(image) for image in self.images])
+
+    def export_prompt(self):
+        """Bounded CPU token/mask metadata; no hidden states or model bytes."""
+        return self._tokens[:self.length].copy(), self._text[:self.length].copy(), self.images

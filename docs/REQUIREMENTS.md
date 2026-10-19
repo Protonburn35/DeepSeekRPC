@@ -7,18 +7,18 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 | ID | Current implementation/evidence | Remaining gate |
 | --- | --- | --- |
 | R01 Exact 1017 | Complete inventory, publisher-verified selective loader and actual owned graph/bootstrap source | Actual GPU constructors/loading and full-model qualification |
-| R02 Three real stages | StageExecution, typed phase ledger and TCP/TLS control/data components; separate affine three-process fixture | Production service/coordinator integration and real three-PC graph |
+| R02 Three real stages | Actual stage actor/service, dependency mesh, full-prompt TLS transfer and CED/speculative coordinator source; separate affine three-process fixture | Startup/API integration, mesh recovery and real three-PC graph |
 | R03 Top-6/shared | Bounded actual EXL3 executor retains every choice, official pre-w2 weighting and actual shared expert path | GPU routing/tie/numerical qualification |
 | R04 Resident laptop | VirtualLocked preload, all-page Win32 residency tests, closed disk source and one shared MiB pinned transfer | Full 16.4 GiB preload, WDDM/device working set and worst-case hardware proof |
 | R05 Desktop tiers | Bounded RAM reads, permanent packed arena, GPU expert arena and event/lease ownership | Complete service integration, prefetch performance and measured memory peaks |
 | R06 Disk Engram | Original encoded rows/hash history, real learned projection/gate adapter and bounded pinned/native decode | Original image pipeline, CUDA numerical and large-file full-model qualification |
 | R07 Unquantized BF16 caches | BF16-only planner/wire/native operations/actual adapter source; both architectures compiled | Actual GPU model/backend/replica execution; no quantized fallback |
 | R08 Eager 1M | Whole-stage header budget, eager fixed GPU pools and Windows CUDA-LUID/DXGI counters | Complete cluster schedule, actual free-memory admission and hardware validation |
-| R09 Replicas | Independent GPU maps/scatter, exact closure exports/imports and source selection validation | Production transfer ordering, all-stage barriers and GPU qualification |
-| R10 mHC/CED | Actual delayed mHC and graph, complete-pass phase ledger/worker and rewind preserving full encoder sources | Cluster coordinator, exact long-context replay and GPU differential checks |
+| R09 Replicas | Independent GPU maps/scatter, exact closures/selections, derived mesh ordering and all-stage GPU/history barriers | Actual GPU/network execution and differential qualification |
+| R10 mHC/CED | Actual delayed mHC/graph, full two-pass cluster scheduler and rewind preserving all encoder sources | Exact long-context replay and GPU differential checks |
 | R11 Exact SWA | Adapter explicitly disables bounded replay and uses 128-row windows with prefix undo | Actual exact/bounded differential hardware fixtures |
 | R12 Sampling | Requested probability controls, separate output penalties, transactional RNG, exact correction/EOS/length and frozen-prefix grammar callback | Production API/coordinator integration and stop-string handling |
-| R13 DSpark | Actual three-block graph, target-context features, Markov calls and Stage C sampled verifier source | Full cluster acceptance/rollback, output publication and GPU qualification |
+| R13 DSpark | Actual three-block graph, target-context/Markov sampled verifier, complete coordinator/publication and explicit context-tail normal decode source | API integration, full cluster acceptance/rollback and GPU qualification |
 | R14 Vision | Owned actual tower/aligner/native weights and image-row merge source; original encoding fixtures | Original preprocessing/cache/API and SM120 execution |
 | R15 Cancel | Real TLS control cancellation during queued work, per-layer/expert/fragment observers and session invalidation | Production API wiring, every-phase cancellation and hardware recovery |
 | R16 Prefix reuse | Exact original token/image/component history identity and explicit full replay | Saved CED-aware prefix checkpoints and integration |

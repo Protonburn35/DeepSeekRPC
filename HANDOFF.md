@@ -54,9 +54,13 @@ hardware, BF16-only caches, FP32 wire and complete implementation before review.
 - Mutual TLS, bounded lossless fragments and CUDA transfer tiles; one-owner
   control socket pumps, correlated RPC, cancellation/heartbeat during queued work,
   deadline invalidation and certificate-derived mesh connection acceptance.
+- Persistent bounded stage actors/services, locally derived dependency mesh,
+  full-prompt data transfer, full two-pass CED and speculative coordinator source.
+  Output publication waits for all actual GPU receipts, all-stage history commits
+  and Stage C RNG finalization. The new GPU/service integration remains unrun.
 
-These components have not executed a complete model. Production service dispatch
-and the cluster coordinator, original image preprocessing/cache, streaming
+These components have not executed a complete model. Startup and interrupted-mesh
+recovery integration, original image preprocessing/cache, streaming
 OpenAI/OpenCode API and parser, exact prefix checkpoint reuse, state snapshots,
 Windows installation/launchers, full runtime dependency bundle and complete
 GPU self-tests/diagnostics still require implementation and integration.
@@ -64,16 +68,17 @@ GPU self-tests/diagnostics still require implementation and integration.
 ## Verification
 
 Project native ABI 2 passed Windows compile/link/install/import, SM89/SM120
-inspection and SDK-free import in run 39334269334. Full pinned EXLlama passed
-Windows native builds in 39318861176 and 39326981917. Those EXLlama runs predate
-the separate SDK-free native import check; 39336142655 includes that check and
-is in progress. Full vLLM native run 39336142640 is in progress after exact-source
+inspection and SDK-free import again in run 39340258236. Full pinned EXLlama
+passed run 39336142655, including both architectures, SDK-free native import,
+Python package import and dependency consistency. Full vLLM native run
+39336142640 is in progress after exact-source
 Windows compiler repairs. Build reports distinguish native-only qualification
 from complete Python serving dependencies. No GPU kernel/model has executed.
 
-Windows CPU run 39337612127 passed checkpoint 65631c7. The expanded local suite
-passed 234 tests with four actual-Win32-only skips before subsequent control
-additions. Later real TLS control/mesh tests also passed. The full follow-up
+Windows CPU run 39340172589 passed checkpoint a24b96f. The expanded local suite
+passed 250 tests with four actual-Win32-only skips after the service/coordinator
+source additions. Focused tests include actual thread invalidation/queue bounds,
+history/RNG publication and a real TLS million-token prompt transfer. The full follow-up
 caught the intermittent CPU Torch router discrepancy again: the FP64 diagnostic
 puts NumPy error below 7e-8 and Torch up to 4.6e-5 on the first four rows. Keep
 tolerance unchanged; diagnose the real CPU operation path. A passing rerun is

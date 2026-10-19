@@ -17,7 +17,7 @@ class CudaTensorWire:
     # Pinned tile + writable CPU tile + at most one immutable frame payload.
     staging_bytes = 3 * MAX_PAYLOAD
 
-    def __init__(self, connection, *, device, cancelled=None):
+    def __init__(self, connection, *, device, stream, cancelled=None):
         import torch
         if connection.plane != "data" or cancelled is not None and not callable(cancelled):
             raise ValidationError("CUDA tensor wire needs an actual data connection and cancellation observer")
@@ -26,6 +26,9 @@ class CudaTensorWire:
             raise RuntimeError("CUDA tensor wire requires the actual model GPU")
         if self.device.index is None:
             self.device = torch.device("cuda", torch.cuda.current_device())
+        if not isinstance(stream, torch.cuda.Stream) or stream.device != self.device:
+            raise ValidationError("tensor wire must use the admitted stage's actual compute stream")
+        self.stream = stream
         self.connection, self.cancelled = connection, cancelled
         self._lock = threading.Lock()
         self._scratch = bytearray(MAX_PAYLOAD)
@@ -36,7 +39,7 @@ class CudaTensorWire:
         import torch
         types = {"fp16": torch.float16, "bf16": torch.bfloat16, "fp32": torch.float32,
                  "i32": torch.int32, "i64": torch.int64, "u8": torch.uint8}
-        if (template.kind not in DATA_KINDS or descriptor.fragment_offset or descriptor.fragment_bytes or
+        if (template.kind not in DATA_KINDS or template.tensor != descriptor or descriptor.fragment_offset or descriptor.fragment_bytes or
                 tensor.device != self.device or tensor.dtype != types[descriptor.dtype] or
                 tuple(tensor.shape) != descriptor.shape or not tensor.is_contiguous()):
             raise ValidationError("tensor wire storage differs from its locally admitted typed descriptor")
@@ -48,7 +51,7 @@ class CudaTensorWire:
 
     def send(self, template, descriptor, tensor):
         import torch
-        with self._lock, torch.cuda.device(self.device):
+        with self._lock, torch.cuda.device(self.device), torch.cuda.stream(self.stream):
             try:
                 raw = self._check(template, descriptor, tensor)
                 if (template.run, template.sender, template.receiver) != (
@@ -71,7 +74,7 @@ class CudaTensorWire:
 
     def receive(self, template, descriptor, destination):
         import torch
-        with self._lock, torch.cuda.device(self.device):
+        with self._lock, torch.cuda.device(self.device), torch.cuda.stream(self.stream):
             try:
                 raw = self._check(template, descriptor, destination)
                 if (template.run, template.sender, template.receiver) != (

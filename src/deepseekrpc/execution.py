@@ -84,10 +84,13 @@ class StageExecution:
 
     def fault(self):
         self.stage.cancellation.set()
-        self.stage.attention.fail()
-        self.ledger.fault()
+        with self._mutex:
+            self.stage.attention.fail()
+            self.ledger.fault()
 
     def reset(self, *, session, request, epoch, tokens, text_mask=None, images=(), expected_history):
+        hex_id(session, 32, "new execution session")
+        hex_id(request, 32, "new execution request")
         hex_id(expected_history, 64, "full prompt history")
         with self._compute():
             minimum = max(self.ledger.epoch + 1, self.stage.attention.next_reset_epoch)
@@ -121,7 +124,8 @@ class StageExecution:
 
     def begin(self, window: AttentionWindow, inputs: StepInput):
         import torch
-        if not isinstance(inputs, StepInput) or inputs.digest(window) != window.operation.digest:
+        if (not isinstance(inputs, StepInput) or len(inputs.tokens) != window.operation.rows or
+                inputs.digest(window) != window.operation.digest):
             raise ValidationError("execution semantic inputs differ from their operation digest")
         with self._compute():
             cached = self.ledger.admit(window)
@@ -184,7 +188,7 @@ class StageExecution:
         with self._compute():
             window, state = self._current(), self.stage.attention
             required = {d.source_layer for d in state.plan.dependencies()
-                        if d.recipient == self.stage.role and d.field == "topk"}
+                        if d.recipient == self.stage.role and d.field in {"topk", "candidates"}}
             if (self._forwarded or source not in required or source in self._imported_selections or
                     window.phase == "draft" or window.phase == "encoder" and source >= 20):
                 raise ValidationError("index selection is duplicate, unneeded or stale")
@@ -201,7 +205,7 @@ class StageExecution:
             if not required <= self._imported_sources:
                 raise ValidationError("forward cannot use a missing current source/shadow delta")
         required = {d.source_layer for d in state.plan.dependencies() if d.recipient == self.stage.role and
-                    d.field == "topk" and (window.phase != "encoder" or d.source_layer < 20)}
+                    d.field in {"topk", "candidates"} and (window.phase != "encoder" or d.source_layer < 20)}
         if not required <= self._imported_selections:
             raise ValidationError("forward cannot use a missing current source top-k/candidate selection")
 
@@ -305,6 +309,24 @@ class StageExecution:
             except BaseException:
                 self.fault()
                 raise
+
+    def sample_seed(self, sampler, **controls):
+        with self._compute():
+            return sampler.begin_seed(self.target_tail_logits, **controls)
+
+    def propose(self, work):
+        with self._compute():
+            window = self._current()
+            if self.stage.role != Role.TERMINAL or window.phase != "draft" or not self._forwarded or self._result is None:
+                raise ValidationError("proposal sampling requires the actual current stage C draft graph result")
+            return work.propose(self.stage.graph, self._result)
+
+    def verify(self, work):
+        with self._compute():
+            window = self._current()
+            if self.stage.role != Role.TERMINAL or window.phase != "decode" or not self._forwarded or self._result is None:
+                raise ValidationError("verification requires the actual current stage C target graph result")
+            return work.verify(self._result.logits)
 
     @property
     def target_tail_logits(self):

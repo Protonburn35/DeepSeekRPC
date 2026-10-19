@@ -74,7 +74,18 @@ queue; handlers return promptly so heartbeat/cancellation can continue. The
 data connection uses independent bounded pinned transfer tiles. A mesh listener
 derives stage identity from its verified certificate and plane from the initial
 authenticated HELLO, then pairs/deduplicates channels for the configured run.
-Complete production dispatch and coordinator integration remain in progress.
+The production stage service confines model work to one bounded actor. Heartbeat
+and cancellation dispatch do not acquire its GPU mutex. The coordinator starts
+both remote windows before A sends dependencies, then requires every actual
+GPU finish receipt, every published-history commit and C's RNG finalization
+before yielding outputs. These model/network integrations remain unrun on GPUs.
+
+Full prompts use a strict bounded PromptSpec followed by lossless I32 token IDs,
+U8 image masks and U8 image-reference metadata on the data channel. A million
+tokens occupy five MiB plus at most 512 KiB of original image references; no
+hidden-state history travels with a reset. The receiver checks the full history
+identity before changing live GPU state. An interrupted fragment stream closes
+its channel; recovery must pair fresh channels while retaining model allocations.
 
 ## Message families
 

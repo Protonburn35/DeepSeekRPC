@@ -29,6 +29,60 @@ def test_actual_source_map_and_replica_bytes():
     assert p.layer_stage_wire == "fp32"
 
 
+def test_step_mesh_transfers_exact_bf16_dependencies_and_fp32_boundaries():
+    from deepseekrpc.execution import StepInput
+    from deepseekrpc.stage_data import transfers
+    inputs = StepInput((7, 8, 9), (True, True, True))
+    step = inputs.make_window(session="a" * 32, request="b" * 32, epoch=0, number=1,
+                              transaction="c" * 32, start=7, phase="decode", history_digest="d" * 64,
+                              encoder_tokens=10)
+    specs = transfers(plan(), Role.HOST, Role.MIDDLE, step)
+    assert [(s.semantic, s.source, s.dtype, s.shape, s.logical_row) for s in specs] == [
+        ("kv", 14, "bf16", (2, 512), 3), ("index_k", 14, "bf16", (2, 128), 3),
+        ("topk", 14, "i32", (3, 512), 7),
+        ("hidden_states", -1, "fp32", (3, 4, 5120), 7), ("pre_mix", -1, "fp32", (3, 4), 7)]
+    specs_c = transfers(plan(), Role.MIDDLE, Role.TERMINAL, step)
+    assert [(s.semantic, s.source) for s in specs_c] == [
+        ("kv", 20), ("index_k", 20), ("topk", 20), ("candidates", 20),
+        ("hidden_states", -1), ("pre_mix", -1)]
+    assert transfers(plan(), Role.HOST, Role.TERMINAL, step) == ()
+    descriptors = [s.descriptor(step) for s in specs]
+    assert len({d.tensor_id for d in descriptors}) == len(descriptors)
+    for spec, descriptor in zip(specs, descriptors):
+        template = spec.frame("e" * 64, Role.HOST, Role.MIDDLE, step)
+        assert template.tensor == descriptor and template.position == 7 and template.rows == 3
+
+
+def test_custom_split_transfers_candidate_source_even_when_another_stage_owns_current_topk():
+    from deepseekrpc.execution import StepInput
+    from deepseekrpc.stage_data import transfers
+    inputs = StepInput((7, 8), (True, True))
+    step = inputs.make_window(session="a" * 32, request="b" * 32, epoch=0, number=1,
+                              transaction="c" * 32, start=0, phase="target", history_digest="d" * 64,
+                              encoder_tokens=2)
+    p = plan((30, 7, 3))
+    a_to_c = transfers(p, Role.HOST, Role.TERMINAL, step)
+    b_to_c = transfers(p, Role.MIDDLE, Role.TERMINAL, step)
+    assert [(s.semantic, s.source) for s in a_to_c] == [("topk", 20), ("candidates", 20)]
+    assert [(s.semantic, s.source) for s in b_to_c] == [
+        ("topk", 36), ("hidden_states", -1), ("pre_mix", -1)]
+
+
+def test_encoder_mesh_stops_hidden_forwarding_at_the_actual_source20_owner():
+    from deepseekrpc.execution import StepInput
+    from deepseekrpc.stage_data import transfers
+    inputs = StepInput((7, 8), (True, True))
+    step = inputs.make_window(session="a" * 32, request="b" * 32, epoch=0, number=1,
+                              transaction="c" * 32, start=0, phase="encoder", history_digest="d" * 64,
+                              encoder_tokens=2)
+    default = transfers(plan(), Role.MIDDLE, Role.TERMINAL, step)
+    assert [(s.semantic, s.source) for s in default] == [("kv", 20), ("index_k", 20)]
+    c_owns20 = transfers(plan((15, 4, 21)), Role.MIDDLE, Role.TERMINAL, step)
+    assert [(s.semantic, s.source) for s in c_owns20] == [("hidden_states", -1), ("pre_mix", -1)]
+    a_owns20 = transfers(plan((30, 7, 3)), Role.HOST, Role.MIDDLE, step)
+    assert [(s.semantic, s.source) for s in a_owns20] == [("kv", 20), ("index_k", 20)]
+
+
 def test_stage_activation_wire_cannot_silently_downcast():
     p = plan()
     with pytest.raises(ValidationError, match="FP32 wire"):

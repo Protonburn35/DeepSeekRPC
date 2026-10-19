@@ -404,3 +404,31 @@ diagnostic follow-up suites each passed 239 tests/four skips; 3,000 isolated
 observed Gate calls and an alignment-varied raw-linear check did not reproduce
 the failure. The host numerical issue remains open; none of those passes is a
 causal repair. Native Windows/runtime Torch qualification stays separate.
+
+## 2026-10-19 — stage services, full-prompt transfer and cluster scheduling
+
+Added the real stage dependency mesh, explicit stage-stream CUDA transfers,
+bounded serialized model actors and production service dispatch. Control I/O
+handles heartbeat/cancellation without waiting for the model mutex; cancellation
+invalidates old queued work. Full prompts travel as bounded I32 tokens, U8 masks
+and exact original image-reference bytes, with full validation before GPU reset.
+A real loopback TLS test transfers 1,048,576 tokens, including an image span.
+
+The cluster coordinator source now schedules both complete fixed-chunk CED
+passes, the full encoder barrier/rewind, terminal seed sampling, actual five-row
+draft proposals, all-stage target verification and accepted-prefix finishes.
+Normal decode has explicit disabled/context-tail reasons. Output publication
+requires all three actual GPU receipts, all three matching history commits and
+Stage C RNG finalization before the API can receive a token batch. Metadata/RNG
+tests reject partial or prepared-only acknowledgment proofs and conflicting
+history. Actual graph/network coordination on GPUs remains unrun. Startup,
+interrupted mesh re-pairing, API/vision, reuse and snapshots remain incomplete.
+
+The complete expanded local suite passed 250 tests with four actual-Win32-only
+skips. The intermittent Torch CPU reference issue above remains open; this pass
+does not explain or repair it. Windows CPU run 39340172589 passed a24b96f.
+Project ABI 2 native run 39340258236 passed compile/link/install/import,
+SM89/SM120 inspection and SDK-free import. Full EXLlama run 39336142655 passed
+the corresponding native checks, SDK-free native import, Python package import
+and pip consistency; its report is retained as exllama-sdk-free-build.json.
+Full vLLM native run 39336142640 remains in progress. None ran GPU kernels.

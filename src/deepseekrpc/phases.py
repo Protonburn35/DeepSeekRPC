@@ -76,6 +76,7 @@ class PhaseLedger:
         self._encoder_barrier = None
         self._awaiting, self._sealed_number = None, 0
         self._seeded = False
+        self._publication = None
 
     def reset(self, *, session, request, epoch, history_digest, encoder_tokens):
         hex_id(session, 32, "phase session")
@@ -84,7 +85,7 @@ class PhaseLedger:
         integer(epoch, "phase epoch", 0, (1 << 63) - 1)
         integer(encoder_tokens, "full encoded prompt extent", 1, 1048576)
         if (self._active is not None or epoch <= self.epoch or
-                self._awaiting is not None and self.phase != "faulted"):
+                (self._awaiting is not None or self._publication is not None) and self.phase != "faulted"):
             raise ValidationError("phase reset requires quiescence and a newer epoch")
         self.session, self.request, self.epoch = session, request, epoch
         self.history_digest, self.encoder_tokens = history_digest, encoder_tokens
@@ -93,6 +94,7 @@ class PhaseLedger:
         self._next, self._prepared, self._encoder_barrier = 1, None, None
         self._awaiting, self._sealed_number = None, 0
         self._seeded = False
+        self._publication = None
         self._receipts.clear()
 
     def admit(self, window: AttentionWindow):
@@ -108,7 +110,7 @@ class PhaseLedger:
             if old[0] != window:
                 raise ValidationError("replayed operation changed its phase, history or semantic inputs")
             return old[2]
-        if (self._active is not None or self._awaiting is not None or operation.number != self._next or
+        if (self._active is not None or self._awaiting is not None or self._publication is not None or operation.number != self._next or
                 window.history_digest != self.history_digest):
             raise ValidationError("phase operation is active, stale, out of order or has different history")
         if self.phase in {"encoder", "target"}:
@@ -227,6 +229,11 @@ class PhaseLedger:
 
     def publish_seed(self, *, token, history_digest):
         """Record a globally acknowledged seed without pretending it was forwarded."""
+        self.validate_seed(token=token, history_digest=history_digest)
+        self.pending_token, self.history_digest = token, history_digest
+        self._seeded = True
+
+    def validate_seed(self, *, token, history_digest):
         integer(token, "published pending seed", 0, 129279)
         hex_id(history_digest, 64, "published token/image history")
         if (self.phase != "decode" or self._active is not None or self._awaiting is not None or
@@ -234,14 +241,28 @@ class PhaseLedger:
             raise ValidationError("initial seed publication requires a complete idle target pass")
         if self.processed >= 1048576:
             raise ValidationError("context is full; no new pending token may be emitted")
-        self.pending_token, self.history_digest = token, history_digest
-        self._seeded = True
 
     def publish_history(self, *, history_digest):
         hex_id(history_digest, 64, "published token/image history")
         if self.phase != "decode" or self._active is not None or self._awaiting is not None:
             raise ValidationError("history publication requires a committed idle decode boundary")
         self.history_digest = history_digest
+
+    @property
+    def quiescent(self):
+        return (self.phase in {"encoder", "target", "decode"} and self._active is None and
+                self._awaiting is None and self._publication is None)
+
+    def prepare_publication(self, digest):
+        hex_id(digest, 64, "output publication")
+        if self.phase != "decode" or not self.quiescent:
+            raise ValidationError("output publication requires a globally committed idle target boundary")
+        self._publication = digest
+
+    def seal_publication(self, digest):
+        if self.phase != "decode" or self._publication != digest or self._active is not None or self._awaiting is not None:
+            raise ValidationError("output publication seal does not match the current prepared decision")
+        self._publication = None
 
     def fault(self):
         # Keep the uncertain cursor/operation for diagnostics. Only a coherent

@@ -18,7 +18,7 @@ MAX_CONTEXT = 1048576
 U64 = (1 << 64) - 1
 DTYPES = {"fp16": 2, "bf16": 2, "fp32": 4, "i32": 4, "i64": 8, "u8": 1}
 SEMANTICS = {"hidden_states", "pre_mix", "token_ids", "positions", "image_mask",
-             "validity", "kv", "index_k", "topk", "candidates", "snapshot"}
+             "image_refs", "validity", "kv", "index_k", "topk", "candidates", "snapshot"}
 
 
 class Kind(IntEnum):
@@ -95,6 +95,8 @@ class TensorDescriptor:
             raise ValidationError("KV/index wire requires unquantized BF16 storage")
         if self.semantic in {"token_ids", "positions", "topk", "candidates"} and self.dtype not in {"i32", "i64"}:
             raise ValidationError("integer semantic requires lossless integer storage")
+        if self.semantic in {"image_mask", "image_refs"} and self.dtype != "u8":
+            raise ValidationError("image masks and reference metadata require exact bytes")
         if self.shape and self.logical_row + self.shape[0] > MAX_CONTEXT:
             raise ValidationError("tensor logical row interval exceeds context")
 

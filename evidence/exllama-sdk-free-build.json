@@ -1,0 +1,60 @@
+{
+  "scope": "pinned exllamav3 Windows native compile/link/import; no GPU execution",
+  "source_commit": "1ca341fcdbdc8727c4ec3881e699363d008388e6",
+  "worktree_clean": true,
+  "upstream": {
+    "repository": "vcruz305/exllamav3",
+    "commit": "475461e9a1a288e7c10eb472056239d3fb78b625",
+    "url": "https://codeload.github.com/vcruz305/exllamav3/tar.gz/475461e9a1a288e7c10eb472056239d3fb78b625",
+    "archive_sha256": "eaff2507332bc6ed6cd3e5da0a6ad50e929027935ec06c744b25e3fef063a18c",
+    "archive_bytes": 9465082
+  },
+  "patches": [],
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "checks": [
+    {
+      "name": "torch",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "import-native",
+      "exit_code": 0
+    },
+    {
+      "name": "fatbin",
+      "exit_code": 0
+    },
+    {
+      "name": "import-native-without-sdk",
+      "exit_code": 0
+    },
+    {
+      "name": "import-package",
+      "exit_code": 0
+    },
+    {
+      "name": "dependency-check",
+      "exit_code": 0
+    }
+  ],
+  "GPU_execution": "not run",
+  "full_model_validation": "not run",
+  "omitted_nonbuild_agent_links": [],
+  "wheel": {
+    "name": "exllamav3-1.6.1.post1-cp312-cp312-win_amd64.whl",
+    "sha256": "4a30d7b806296c6dcdc006c267e5558472c44a2bacbaa173e4eaba8e345397bc"
+  },
+  "binary_architectures_verified": true
+}
