@@ -10,3 +10,13 @@ dist/
 *.pfx
 *.safetensors
 !tests/fixtures/*.safetensors
+/credentials/
+/runtime/
+/runtime-*/
+/.python/
+/.cache/
+/.installing/
+/config/cluster.json
+/config/A.json
+/config/B.json
+/config/C.json

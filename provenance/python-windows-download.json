@@ -1,0 +1,16 @@
+{
+  "cpython-3.12.14-windows-x86_64-none": {
+    "name": "cpython",
+    "arch": {"family": "x86_64", "variant": null},
+    "os": "windows",
+    "libc": "none",
+    "major": 3,
+    "minor": 12,
+    "patch": 14,
+    "prerelease": "",
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260929/cpython-3.12.14%2B20260929-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+    "sha256": "f38e68f4d612ade6dd50c894fc80b14c0be0c3b5201145d6fff5f20b9323204d",
+    "variant": null,
+    "build": "20260929"
+  }
+}

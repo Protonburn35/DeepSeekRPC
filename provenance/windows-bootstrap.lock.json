@@ -1,0 +1,17 @@
+{
+  "scope": "Private install-tree Python/bootstrap inputs; no PATH or registry registration",
+  "uv": {
+    "version": "0.12.23",
+    "url": "https://github.com/astral-sh/uv/releases/download/0.12.23/uv-x86_64-pc-windows-msvc.zip",
+    "bytes": 18043715,
+    "sha256": "75d05de6762778c31ee183398de7dd15093fad0ed90b1f236d8205ea5ec00c90"
+  },
+  "python": {
+    "key": "cpython-3.12.14-windows-x86_64-none",
+    "version": "3.12.14",
+    "build": "20260929",
+    "bytes": 21992568,
+    "sha256": "f38e68f4d612ade6dd50c894fc80b14c0be0c3b5201145d6fff5f20b9323204d",
+    "download_metadata": "python-windows-download.json"
+  }
+}

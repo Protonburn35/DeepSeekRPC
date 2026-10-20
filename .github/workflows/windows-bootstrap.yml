@@ -1,0 +1,42 @@
+name: Isolated Windows installer bootstrap
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - packaging/Install.ps1
+      - provenance/windows-bootstrap.lock.json
+      - provenance/python-windows-download.json
+      - tools/check_windows_bootstrap.py
+      - .github/workflows/windows-bootstrap.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Exercise actual PowerShell install and repeat without global PATH changes
+        run: python tools/check_windows_bootstrap.py
+      - name: Retain bounded bootstrap evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: windows-bootstrap-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/deepseekrpc-bootstrap-check/BUILD.json
+            ${{ runner.temp }}/deepseekrpc-bootstrap-check/bootstrap-*.log
+          retention-days: 7

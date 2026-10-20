@@ -45,6 +45,8 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("capabilities", help="report implemented and missing capabilities truthfully")
     commands.add_parser("selftest-cuda", help="run small native CUDA operation checks on a real GPU")
+    credentials = commands.add_parser("init-credentials", help="generate a new private deployment CA and role/API keys locally")
+    credentials.add_argument("--output", type=Path, required=True)
     worker = commands.add_parser("serve", help="load the real owned Windows CUDA stage once and keep it resident")
     worker.add_argument("--config", type=Path, required=True)
     worker.add_argument("--stage", choices=["A", "B", "C"], help="refuse a role configuration passed to the wrong launcher")
@@ -73,6 +75,9 @@ def main(argv=None):
         elif args.command == "selftest-cuda":
             from .gpu_selftest import run_cuda_checks
             result = run_cuda_checks()
+        elif args.command == "init-credentials":
+            from .pki import initialize_credentials
+            result = initialize_credentials(args.output)
         elif args.command in {"snapshots", "session"}:
             from .admin_client import AdminClient
             from .protocol import hex_id
