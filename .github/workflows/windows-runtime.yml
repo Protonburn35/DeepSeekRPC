@@ -1,6 +1,10 @@
 name: Complete isolated Windows runtime bundle
 
 on:
+  workflow_run:
+    workflows: ['Pinned Windows vLLM native compilation']
+    branches: [main]
+    types: [completed]
   workflow_dispatch:
     inputs:
       vllm_run:
@@ -12,7 +16,7 @@ on:
         required: true
       native_run:
         description: Successful project ABI-2 native run with matching native source
-        default: '39350431617'
+        default: '39410211028'
         required: true
 
 permissions:
@@ -21,6 +25,9 @@ permissions:
 
 jobs:
   package:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: windows-2025
     timeout-minutes: 60
     env:
@@ -42,9 +49,9 @@ jobs:
           python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.lock
       - name: Fetch successful native component wheels and their exact build reports
         env:
-          VLLM_RUN: ${{ inputs.vllm_run }}
-          EXLLAMA_RUN: ${{ inputs.exllama_run }}
-          NATIVE_RUN: ${{ inputs.native_run }}
+          VLLM_RUN: ${{ inputs.vllm_run || github.event.workflow_run.id }}
+          EXLLAMA_RUN: ${{ inputs.exllama_run || '39345608258' }}
+          NATIVE_RUN: ${{ inputs.native_run || '39410211028' }}
         run: >-
           python tools/fetch_runtime_components.py
           --vllm-run "$env:VLLM_RUN" --exllama-run "$env:EXLLAMA_RUN" --native-run "$env:NATIVE_RUN"

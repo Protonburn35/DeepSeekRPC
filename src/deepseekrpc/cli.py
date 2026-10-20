@@ -35,6 +35,7 @@ def capabilities():
                         "pinned OpenCode SDK text/image/tool/reasoning/cancellation protocol audits"],
         "native_build_evidence": {"project_ABI_2": "Windows compile/link/import and both SMs passed",
                                   "full_EXLlama": "Windows compile/link/import and both SMs passed",
+                                  "private_Triton_compilers": "Windows standalone Python/TinyCC extension build/load and offline SM89/SM120 cubins passed; no GPU execution",
                                   "full_vLLM": "in progress; full serving dependency bundle pending"},
         "unqualified_or_missing": ["actual EXL3/GPU numerical execution",
                                     "full-model exact CED and every-phase cancellation", "full-size laptop residency",

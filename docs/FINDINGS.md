@@ -302,3 +302,11 @@ the correct ABI-specific field, still requiring CUDA ELF64/little endian,
 explicit requested PTX and matching embedded SM. A regression uses the actual
 captured header/flags; unsupported ABI/layouts remain errors. This is an
 inspector repair, not a change to generated code or a GPU execution result.
+
+The corrected standalone compiler check passed Windows run 39411095629 at
+27e7de9: actual TinyCC CPython build/load, SM89 ABI 7 and SM120 ABI 8 cubins,
+selected bundled tools and mutation guards all passed without a GPU context.
+The compiler selection/ELF inspection portion of DSR-AUDIT-017 is qualified on
+that exact toolchain. Complete application installation and real GPU/model math
+remain separate pending gates. DSR-AUDIT-018's YAML now parses in CPU CI; running
+native builds are preserved and duplicate pending native runs were cancelled.

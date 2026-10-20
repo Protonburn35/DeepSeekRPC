@@ -26,6 +26,7 @@ inspected code, not executed upstream behavior.
 | Shifted mHC | `models/v4_modules/hc.py`, `models/deepseek.py`, `models/v4_modules/heads.py` under `deepinfer/model_executor/` | Confirms the delayed previous pre-mix and final collapse using the last sublayer's pre-mix; shifted checkpoints do not build an HCHead. Keep FP32 stage pre-mix and exact BF16 residual boundaries. |
 | Draft target features | `models/decoder_layer.py:_store_dflash_input`, `layers/tilelang_ops/cuda/dflash.py:dflash_input_store_tl` | Captures the materialized entering-attention residual, FP32-averages its HC streams and writes BF16 feature rows. Confirms our 37/38/39 attention-input means rather than final layer outputs. |
 | Draft execution | `models/mtp/dflash.py` and `models/decoder_layer.py:DFlashDecoderLayer` | Confirms first seed plus noise input rows, target-feature projection/norm, per-draft-layer main-context KV, sequential Markov correction from the previous token, and confidence from the pre-output-norm hidden plus Markov embedding. Keep proposal KV ephemeral and commit only verified target-derived context. |
+| Draft visibility | `input_metadata/dflash.py`, `layers/tilelang_ops/get_kv_index.py`, `layers/tilelang_ops/cuda/get_kv_index.py` under `deepinfer/model_executor/` | With last accepted target position `a`, draft positions are `a+1..a+5`; each draft row sees target positions `max(0,a-127)..a` and all five draft rows. Confirms 128 prior target keys plus five bidirectional draft keys, distinct from a target SWA row's 127 past keys plus itself. |
 | Compressor and index | `models/v4_modules/compress.py`, `attn.py`, `index_attn.py` | C1 uses BF16 projected KV, C2 retains FP32 score/latent state. Index K consumes the post-norm, pre-RoPE compressed latent. Preserves the implemented original C1/C2, source/shadow and independent index-selection semantics. DeepInfer's FP8/FP4 cache kernels are not our BF16 cache implementation. |
 | Routed FFN | `models/v4_modules/moe.py` and `mlp.py` | Confirms sqrt-softplus, separate image bias and routing weight applied to SwiGLU before the down projection. Its datacenter EP/EPLB/FP8/FP4 implementation does not replace our packed EXL3 expert executor. |
 | Exact rejection equation | `layers/tilelang_ops/cuda/fused_sample.py` | Uses target/draft logprob acceptance and positive residual mass. Our verifier retains exact `min(1,p/q)` and normalized `max(p-q,0)`. Its complete arithmetic is not a drop-in exact sampler; see below. |
@@ -52,6 +53,12 @@ algorithms consume random draws differently. Our qualification compares greedy
 tokens across modes, repeatability and restore/RNG identity within the same
 sampled mode, and independent probability laws. It does not require the wrong
 cross-mode seeded-token identity.
+
+DeepInfer's DFlash path explicitly casts target-context and draft SWA keys to
+FP8 (`CastArgs("e4m3", ...)` in `DFlashAttention`). This is not adopted: the
+user's unquantized BF16 requirement covers persistent draft context and
+ephemeral proposal keys too. No inference is made from its quantized-cache
+numerical baselines to our cache precision or Windows kernel qualification.
 
 The README proposes 140 retained decoder tokens. Its source enforces retention
 at least SWA plus backtracking, but that condition does not prove full-prefix

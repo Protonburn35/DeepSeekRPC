@@ -36,6 +36,8 @@ See [requirements](docs/REQUIREMENTS.md),
 [handoff](HANDOFF.md). The eighth reference, official DeepInfer, is reviewed in
 [DEEPINFER_REVIEW.md](docs/DEEPINFER_REVIEW.md); its bounded replay and biased
 sampling adjustment are not adopted.
+The [whole-runtime review guide](docs/REVIEW_GUIDE.md) maps the integrated
+source and the remaining qualification questions.
 
 ## CPU development
 

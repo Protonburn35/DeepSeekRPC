@@ -179,7 +179,7 @@ def main():
             "provenance/sources.lock.json", "provenance/vllm-native-deps.lock.json",
             "provenance/opencode-client.lock.json", "provenance/deepinfer-review.lock.json", "provenance/compiler-elf-reference.lock.json",
             "docs/DEEPINFER_REVIEW.md", "tests/fixtures/tokenizer.json.gz", "docs/SESSIONS.md",
-            "docs/INSTALL_WINDOWS.md", "docs/DIAGNOSTICS.md", "docs/OBSERVABILITY.md", "docs/OPENCODE.md"]:
+            "docs/INSTALL_WINDOWS.md", "docs/DIAGNOSTICS.md", "docs/OBSERVABILITY.md", "docs/OPENCODE.md", "docs/REVIEW_GUIDE.md"]:
         destination = output / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / relative, destination)

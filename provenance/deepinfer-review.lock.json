@@ -185,6 +185,21 @@
       "path": "tests/worker/test_state_cache_ops.py",
       "bytes": 36075,
       "sha256": "302e858acc64b7ba971d565f076ff642d65dbc012c3d07178b0c712a0dc9d87e"
+    },
+    {
+      "path": "deepinfer/model_executor/input_metadata/dflash.py",
+      "bytes": 3403,
+      "sha256": "00975d7bd7daa2bcd7a0fc239dd55132c5a4ad927f951b6b48f61f9c22621a2b"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/get_kv_index.py",
+      "bytes": 21991,
+      "sha256": "7a9e2ebc82bcb5df9f879b222a17152e9d17e0ec85cd06a4d55c96eb226e6cf9"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/cuda/get_kv_index.py",
+      "bytes": 5928,
+      "sha256": "3671731746eda09711e3e93c5328454b7033eb272e8a0573545d40095bcc532a"
     }
   ]
 }

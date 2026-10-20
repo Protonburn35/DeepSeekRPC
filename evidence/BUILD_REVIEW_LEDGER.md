@@ -687,3 +687,30 @@ No GPU driver/context or kernel execution is claimed.
 README/capability/traceability text is refreshed to distinguish integrated
 runtime source from missing hardware/install qualification. Earlier foundations
 are no longer inaccurately described as unimplemented adapters/API/Engram paths.
+
+## 2026-10-20 — Windows compiler and actual CUDA-Torch CPU qualification
+
+Standalone compiler workflow 39411095629 passed source 27e7de9 with private
+Python 3.12.14, real TinyCC CPython extension build/load and actual offline
+Triton SM89/SM120 compilation. It verifies no GPU driver/context was initialized.
+SM89: ELF ABI 7, flags 5834073, 2856-byte cubin SHA-256
+c965e053e5292d192e2c117895b3a7be3a2d845e101bc80aba84218192912abd.
+SM120: ELF ABI 8, flags 100694026, 5328-byte cubin SHA-256
+3f54cded957bdc75e2f5d9a68624fc916a21c76ef83209b53f8ae274f9ae1adf.
+Interpreter/kernel/architecture mutation guards passed. These are compiler
+results, not GPU kernel execution or full-runtime installation qualification.
+
+Windows CPU 39411095812 passed 374 tests/one intentional non-Windows refusal
+skip, plus actual SDK client and outside-checkout wheel checks. Project native
+39410211028 passed 6f0f086 ABI 2 compile/link/import and both architecture checks;
+its CPU suite against actual Windows Torch 2.11+cu130 passed 366/one skip. No GPU
+was present. The later cloud packet/ELF suite passed 374/four actual-Win32 skips
+(63.96 s). DSR-AUDIT-011 remains open despite these passing suites.
+
+The neutral checkpoint-27e7de9-windows-cpu-compiler tag is pushed as a precise
+build/CPU-tested rollback point; it does not imply GPU/model/review approval.
+The runtime installer workflow automatically follows a successful native vLLM
+build on main and still validates all component/profile/source identities.
+A whole-source review guide and packet builder are prepared. Packet creation
+requires successful same-commit native Windows CPU and sealed complete private
+runtime evidence; no intermediate candidate is offered as a finished review.

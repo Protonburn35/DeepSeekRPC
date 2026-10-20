@@ -143,3 +143,44 @@ CPU failure. The latest private API/archive/inventory/prefix focused checks
 passed 36 tests. Windows CPU run 39350431569 and project native run 39350431617
 passed checkpoint 8100979. Full vLLM/EXLlama runs 39345608248/39345608258 remain
 in progress. See docs/SESSIONS.md for implemented source semantics and limits.
+
+## Latest 2026-10-20 Windows/source checkpoint
+
+The eighth DeepInfer review and exact conditional sampling fixtures are complete
+source work. Preserve BF16 draft-context/proposal keys too: DeepInfer explicitly
+quantizes those to FP8, which does not supersede the user's requirement. Its
+metadata confirms 128 prior target keys plus five bidirectional draft keys.
+No DeepInfer import/build/example/test or model download has run here.
+
+Windows CPU 39411095812 passed 27e7de91c857e482d53b79bc1b21f06ff717475f:
+374 passed/one intentional non-Windows refusal skip. Actual private standalone
+Python/TinyCC and offline Triton SM89/SM120 compilation passed 39411095629.
+Blackwell ELF ABI 8's shifted SM field is fixed using actual captured bytes and
+a pinned auxiliary LLVM header. A neutral annotated remote rollback tag is
+checkpoint-27e7de9-windows-cpu-compiler. It is not GPU/model/review qualified.
+Native ABI 2 run 39410211028 at 6f0f086 passed compile/link/import/SM inspection
+and the actual Windows Torch 2.11+cu130 CPU suite (366 passes/one skip).
+
+Long full vLLM run 39408672207 at 441b344 remains in progress with the unchanged
+five-patch profile. The earlier 39400420994 was accidentally cancelled by the
+DeepInfer source-lock trigger at 133/189, without a compiler error. Native vLLM
+concurrency now preserves running builds; duplicate pending run 39410149104 was
+cancelled. EXLlama duplicate 39408672326 was cancelled; use successful complete
+39345608258. GitHub API's temporary HTTP 401 recovered without user action.
+Do not ask the user to reconnect or provide a token.
+
+The complete runtime workflow's YAML error is fixed and all workflows are
+parsed in CPU CI. It now automatically follows successful native vLLM builds,
+validates exact pins/profile/native source, installs the five-wheel private
+runtime and performs actual dependency/native/compiler/API/parser qualification.
+It can also be manually dispatched with those three successful run IDs. Fix any
+actual failure, then preserve/download the successful artifact. The source
+packet builder requires matching clean-commit Windows CPU and sealed complete
+runtime evidence; it does not label pending work or hardware as passed.
+
+New docs/REVIEW_GUIDE.md navigates all integrated features and fidelity hazards.
+Do not ask for an intermediate Astra review. Next work is complete runtime
+installation qualification, whole-candidate self-review and the exact-source
+review packet. No optional grammar expansion or platform/model substitution is
+required. All actual CUDA/model/hardware tests remain unrun, speculation remains
+gated off until actual cluster qualification, and DSR-AUDIT-011 remains open.
