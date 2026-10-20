@@ -1,0 +1,72 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1612,8 +1612,10 @@
+     include(cmake/external_projects/deepselect.cmake)
+     include(cmake/external_projects/fmha_sm100.cmake)
+     include(cmake/external_projects/flashmla.cmake)
+-    include(cmake/external_projects/flashkda.cmake)
+-    include(cmake/external_projects/qutlass.cmake)
++    if(NOT VLLM_DEEPSEEKRPC_EXL3)
++      include(cmake/external_projects/flashkda.cmake)
++      include(cmake/external_projects/qutlass.cmake)
++    endif()
+     include(cmake/external_projects/tml_fa4.cmake)
+ 
+     # vllm-flash-attn should be last as it overwrites some CMake functions
+--- a/setup.py
++++ b/setup.py
+@@ -1332,6 +1332,13 @@
+     return version
+ 
+ 
++def _deepseekrpc_exl3_profile() -> bool:
++    enabled = os.environ.get("VLLM_DEEPSEEKRPC_EXL3", "0") == "1"
++    if enabled and not IS_WINDOWS:
++        raise RuntimeError("The owned DeepSeekRPC EXL3 profile requires Windows")
++    return enabled
++
++
+ def get_requirements() -> list[str]:
+     """Get Python package dependencies from requirements.txt."""
+     requirements_dir = ROOT_DIR / "requirements"
+@@ -1351,6 +1358,21 @@
+                 resolved_requirements.append(line)
+         return resolved_requirements
+ 
++    if _deepseekrpc_exl3_profile():
++        if not _is_cuda():
++            raise RuntimeError("The owned DeepSeekRPC EXL3 profile requires CUDA")
++        # The owned graph uses EXL3, Torch SDPA and Triton compression kernels.
++        # Keep the complete common Python layer; unused optional CUDA backends
++        # must not add unqualified Git wheels or incompatible runtime pins.
++        return _read_requirements("common.txt") + [
++            "torch==2.11.0+cu130",
++            "torchvision==0.26.0+cu130",
++            "torchaudio==2.11.0+cu130",
++            "triton-windows==3.6.0.post26",
++            "apache-tvm-ffi==0.1.15",
++            "winloop",
++            "portalocker",
++        ]
+     if _no_device():
+         requirements = _read_requirements("common.txt")
+     elif _is_cuda():
+@@ -1436,14 +1458,16 @@
+     if USE_PRECOMPILED_EXTENSIONS or (
+         CUDA_HOME and get_nvcc_cuda_version() >= Version("12.0")
+     ):
+-        ext_modules.append(CMakeExtension(name="vllm._flashkda_C", optional=True))
++        if not _deepseekrpc_exl3_profile():
++            ext_modules.append(CMakeExtension(name="vllm._flashkda_C", optional=True))
+     if envs.VLLM_USE_PRECOMPILED or (
+         CUDA_HOME and get_nvcc_cuda_version() >= Version("12.3")
+     ):
+         # DeepGEMM requires CUDA 12.3+ (SM90/SM100)
+         # Optional since it won't build on unsupported architectures
+         ext_modules.append(CMakeExtension(name="vllm._deep_gemm_C", optional=True))
+-        ext_modules.append(CMakeExtension(name="vllm._qutlass_C", optional=True))
++        if not _deepseekrpc_exl3_profile():
++            ext_modules.append(CMakeExtension(name="vllm._qutlass_C", optional=True))
+     # fmha_sm100 is a Python/CuTe-DSL package installed into vllm.third_party.
+     ext_modules.append(CMakeExtension(name="vllm.fmha_sm100", optional=True))
+     # tml-fa4 is copied into an isolated vllm.third_party package.

@@ -459,3 +459,24 @@ stop suite caught the intermittent reference failure (264 passed, one failed,
 four skipped), narrowing it to real ATen sqrt; see DSR-AUDIT-011. With added
 failure-only diagnostics the next full suite passed 265 tests/four skips. This
 does not resolve the host issue. No comparison tolerance was changed.
+
+## 2026-10-20 — actual streaming parser and next Windows profile repair
+
+The actual installed vLLM 1017 parser now uses a preserving adapter: original
+DSML string attributes determine value types, literal arguments/input wrappers
+remain intact, and reasoning/content whitespace is retained. The original
+two-newline block delimiter is handled across arbitrary token chunks. Complete
+responses must agree with the unchanged original parser before successful API
+completion. The real installed tokenizer/parser passed 20 checks spanning
+Unicode, whitespace, multiple calls, contradictory schemas, literal wrappers
+and long arguments across 1/2/5/6-token chunks. This is Python protocol evidence,
+not model execution. The API endpoint is still being integrated.
+
+Windows CPU run 39344050108 and project native run 39344050177 passed fdf1247.
+The installed image/stop wheel passed original-processor hash and package
+identity checks outside the checkout. Full vLLM native run 39336142640 failed
+at unused FlashKDA/Qutlass extensions after reaching 107/203 compile steps;
+see DSR-AUDIT-012. Added a fifth exact-source patch for the explicit owned
+profile, preserving core/MoE targets and common Python requirements. Fresh
+five-patch application, final-patch idempotence and setup syntax passed. Native
+compilation and the complete Windows runtime dependency bundle remain pending.

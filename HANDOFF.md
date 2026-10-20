@@ -75,11 +75,13 @@ Project native ABI 2 passed Windows compile/link/install/import, SM89/SM120
 inspection and SDK-free import again in run 39340258236. Full pinned EXLlama
 passed run 39336142655, including both architectures, SDK-free native import,
 Python package import and dependency consistency. Full vLLM native run
-39336142640 is in progress after exact-source
-Windows compiler repairs. Build reports distinguish native-only qualification
+39336142640 reached 107/203 compile steps, then failed in optional FlashKDA and
+Qutlass extensions outside the selected EXL3 path. A fifth exact-source profile
+patch omits those extensions and preserves core/MoE targets. The next native
+build must qualify it. Build reports distinguish native-only qualification
 from complete Python serving dependencies. No GPU kernel/model has executed.
 
-Windows CPU run 39340172589 passed checkpoint a24b96f. The expanded local suite
+Windows CPU run 39344050108 and project native run 39344050177 passed fdf1247. The expanded local suite
 passed 265 tests with four actual-Win32-only skips after image and stop additions.
 The preceding stop suite reproduced the open CPU issue; the real ATen observer
 narrows it to sqrt (up to 3e-4), while matrix multiply/softplus stay near FP32 error.

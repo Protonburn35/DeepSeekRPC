@@ -21,6 +21,11 @@ class TokenizerAdapter:
         if self.vocab_size != expected_vocab:
             raise ValidationError("tokenizer vocabulary differs from the model")
         self.sha256 = expected_sha256
+        added = self.backend_tokenizer.get_added_tokens_decoder()
+        special = sorted((token, item.content) for token, item in added.items() if item.special)
+        self.all_special_ids = tuple(token for token, _ in special)
+        self.all_special_tokens = tuple(text for _, text in special)
+        self.bos_token_id, self.eos_token_id, self.unk_token_id = 0, 1, None
 
     def __len__(self):
         return self.vocab_size
@@ -33,3 +38,9 @@ class TokenizerAdapter:
 
     def decode(self, tokens: list[int]) -> str:
         return self.backend_tokenizer.decode(tokens, skip_special_tokens=False)
+
+    def get_vocab(self):
+        return self.backend_tokenizer.get_vocab(with_added_tokens=True)
+
+    def convert_tokens_to_ids(self, token):
+        return self.backend_tokenizer.token_to_id(token)

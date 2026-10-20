@@ -89,6 +89,7 @@ def main():
     env["PATH"] = os.pathsep.join([str(sdk / "bin"), str(sdk / "bin/x64"), env["PATH"]])
     if args.component == "vllm-windows":
         env.update(VLLM_TARGET_DEVICE="cuda", VLLM_USE_PRECOMPILED="0", VLLM_USE_PRECOMPILED_RUST="0",
+                   VLLM_DEEPSEEKRPC_EXL3="1",
                    SETUPTOOLS_SCM_PRETEND_VERSION="0.31.0+deepseekrpc2", NVCC_THREADS="1",
                    CMAKE_ARGS="-DVLLM_DEEPSEEKRPC_EXL3=ON")
     report = {"scope": f"pinned {args.component} Windows native compile/link/import; no GPU execution",
@@ -117,8 +118,11 @@ def main():
             from patch_vllm_for_rpc import apply
             report["patches"] = [apply(source), apply(source, "vllm-windows-exl3-build.lock.json"),
                                  apply(source, "vllm-windows-stage-hooks.lock.json"),
-                                 apply(source, "vllm-windows-float-infinity.lock.json")]
-            report["native_build_profile"] = "Windows DeepSeekRPC EXL3; SM12x FP8/NVFP4 GEMMs excluded"
+                                 apply(source, "vllm-windows-float-infinity.lock.json"),
+                                 apply(source, "vllm-windows-owned-runtime.lock.json")]
+            report["native_build_profile"] = "Windows DeepSeekRPC EXL3; unused SM12x FP8/NVFP4 GEMMs, FlashKDA and Qutlass excluded"
+            report["omitted_extensions"] = ["_flashkda_C: GLA path outside the selected DeepSeek graph",
+                                            "_qutlass_C: NVFP4 path outside the selected EXL3 graph"]
             dependency_lock = json.loads((root / "provenance/vllm-native-deps.lock.json").read_text(encoding="utf-8"))
             for item in dependency_lock["dependencies"]:
                 if "tag" in item:

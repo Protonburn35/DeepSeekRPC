@@ -175,3 +175,18 @@ mutation and repeats the same actual input; optional bounded synthetic array
 artifacts support diagnosis if it recurs. Keep the frozen oracle body and
 rtol=2e-6/atol=1e-6 unchanged. Native Windows CPU/runtime and GPU qualification
 remain separate; no CUDA model discrepancy is established by this CPU failure.
+
+## DSR-AUDIT-012 — unused FlashKDA/Qutlass extensions also fail MSVC alignment
+
+Run 39336142640 passed the previous grouped-top-k infinity failure and reached
+107/203 compile steps, then FlashKDA and Qutlass host stubs failed C2719 on
+128-byte-aligned parameters. These implement GLA and NVFP4 paths outside the
+selected DeepSeek EXL3 graph. The explicit Windows profile now omits these two
+optional extensions in both CMake and setup.py while retaining core/MoE targets.
+It does not change SDK headers or parameter alignment. The next native build
+must qualify this adjustment.
+
+The same owned profile retains the complete common vLLM Python dependency layer
+plus pinned Torch/Triton and Windows runtime helpers. Unused optional CUDA
+backends do not introduce unrelated Git wheels or conflicting Torch pins.
+Complete Windows Python dependency resolution/import qualification is pending.

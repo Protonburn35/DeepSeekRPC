@@ -1,0 +1,23 @@
+{
+  "upstream_repository": "SystemPanic/vllm-windows",
+  "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "patch": "vllm-windows-owned-runtime.patch",
+  "patch_sha256": "b33441b2663ea5f2fa1c2a17109245d58154e66100c21a4609c8f8936737d594",
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "sha256_before": "5352cce43d4f5df7ed9decdf57af5f02643a0f9b6543e4ed895040db816434ba",
+      "sha256_after": "7a42da6eebd689e7a24da76cfdb7939f80b2a0b6b0f7c9938eda129adaaa9e37"
+    },
+    {
+      "path": "setup.py",
+      "sha256_before": "d423e0569ceecb5c654cefb92aca6031092cdaa172f5fe40c570a2260a5a5d77",
+      "sha256_after": "578636ebf85e7a017c3605f2788267134133fc44aa14a9db1b9bec7da81d57c5"
+    }
+  ],
+  "scope": "Windows owned EXL3 runtime: omit unused FlashKDA/Qutlass native extensions; retain core/MoE and common Python dependencies with pinned Torch/Triton. No model operation or CUDA ABI alignment change.",
+  "environment": {
+    "VLLM_DEEPSEEKRPC_EXL3": "1"
+  },
+  "cmake_args": "-DVLLM_DEEPSEEKRPC_EXL3=ON"
+}
