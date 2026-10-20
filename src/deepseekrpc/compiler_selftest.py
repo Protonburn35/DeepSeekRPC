@@ -75,10 +75,14 @@ def run_compiler_checks(cache_root=None):
                            constexprs={"count": 32})
         kernel = compile_kernel(source, target=GPUTarget("cuda", architecture, 32), options={"num_warps": 4})
         ptx, binary = kernel.asm["ptx"], kernel.asm["cubin"]
+        observed = {"requested": architecture, "ptx_targets": re.findall(r"\.target\s+(\w+)", ptx),
+            "header": binary[:16].hex(), "bytes": len(binary),
+            "machine": struct.unpack_from("<H", binary, 18)[0] if len(binary) >= 20 else None,
+            "flags": struct.unpack_from("<I", binary, 48)[0] if len(binary) >= 52 else None}
         if (not re.search(rf"\.target\s+sm_{architecture}(?:[af])?\b", ptx) or len(binary) < 64 or
                 binary[:6] != b"\x7fELF\x02\x01" or struct.unpack_from("<H", binary, 18)[0] != 190 or
                 struct.unpack_from("<I", binary, 48)[0] & 0xff != architecture):
-            raise AssertionError("offline Triton output is not actual SASS for the requested architecture")
+            raise AssertionError("offline Triton output failed architecture inspection: " + json.dumps(observed, sort_keys=True))
         compiled.append({"architecture": f"sm_{architecture}", "cubin_bytes": len(binary),
             "cubin_sha256": hashlib.sha256(binary).hexdigest(), "ptx_sha256": hashlib.sha256(ptx.encode()).hexdigest(),
             "status": "compiled; not GPU-executed"})
