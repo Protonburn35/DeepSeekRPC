@@ -33,6 +33,8 @@ def report_wheel(directory, *, component):
     report = json.loads(reports[0].read_text(encoding="utf-8"))
     required = {"build", "install", "fatbin", "import-without-sdk"} if component == "native" else {
         "build", "install", "fatbin", "import-native", "import-native-without-sdk"}
+    if component == "vllm":
+        required.add("fatbin-moe")
     checks = {entry["name"]: entry["exit_code"] for entry in report["checks"]}
     if ("failure" in report or "dependency_provenance_error" in report or report.get("worktree_clean") is not True or
             report.get("binary_architectures_verified") is not True or

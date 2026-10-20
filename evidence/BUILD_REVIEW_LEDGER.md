@@ -833,3 +833,55 @@ find dependency/import failures while the native vLLM build is still running.
 It does not substitute any native library or claim the complete five-wheel
 runtime is qualified. All seven workflow files and both nested Python child
 programs parse locally; actual native Windows execution follows the push.
+
+## 2026-10-20 — restored cloud verification and early offline/privacy policy
+
+The restored cloud instance retained clean e298050, the pinned Python tools,
+reference sources and evidence. GitHub API access works through the existing
+platform credentials. Rebuilt/installed the current application wheel outside
+the checkout; pip check, nine focused readiness checks, five actual installed
+CPU vLLM/plugin checks and twenty original parser/tokenizer cases passed. This
+validates the restored development instance, not any CUDA/model execution.
+The saved repository configuration now records the verified existing
+DeepSeekRPC mount and exact e298050 commit. Filesystem discovery found only that
+actual project checkout; the empty workspace .git directory and uv's empty
+cache marker are not repositories. Draft saving was confirmed; publication is
+a separate product action and was not inferred from a reconnection event.
+
+Windows run 39420558211 passed the exact e298050 CPU/build/install/client suite.
+Run 39420558237 passed the private Python/TinyCC/Triton compiler checks plus the
+entire locked external dependency installation, pip check, actual CUDA-Torch
+2.11/vision/audio/TVM imports, Gloo subgroup lifetime and unloaded API checks
+without the compiler SDK or visible GPU. Native application installation still
+requires the actual vLLM/EXL3/project wheels; long vLLM 39408672207 is preserved.
+
+DSR-AUDIT-023 establishes offline and telemetry opt-outs before upstream imports
+and rejects an already cached enabled vLLM reporter. No unexpected transfer was
+observed. The full local follow-up passed 381 tests/four actual-Windows-only
+skips and reproduced DSR-AUDIT-011 once, with the same reduced-accuracy sqrt
+signature. Its fresh synthetic capture is preserved externally. No oracle or
+tolerance changed; a later pass would not resolve that vendor-library finding.
+
+## 2026-10-20 — actual late DeepGEMM failure and corrected EXL3 native target list
+
+Long Windows vLLM 39408672207 at 441b344 ran 2h24m and failed at 187/189:
+DeepGEMM's nested deep_jit uuid.hpp includes Linux unistd.h. Real core and MoE
+DLL links had passed at 185/186; no complete native wheel was produced. Logs
+and build provenance are preserved externally. Automatic complete-runtime run
+39426412511 was correctly skipped after this native failure.
+
+The fifth exact-source owned-profile patch now excludes the unselected
+DeepGEMM host extension in both CMake and setup. The BF16 attention/index/state,
+packed EXL3 experts and explicit mHC implementation are preserved. The patch
+and final file hashes were regenerated against the exact four-patch predecessor;
+real apply/hash validation and idempotent reapplication passed. Runtime policy
+pins VLLM_USE_DEEP_GEMM=0 and detects cached selection. The new native build
+checks actual core and MoE/router imports and SM89/SM120 images, including
+SDK-free imports; complete runtime qualification repeats both registrations.
+Live build progress now prints bounded counters every 45 seconds.
+
+Early offline/privacy policy passed all five real installed CPU vLLM/plugin
+checks; the actual upstream usage reporter is disabled. The full local suite's
+one failure remains the preserved DSR-AUDIT-011 CPU sqrt issue (381 passes/four
+Windows-only skips). No numerical tolerance was changed. Focused policy/Gloo/
+review-packet checks validate the current repair; actual Windows retry follows.

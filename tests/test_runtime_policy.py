@@ -27,9 +27,11 @@ from deepseekrpc.runtime_policy import configure_exact_exl3, assert_exact_exl3
 from deepseekrpc.jsonutil import ValidationError
 assert configure_exact_exl3() == configure_exact_exl3()
 assert_exact_exl3()
-names = ['EXL3_INT8_GEMV','EXL3_GR_INT8','EXL3_GEMV','EXL3_GEMM_LEGACY_TILES','EXL3_GEMM_SMALLM_SHARED_TUNE']
+names = ['EXL3_INT8_GEMV','EXL3_GR_INT8','EXL3_GEMV','EXL3_GEMM_LEGACY_TILES','EXL3_GEMM_SMALLM_SHARED_TUNE','VLLM_USE_DEEP_GEMM']
 print(json.dumps({k:os.environ[k] for k in names}))
-for name in names:
+offline = ['VLLM_DO_NOT_TRACK','VLLM_NO_USAGE_STATS','DO_NOT_TRACK','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','HF_HUB_DISABLE_TELEMETRY']
+assert all(os.environ[name] == '1' for name in offline)
+for name in names + offline:
     previous = os.environ[name]
     os.environ[name] = '0' if previous == '1' else '2'
     try:
@@ -41,12 +43,13 @@ for name in names:
     os.environ[name] = previous
 '''
     env = dict(os.environ, EXL3_INT8_GEMV="2", EXL3_GR_INT8="1", EXL3_GEMV="2", EXL3_GEMM_LEGACY_TILES="1",
-               EXL3_GEMM_SMALLM_SHARED_TUNE="0")
+               EXL3_GEMM_SMALLM_SHARED_TUNE="0", VLLM_USE_DEEP_GEMM="1", VLLM_DO_NOT_TRACK="0", VLLM_NO_USAGE_STATS="0",
+               DO_NOT_TRACK="0", HF_HUB_OFFLINE="0", TRANSFORMERS_OFFLINE="0", HF_HUB_DISABLE_TELEMETRY="0")
     env["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
     result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0", "EXL3_GEMV": "0",
-                                       "EXL3_GEMM_LEGACY_TILES": "0", "EXL3_GEMM_SMALLM_SHARED_TUNE": "1"}
+                                       "EXL3_GEMM_LEGACY_TILES": "0", "EXL3_GEMM_SMALLM_SHARED_TUNE": "1", "VLLM_USE_DEEP_GEMM": "0"}
 
 
 @pytest.mark.reference

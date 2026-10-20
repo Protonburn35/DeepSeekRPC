@@ -17,6 +17,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    from deepseekrpc.runtime_policy import configure_exact_exl3
+    configure_exact_exl3()
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
@@ -54,7 +56,10 @@ def main():
     def register_plugin():
         entry, = [e for e in metadata.entry_points(group="vllm.general_plugins") if e.name == "vllm_exl3"]
         entry.load()()
-        return "registered"
+        from vllm.usage.usage_lib import is_usage_stats_enabled
+        if is_usage_stats_enabled():
+            raise RuntimeError("the actual upstream usage reporter is enabled despite offline startup")
+        return "registered; actual upstream usage reporting disabled"
 
     def owned_adapters():
         from deepseekrpc.runtime_policy import configure_exact_exl3

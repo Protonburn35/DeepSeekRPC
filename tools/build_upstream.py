@@ -8,9 +8,11 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 import tarfile
+import time
 
 from acquire_references import bounded_download, safe_relative
 
@@ -102,10 +104,23 @@ def main():
 
     def run(name, command, *, cwd=root, execution_env=None):
         with (output / f"{name}.log").open("w", encoding="utf-8") as stream:
-            result = subprocess.run(command, cwd=cwd, env=env if execution_env is None else execution_env,
-                                    stdout=stream, stderr=subprocess.STDOUT)
-        report["checks"].append({"name": name, "exit_code": result.returncode})
-        if result.returncode:
+            first = time.monotonic()
+            with subprocess.Popen(command, cwd=cwd, env=env if execution_env is None else execution_env,
+                                  stdout=stream, stderr=subprocess.STDOUT) as process:
+                while True:
+                    try:
+                        code = process.wait(timeout=45)
+                        break
+                    except subprocess.TimeoutExpired:
+                        # A long native build must expose progress without
+                        # copying private paths or arbitrary compiler output.
+                        with (output / f"{name}.log").open("rb") as log:
+                            log.seek(max(0, log.seek(0, 2) - 16384))
+                            progress = re.findall(rb"\[(\d+)/(\d+)\]", log.read())
+                        count = "" if not progress else "; targets " + "/".join(part.decode("ascii") for part in progress[-1])
+                        print(f"{name}: running for {int(time.monotonic() - first)} seconds{count}", flush=True)
+        report["checks"].append({"name": name, "exit_code": code})
+        if code:
             raise RuntimeError(f"{name} failed; see retained {name}.log")
 
     try:
@@ -120,9 +135,10 @@ def main():
                                  apply(source, "vllm-windows-stage-hooks.lock.json"),
                                  apply(source, "vllm-windows-float-infinity.lock.json"),
                                  apply(source, "vllm-windows-owned-runtime.lock.json")]
-            report["native_build_profile"] = "Windows DeepSeekRPC EXL3; unused SM12x FP8/NVFP4 GEMMs, FlashKDA and Qutlass excluded"
+            report["native_build_profile"] = "Windows DeepSeekRPC EXL3; unselected SM12x FP8/NVFP4 GEMMs, FlashKDA, Qutlass and DeepGEMM excluded"
             report["omitted_extensions"] = ["_flashkda_C: GLA path outside the selected DeepSeek graph",
-                                            "_qutlass_C: NVFP4 path outside the selected EXL3 graph"]
+                                            "_qutlass_C: NVFP4 path outside the selected EXL3 graph",
+                                            "_deep_gemm_C: owned BF16 attention/EXL3 experts/explicit mHC use their own CUDA/Torch/Triton paths"]
             dependency_lock = json.loads((root / "provenance/vllm-native-deps.lock.json").read_text(encoding="utf-8"))
             for item in dependency_lock["dependencies"]:
                 if "tag" in item:
@@ -150,10 +166,12 @@ def main():
             query = ("import torch; from importlib.metadata import distribution; "
                      "d=distribution('vllm'); p,=[d.locate_file(f) for f in d.files "
                      "if str(f).startswith('vllm/_C_stable_libtorch') and str(f).endswith('.pyd')]; "
+                     "mp,=[d.locate_file(f) for f in d.files if str(f).startswith('vllm/_moe_C_stable_libtorch') and str(f).endswith('.pyd')]; "
                      "torch.ops.load_library(str(p)); assert callable(torch.ops._C.rms_norm); "
+                     "torch.ops.load_library(str(mp)); assert callable(torch.ops._moe_C.topk_softmax); "
                      "assert not torch.ops._C.cutlass_scaled_mm_supports_fp8(120); "
                      "assert not torch.ops._C.cutlass_scaled_mm_supports_block_fp8(120); "
-                     "assert not torch.ops._C.cutlass_scaled_mm_supports_fp4(120); print(p)")
+                     "assert not torch.ops._C.cutlass_scaled_mm_supports_fp4(120); print(mp); print(p)")
         run("import-native", [sys.executable, "-c", query], cwd=output)
         module = Path((output / "import-native.log").read_text(encoding="utf-8").strip().splitlines()[-1])
         run("fatbin", [str(sdk / "bin/cuobjdump.exe"), "--list-elf", str(module)])
@@ -161,6 +179,12 @@ def main():
         for architecture in ("sm_89", "sm_120"):
             if architecture not in listing:
                 raise RuntimeError(f"compiled upstream module is missing target {architecture}")
+        if args.component == "vllm-windows":
+            moe_module = Path((output / "import-native.log").read_text(encoding="utf-8").strip().splitlines()[-2])
+            run("fatbin-moe", [str(sdk / "bin/cuobjdump.exe"), "--list-elf", str(moe_module)])
+            moe_listing = (output / "fatbin-moe.log").read_text(encoding="utf-8")
+            if not all(architecture in moe_listing for architecture in ("sm_89", "sm_120")):
+                raise RuntimeError("compiled MoE/router module is missing an admitted target")
         report["binary_architectures_verified"] = True
         runtime_env = dict(env)
         for key in list(runtime_env):

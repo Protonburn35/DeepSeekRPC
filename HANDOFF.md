@@ -212,3 +212,26 @@ completion. Three real host-event control tests pass; a real GPU one-slot EXL3
 reuse/stale-lease diagnostic is implemented but unrun. Full local suite after
 this change: 382 passed/four actual-Windows-only skips. Preserve long native
 vLLM 39408672207; the following Windows CPU run must qualify current source.
+
+Long vLLM 39408672207 completed with failure at 187/189: DeepGEMM's nested
+deep_jit uuid.hpp includes unistd.h. Core and MoE DLLs linked at 185/186, but
+there is no qualified wheel. DSR-AUDIT-024 updates the fifth owned EXL3 profile
+to omit the unselected DeepGEMM target in CMake/setup, and disables its runtime
+selector. All required owned BF16 CUDA attention/EXL3/mHC paths are preserved.
+New fifth patch SHA: 974afb34134cedc3bdccda2153b0722c94c4982cbadd82d51835b5cfa22d7ce1.
+Its CMake/setup outputs are aecd47f36d82d49bfd26acf8ddcf4cff3f36a18fea666a3bd16f626eb686ea7f
+and 930a7b5dd4c00687a1e51cf705d09ac3bf0d54da161cf54534550802ca82fd13.
+The next fresh native build is required. The build tool now emits live bounded
+progress and additionally qualifies actual MoE/router import and both SMs.
+Cancel redundant EXLlama builds after verifying unchanged EXL source/profile;
+that wheel and project native ABI 2 remain valid. Complete runtime still follows
+the next successful vLLM run automatically; do not produce a finished packet yet.
+
+The restored cloud development instance passed pip check, nine readiness
+checks, five real installed CPU vLLM/plugin checks and twenty original parser
+cases at e298050. Windows CPU 39420558211 and full external dependency/compiler
+gate 39420558237 passed e298050. Current early-offline/privacy policy (DSR-023)
+also passed all five real installed upstream checks. Full local follow-up:
+381 passed/four Windows-only skips plus the recaptured known DSR-AUDIT-011
+sqrt failure. Preserve that finding and unchanged tolerances. Source changes
+since e298050 need their matching new Windows run and complete runtime evidence.

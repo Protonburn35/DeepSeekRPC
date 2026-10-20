@@ -130,10 +130,17 @@ def main():
         torch.ops.load_library(str(paths[0]))
         if not callable(torch.ops._C.rms_norm):
             raise RuntimeError("compiled vLLM RMSNorm registration is absent")
+        moe_paths = [distribution.locate_file(path) for path in distribution.files or ()
+                     if str(path).startswith("vllm/_moe_C_stable_libtorch") and str(path).endswith(".pyd")]
+        if len(moe_paths) != 1:
+            raise RuntimeError("actual compiled vLLM MoE/router library is missing or duplicated")
+        torch.ops.load_library(str(moe_paths[0]))
+        if not callable(torch.ops._moe_C.topk_softmax):
+            raise RuntimeError("compiled vLLM router registration is absent")
         for operation in ("cutlass_scaled_mm_supports_fp8", "cutlass_scaled_mm_supports_block_fp8", "cutlass_scaled_mm_supports_fp4"):
             if getattr(torch.ops._C, operation)(120):
                 raise RuntimeError("installed native vLLM differs from the admitted EXL3 profile")
-        for path in [Path(deepseekrpc_cuda.__file__), Path(exllamav3_ext.__file__), *paths]:
+        for path in [Path(deepseekrpc_cuda.__file__), Path(exllamav3_ext.__file__), *paths, *moe_paths]:
             with path.open("rb") as stream:
                 report["native"].append({"file": path.name, "sha256": hashlib.file_digest(stream, "sha256").hexdigest()})
         return "actual native exports/registration imported with a bare Windows system PATH"
@@ -152,6 +159,9 @@ def main():
         if len(entries) != 1:
             raise RuntimeError("actual EXL3 plugin entry point is missing or duplicated")
         entries[0].load()()
+        from vllm.usage.usage_lib import is_usage_stats_enabled
+        if is_usage_stats_enabled():
+            raise RuntimeError("actual upstream usage reporting is enabled despite the offline runtime policy")
         from deepseekrpc.vllm_attention import OwnedBF16Attention, OwnedDSparkAttention
         from deepseekrpc.vllm_engram import DiskEngram
         from deepseekrpc.vllm_experts import BoundedMoEMethod

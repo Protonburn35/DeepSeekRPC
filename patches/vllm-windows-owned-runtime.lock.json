@@ -2,20 +2,20 @@
   "upstream_repository": "SystemPanic/vllm-windows",
   "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
   "patch": "vllm-windows-owned-runtime.patch",
-  "patch_sha256": "b33441b2663ea5f2fa1c2a17109245d58154e66100c21a4609c8f8936737d594",
+  "patch_sha256": "974afb34134cedc3bdccda2153b0722c94c4982cbadd82d51835b5cfa22d7ce1",
   "files": [
     {
       "path": "CMakeLists.txt",
       "sha256_before": "5352cce43d4f5df7ed9decdf57af5f02643a0f9b6543e4ed895040db816434ba",
-      "sha256_after": "7a42da6eebd689e7a24da76cfdb7939f80b2a0b6b0f7c9938eda129adaaa9e37"
+      "sha256_after": "aecd47f36d82d49bfd26acf8ddcf4cff3f36a18fea666a3bd16f626eb686ea7f"
     },
     {
       "path": "setup.py",
       "sha256_before": "d423e0569ceecb5c654cefb92aca6031092cdaa172f5fe40c570a2260a5a5d77",
-      "sha256_after": "578636ebf85e7a017c3605f2788267134133fc44aa14a9db1b9bec7da81d57c5"
+      "sha256_after": "930a7b5dd4c00687a1e51cf705d09ac3bf0d54da161cf54534550802ca82fd13"
     }
   ],
-  "scope": "Windows owned EXL3 runtime: omit unused FlashKDA/Qutlass native extensions; retain core/MoE and common Python dependencies with pinned Torch/Triton. No model operation or CUDA ABI alignment change.",
+  "scope": "Windows owned EXL3 runtime: omit unselected FlashKDA, Qutlass and DeepGEMM native extensions; retain core/MoE/FlashAttention and common Python dependencies with pinned Torch/Triton. Owned BF16 attention, EXL3 experts and explicit mHC math are preserved.",
   "environment": {
     "VLLM_DEEPSEEKRPC_EXL3": "1"
   },

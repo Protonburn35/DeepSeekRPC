@@ -400,3 +400,39 @@ starts with it disabled and exercises mutation refusal for every pinned EXL3
 selector. No native source or build profile changed. This fixes selection of
 the intended upstream policy; actual CUDA row invariance and full-model
 speculative qualification remain separate unrun gates.
+
+## DSR-AUDIT-023 — establish offline/privacy policy before upstream imports
+
+The model configuration set offline/telemetry controls, but owned adapter
+imports occur earlier during startup. The pinned vLLM usage module also caches
+its enablement on first use. No unexpected download or telemetry transmission
+was observed; this is a source ordering gap.
+
+The common before-import policy now explicitly disables vLLM/Hugging Face
+telemetry and requires local-only Hugging Face/Transformers access. It checks
+later environment mutation and refuses an already cached enabled vLLM reporter.
+The real-process policy fixture begins with every control disabled. Installed
+CPU integration and complete Windows qualification query the actual upstream
+reporter's enablement without sending a report. Native sources are unchanged.
+
+## DSR-AUDIT-024 — selected EXL3 build must exclude DeepGEMM's host helper
+
+Long Windows run 39408672207 failed at step 187/189 in DeepGEMM's host binding:
+its nested deep_jit uuid.hpp includes Linux unistd.h. The actual core and MoE
+DLLs had linked at steps 185/186. There is no completed wheel from that run.
+
+The fifth exact-source profile patch now omits DeepGEMM in both the CMake
+external-project list and setuptools extension list, alongside the existing
+FlashKDA/Qutlass exclusions. The selected graph executes its own BF16 CUDA
+attention/index/state, packed EXL3 experts and explicit Torch/Triton mHC; those
+paths are preserved. DeepGEMM selection is explicitly disabled before import
+and a cached enabled selector is rejected. No native placeholder is supplied.
+The updated patch was applied, hash-checked and reapplied idempotently against
+its exact four-patch predecessor. Existing native ABI 2/EXLlama wheels remain
+usable because their actual source and build profiles are unchanged.
+
+The next build also loads both actual core and MoE/router libraries, checks
+their exported schemas and SM89/SM120 images, then repeats import without the
+SDK. Complete installation repeats both native registrations. The build emits
+bounded progress counts every 45 seconds without publishing raw paths. Actual
+fresh Windows compile/install qualification is still required.

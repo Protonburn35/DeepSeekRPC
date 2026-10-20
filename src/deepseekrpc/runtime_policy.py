@@ -11,7 +11,10 @@ _cuda_math_configured = False
 _EXACT_ENV = {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0",
               "EXL3_GEMV": "0", "EXL3_GEMM_LEGACY_TILES": "0",
               "EXL3_GEMM_SMALLM_SHARED_TUNE": "1",
-              "VLLM_DISABLE_SHARED_EXPERTS_STREAM": "1"}
+              "VLLM_DISABLE_SHARED_EXPERTS_STREAM": "1",
+              "VLLM_USE_DEEP_GEMM": "0",
+              "VLLM_DO_NOT_TRACK": "1", "VLLM_NO_USAGE_STATS": "1", "DO_NOT_TRACK": "1",
+              "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1", "HF_HUB_DISABLE_TELEMETRY": "1"}
 
 
 def configure_exact_exl3():
@@ -37,6 +40,9 @@ def configure_exact_exl3():
 def assert_exact_exl3():
     if not _configured or any(os.environ.get(name) != value for name, value in _EXACT_ENV.items()):
         raise ValidationError("exact ExLlama policy is missing or changed after configuration")
+    usage = sys.modules.get("vllm.usage.usage_lib")
+    if usage is not None and usage.is_usage_stats_enabled():
+        raise ValidationError("vLLM cached usage reporting before offline startup policy; start a fresh worker process")
 
 
 def configure_exact_cuda_math():
@@ -61,7 +67,7 @@ def assert_exact_cuda_math():
     assert_windows_triton(required=False)
     assert_exact_exl3()
     vllm_envs = sys.modules.get("vllm.envs")
-    if (vllm_envs is not None and not vllm_envs.VLLM_DISABLE_SHARED_EXPERTS_STREAM or
+    if (vllm_envs is not None and (not vllm_envs.VLLM_DISABLE_SHARED_EXPERTS_STREAM or vllm_envs.VLLM_USE_DEEP_GEMM) or
             not _cuda_math_configured or torch.get_float32_matmul_precision() != "highest" or
             torch.backends.cuda.matmul.allow_tf32 or torch.backends.cudnn.allow_tf32 or
             torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction or
