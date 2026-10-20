@@ -19,7 +19,7 @@ class ImageWindowResolver:
         for span in history.images:
             if span.start < end:
                 if not self.assets.has_features(span.key):
-                    first = time.monotonic_ns()
+                    first = time.perf_counter_ns()
                     return False
                 self.assets.read_rows(span.key, 0, 1)
         return True
@@ -52,8 +52,8 @@ class ImageWindowResolver:
                     data = features.view(torch.uint16).cpu().numpy().astype("<u2", copy=False).tobytes()
                     self.assets.store_features(span.key, data)
                     metrics.current.add("image_encodes")
-                    metrics.current.observe("image_encode", time.monotonic_ns() - first)
-                    metrics.current.event("image_encoded", rows=info.span_tokens, elapsed_ns=time.monotonic_ns() - first)
+                    metrics.current.observe("image_encode", time.perf_counter_ns() - first)
+                    metrics.current.event("image_encoded", rows=info.span_tokens, elapsed_ns=time.perf_counter_ns() - first)
                     del features, data, patches, types, original
                 left, right = max(start, span.start), min(end, span.start + span.length)
                 data = bytearray(self.assets.read_rows(span.key, left - span.start, right - left))

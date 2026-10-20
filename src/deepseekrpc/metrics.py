@@ -45,7 +45,7 @@ class Metrics:
         if log_level not in LEVELS or not set(traces) <= COMPONENTS or stage not in {None, "A", "B", "C"}:
             raise ValidationError("invalid bounded diagnostic configuration")
         self._lock = threading.RLock()
-        self._start, self._phase = time.monotonic_ns(), "boot"
+        self._start, self._phase = time.perf_counter_ns(), "boot"
         self.stage, self.log_level, self.traces = stage, log_level, frozenset(traces)
         self.log_bytes = integer(log_bytes, "bounded log file bytes", 1024, 4 * 1024 ** 2)
         self.root = Path(root) if root is not None else None
@@ -105,11 +105,11 @@ class Metrics:
 
     @contextmanager
     def measure(self, name):
-        first = time.monotonic_ns()
+        first = time.perf_counter_ns()
         try:
             yield
         finally:
-            self.observe(name, time.monotonic_ns() - first)
+            self.observe(name, time.perf_counter_ns() - first)
 
     @staticmethod
     def _fields(fields):
@@ -133,7 +133,7 @@ class Metrics:
         with self._lock:
             if self.root is None or self._write_failure:
                 return
-            encoded = canonical({"elapsed_ns": time.monotonic_ns() - self._start, "stage": self.stage,
+            encoded = canonical({"elapsed_ns": time.perf_counter_ns() - self._start, "stage": self.stage,
                 "phase": self._phase, "component": component, "level": level, "event": name, **fields}) + b"\n"
             if len(encoded) > 2048:
                 raise ValidationError("bounded event exceeds its fixed numeric field inventory")
@@ -164,7 +164,7 @@ class Metrics:
                 ratios[phase] = {"gpu_bundle_hit_fraction": ratio("gpu_bundle_hits", "gpu_bundle_requests"),
                     "ram_bundle_hit_fraction_on_gpu_miss": ratio("ram_bundle_hits", "ram_bundle_requests"),
                     "engram_row_hit_fraction": ratio("engram_row_hits", "engram_row_requests")}
-            return {"format": 1, "stage": self.stage, "elapsed_ns": time.monotonic_ns() - self._start,
+            return {"format": 1, "stage": self.stage, "elapsed_ns": time.perf_counter_ns() - self._start,
                 "phase": self._phase, "counters": dict(self._counters),
                 "timings": {key: {**entry, "buckets": list(entry["buckets"])} for key, entry in self._timings.items()},
                 "timing_bucket_upper_ns": [*BUCKETS, None], "fractions": ratios,
@@ -217,13 +217,13 @@ def configure(root, *, stage, log_level="info", traces=()):
 class RequestMeasurement:
     """Committed outputs and inclusive scheduler wall time, including backpressure."""
     def __init__(self):
-        self.metrics, self.started = current, time.monotonic_ns()
+        self.metrics, self.started = current, time.perf_counter_ns()
         self.first = self.previous = None
         self.tokens = self.batches = 0
         self.prefill_ns = self.new = self.reused = self.replay = 0
 
     def prefilled(self, started, inventory):
-        self.prefill_ns = time.monotonic_ns() - started
+        self.prefill_ns = time.perf_counter_ns() - started
         self.new, self.reused, self.replay = (inventory[key] for key in
             ("new_encoder_tokens", "reused_encoder_tokens", "target_replay_tokens"))
         self.metrics.add("encoder_new_tokens", self.new)
@@ -232,7 +232,7 @@ class RequestMeasurement:
         self.metrics.observe("prefill", self.prefill_ns)
 
     def batch(self, count):
-        now = time.monotonic_ns()
+        now = time.perf_counter_ns()
         if self.first is None:
             self.first = now
             self.metrics.observe("time_to_first_token", now - self.started)
@@ -246,7 +246,7 @@ class RequestMeasurement:
     def finish(self, outcome):
         if outcome not in {"completed", "paused", "cancelled", "failed"}:
             raise ValidationError("unknown measured request outcome")
-        now = time.monotonic_ns()
+        now = time.perf_counter_ns()
         self.metrics.observe("request_wall", now - self.started)
         self.metrics.add(outcome + "_requests")
         self.metrics.latest_request(tokens=self.tokens, output_batches=self.batches,

@@ -248,3 +248,14 @@ tiny verifier/correction equations. Split-versus-itself comparisons are explicit
 metamorphic evidence; they are not independent full-model goldens. Local GPU
 checks cover overwritten row rollback at every accepted length 0..6. Neither
 the cluster probe nor these new CUDA checks has run on the user's hardware.
+
+## DSR-AUDIT-016 — Windows 3.12 measurement clock resolution
+
+Windows CPU run 39407156592 passed 360 tests but failed the real HTTP benchmark
+fixture: GetTickCount64-backed monotonic_ns returned zero elapsed time and the
+throughput division failed. All application nanosecond duration measurements
+now use the monotonic high-resolution performance counter consistently across
+start/end boundaries. A zero-duration observation reports null throughput; no
+artificial elapsed time is invented. The actual HTTP fixture covers both a
+normal clock and a frozen-clock boundary. Thirteen focused checks passed;
+Windows CI must still qualify the repair.

@@ -120,7 +120,7 @@ class Connection:
             raise ValidationError("outgoing frame identity differs from authenticated channel")
         if (frame.kind in DATA_KINDS) != (self.plane == "data") and frame.kind != Kind.HELLO:
             raise ValidationError("message is on the wrong channel plane")
-        started = time.monotonic_ns()
+        started = time.perf_counter_ns()
         try:
             with metrics.current.measure("rpc_encode"):
                 chunks = frame.encode()
@@ -133,12 +133,12 @@ class Connection:
                     metrics.current.add("rpc_send_bytes", len(chunk))
             metrics.current.add("rpc_send_frames")
             metrics.current.event("frame", peer=int(self.peer), kind=int(frame.kind), rows=frame.rows,
-                bytes=sum(len(chunk) for chunk in chunks), elapsed_ns=time.monotonic_ns() - started)
+                bytes=sum(len(chunk) for chunk in chunks), elapsed_ns=time.perf_counter_ns() - started)
         except BaseException:
             self.close()
             raise
         finally:
-            metrics.current.observe("rpc_send", time.monotonic_ns() - started)
+            metrics.current.observe("rpc_send", time.perf_counter_ns() - started)
 
     def receive(self) -> Frame:
         with metrics.current.measure("rpc_receive"), self._io_lock:

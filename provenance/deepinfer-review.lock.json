@@ -1,0 +1,190 @@
+{
+  "format": 1,
+  "repository": "deepseek-ai/DeepInfer",
+  "commit": "8b16149741a4935e1dec8cea27853f273b374c5b",
+  "archive_sha256": "32794e849ce469967c1f215736a6a4307ec1c1db485b5dbb4f6a845ff43d0197",
+  "scope": "source inspection only; no DeepInfer import, build, example, model download or upstream test execution",
+  "review": "docs/DEEPINFER_REVIEW.md",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4660,
+      "sha256": "b55624158ada4dc21b882d24ded06bf82f65350b44d170877b68395712cd670d"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "examples/_config.py",
+      "bytes": 5272,
+      "sha256": "a671d83fa5becac257722e67facec2f33743a1263e0b2e6355dcdb00984f4f42"
+    },
+    {
+      "path": "deepinfer/hugging_face/config.py",
+      "bytes": 13018,
+      "sha256": "978c863928ece0e7f81c3e619c02d1287ade442f9282d7eb67bc739411595e49"
+    },
+    {
+      "path": "deepinfer/model_executor/models/deepseek.py",
+      "bytes": 24852,
+      "sha256": "881fe2839b34d191ffd50ca6d5b7b57443b43ed8d811e204e4d48164f31f613a"
+    },
+    {
+      "path": "deepinfer/model_executor/models/decoder_layer.py",
+      "bytes": 11446,
+      "sha256": "2189fa14c0665a3a211b47c5440748273fd92b39a68268a0080530d3c95b7297"
+    },
+    {
+      "path": "deepinfer/model_executor/models/mtp/dflash.py",
+      "bytes": 17894,
+      "sha256": "12ebfb9c793062844d40e0fab17164d5365d965c318f8b9f0f4adf51b3afb684"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/heads.py",
+      "bytes": 4365,
+      "sha256": "697439602617d53409fea41c8cc1d95b1002842823d7ccd824fb720b5111ae2e"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/hc.py",
+      "bytes": 18309,
+      "sha256": "1dd2d2e880c28deaa77363f040c31b451d1aeedf4ea188ace6803798713e3701"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/hc_lazy.py",
+      "bytes": 1212,
+      "sha256": "553c9fae0179443d38dd4d3b02f827492f0b2a613238efcdda1f8304b8027a51"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/mhc_modeling.py",
+      "bytes": 4924,
+      "sha256": "97d52d87b262bffe3970a0b46c329cdcc1c514c09ec48b32008269b225d5de4d"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/yoco.py",
+      "bytes": 6540,
+      "sha256": "7dc8ad7b6ca4902bcef67b1cbc4804592995c5b6af9ebaa00b59cc338c1aa6ec"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/cross_layer.py",
+      "bytes": 22604,
+      "sha256": "5a01c6d3c1166c2724eac92ac5706fc838423d7ae6479785ceabfd46c81855ea"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/attn.py",
+      "bytes": 46250,
+      "sha256": "cb228c8fd4c76200e2ec266c51872107cfe7b384fdc88458b3d1c0ff101f3116"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/compress.py",
+      "bytes": 6741,
+      "sha256": "11bd28990062349369890f274051873dba98152bd9224d8164495eb1fadc53f2"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/index_attn.py",
+      "bytes": 26204,
+      "sha256": "e269196c3c8d2db7041f7f1073597b8023dc4ecd58b40303ebf392171c02d462"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/mlp.py",
+      "bytes": 25524,
+      "sha256": "2541bcc83b178a9e2f18b387b301d60111d6d603e18e2d31df38196b03d290dd"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/moe.py",
+      "bytes": 4709,
+      "sha256": "4e154e1536e5926bf4e4b7b58d5ccc71a692b46c8d26d7edcc56827bfe540de3"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/engram.py",
+      "bytes": 9812,
+      "sha256": "d2aa096a1f73177e2dd06f5a1fcd6746139c52af56c3bcfb77d5226a3deeae8f"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/sampler.py",
+      "bytes": 30729,
+      "sha256": "81205a12e860041ffa904321b852db2d048bc038bb07d494dbb78b44b522d9a9"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/sampler_utils.py",
+      "bytes": 7895,
+      "sha256": "35bdfd873865375cbf834258543e54ea7a1dbb860767412b8b8e44bea1b296b9"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/common.py",
+      "bytes": 2254,
+      "sha256": "d5cbc52dda0bd611d5ea417d2e8bb1ec70c70f5932edaeb809eb7cfa6a669a1b"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/cuda/dflash.py",
+      "bytes": 3798,
+      "sha256": "789d90758ac2c20fe36dcb97156a9e6448a76220562ebfcf3f8c53cea9366504"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/cuda/fused_sample.py",
+      "bytes": 29025,
+      "sha256": "2b289145a9c28bb869dcc4cb63d80eff845d923a3fc34885366a2caa0411223f"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/cuda/random_sampling.py",
+      "bytes": 9862,
+      "sha256": "18ff9677ca6886e6329e62ef5cd6dac92d6a2658be3fe97ee60d7985494b1b6c"
+    },
+    {
+      "path": "deepinfer/model_executor/layers/tilelang_ops/cuda/sampler.py",
+      "bytes": 18964,
+      "sha256": "4a37c7e4bc44d7c4ef50b8590590c9a8d646eb7a8627f2de9e9c1a4f0f5927e3"
+    },
+    {
+      "path": "deepinfer/model_executor/input_metadata/yoco.py",
+      "bytes": 10478,
+      "sha256": "882a33de3da0fba81644adde9e9e1a90ec3d3ff34a8f3ad4dda18faafebd6460"
+    },
+    {
+      "path": "csrc/engine/mtp_varlen.hpp",
+      "bytes": 12151,
+      "sha256": "164f45db4cccd6d6909dd2846e7dfffb57754b108af679443bf4bd71ec33785a"
+    },
+    {
+      "path": "csrc/engine/input_metadata/prepare_tensor_input_v4.cpp",
+      "bytes": 32119,
+      "sha256": "93a6b1dd533db116d2f7540c78d6bb5419bdb8c1d2063b031ab8b1a8cc138fe2"
+    },
+    {
+      "path": "tests/models/test_sampler.py",
+      "bytes": 9256,
+      "sha256": "bed2500391b5849dbabbe97fa10c1a8beba1a3d745dd8e73d00de762ecd57ce8"
+    },
+    {
+      "path": "tests/models/test_kl.py",
+      "bytes": 8413,
+      "sha256": "dd2d2c01ae6e298c173a0f69f3b0a8145cac23a9f9bb00c40c468c50ea897579"
+    },
+    {
+      "path": "tests/models/test_batch_invariant.py",
+      "bytes": 3993,
+      "sha256": "10ceb7fec656188623de450fab4dfffed98bc2ffe9510f8f545dff6f0b5dd887"
+    },
+    {
+      "path": "tests/models/test_ve_batch_invariant.py",
+      "bytes": 8044,
+      "sha256": "bec98390518b9b864ccf3faf16445f714ca6fcf09eefd3275d88f61c6d28edaa"
+    },
+    {
+      "path": "tests/models/test_offline_inference.py",
+      "bytes": 7051,
+      "sha256": "1a117bdcaa312406c72419137e9a06a1106e704b40d4e1ffc905c5a895b4cd00"
+    },
+    {
+      "path": "tests/models/test_offline_inference_long.py",
+      "bytes": 430,
+      "sha256": "c5e1239d3073b7907e3556bc6e11a2c3c042d55d7d2d5c91f9dedb04258da688"
+    },
+    {
+      "path": "tests/worker/test_state_cache_ops.py",
+      "bytes": 36075,
+      "sha256": "302e858acc64b7ba971d565f076ff642d65dbc012c3d07178b0c712a0dc9d87e"
+    }
+  ]
+}

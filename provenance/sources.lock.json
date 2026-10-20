@@ -83,6 +83,18 @@
       "patches": [],
       "license_observed": "AGPL-3.0",
       "use": "source reference; not yet integrated"
+    },
+    {
+      "repository": "deepseek-ai/DeepInfer",
+      "url": "https://codeload.github.com/deepseek-ai/DeepInfer/tar.gz/8b16149741a4935e1dec8cea27853f273b374c5b",
+      "commit": "8b16149741a4935e1dec8cea27853f273b374c5b",
+      "archive": "/workspace/deepseekrpc-references/archives/DeepInfer-8b16149741a4935e1dec8cea27853f273b374c5b.tar.gz",
+      "archive_sha256": "32794e849ce469967c1f215736a6a4307ec1c1db485b5dbb4f6a845ff43d0197",
+      "archive_bytes": 2090556,
+      "path": "/workspace/deepseekrpc-references/source/DeepInfer",
+      "patches": [],
+      "license_observed": "Apache-2.0",
+      "use": "official source reference for model math, DSpark, SWA replay and correctness; no upstream execution or model downloads"
     }
   ]
 }

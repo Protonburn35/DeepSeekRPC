@@ -306,7 +306,7 @@ class ClusterCoordinator:
             if any((value.get("history_digest"), value.get("epoch"), value.get("settings_digest"), value.get("reused_encoder_tokens"),
                     value.get("prefix")) != (prompt.digest, epoch, settings.digest, reused, prefix) for value in resets.values()):
                 raise ValidationError("stage reset did not admit the same original history and request controls")
-            prefill_started = time.monotonic_ns()
+            prefill_started = time.perf_counter_ns()
             self._prefill()
             measurement.prefilled(prefill_started, self.last_prefill)
             decision = self._terminal("sample_seed")

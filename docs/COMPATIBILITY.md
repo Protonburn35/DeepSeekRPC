@@ -12,7 +12,8 @@ DeepSeekRPC stage adapter and dedicated TCP transport. There is no authorized
 model, platform, or fidelity substitution. Reference archives are outside the
 implementation checkout under `/workspace/deepseekrpc-references/source`.
 `provenance/sources.lock.json` records exact commits, archive SHA-256, URLs and
-observed licenses for all seven required references. Source acquisition used
+observed licenses for the seven original references and the eighth, official
+DeepInfer reference. Its source-only findings are in DEEPINFER_REVIEW.md. Source acquisition used
 codeload archives without submodule or LFS materialization. No upstream files
 were edited. The original StrataRPC installation is untouched.
 

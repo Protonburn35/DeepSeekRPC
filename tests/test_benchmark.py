@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import threading
+from types import SimpleNamespace
 
 import pytest
 
@@ -8,8 +9,11 @@ from deepseekrpc.admin_client import AdminClient
 from deepseekrpc.benchmark import measure_stream
 
 
-def test_benchmark_client_uses_real_http_sse_usage_and_omits_content():
+@pytest.mark.parametrize("frozen_clock", [False, True])
+def test_benchmark_client_uses_real_http_sse_usage_and_omits_content(monkeypatch, frozen_clock):
     # Client-protocol fixture only. This server never claims to load/run a model.
+    if frozen_clock:
+        monkeypatch.setattr("deepseekrpc.benchmark.time", SimpleNamespace(perf_counter_ns=lambda: 1000))
     observed = []
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -37,7 +41,12 @@ def test_benchmark_client_uses_real_http_sse_usage_and_omits_content():
         server.server_close()
         thread.join(5)
     assert report["usage"]["total_tokens"] == 24
-    assert 0 < report["headers_seconds"] <= report["first_visible_delta_seconds"] <= report["wall_seconds"]
+    if frozen_clock:
+        assert report["wall_seconds"] == report["headers_seconds"] == report["first_visible_delta_seconds"] == 0
+        assert report["end_to_end_output_tokens_per_second"] is None
+    else:
+        assert 0 < report["headers_seconds"] <= report["first_visible_delta_seconds"] <= report["wall_seconds"]
+        assert report["end_to_end_output_tokens_per_second"] > 0
     assert observed[0]["stream_options"] == {"include_usage": True}
     assert "synthetic" not in json.dumps(report) and "private" not in json.dumps(report)
 

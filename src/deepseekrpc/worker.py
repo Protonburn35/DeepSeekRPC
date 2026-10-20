@@ -164,7 +164,7 @@ class PersistentWorker:
             loaded["last_window_budgets"] = report.get("last_budgets")
         return {"state": self.status(), "configuration": self.config.effective(), "loaded": loaded,
                 "failure_type": type(self.failure).__name__ if self.failure is not None else None,
-                "peer_heartbeat_sample_age_ns": None if self._peer_sample_ns is None else time.monotonic_ns() - self._peer_sample_ns,
+                "peer_heartbeat_sample_age_ns": None if self._peer_sample_ns is None else time.perf_counter_ns() - self._peer_sample_ns,
                 "peer_diagnostics": self._peer_diagnostics,
                 "failure_area": self._failure_area if self.failure is not None else None,
                 "action": _ACTIONS[self._failure_area] if self.failure is not None else None}
@@ -272,7 +272,7 @@ class PersistentWorker:
                     observed = self.network.heartbeat(mesh, timeout=3)
                     self._peer_diagnostics = [{key: peer.get(key) for key in
                         ("stage", "status", "code", "phase", "processed", "metrics_summary")} for peer in observed.values()]
-                    self._peer_sample_ns = time.monotonic_ns()
+                    self._peer_sample_ns = time.perf_counter_ns()
                 except (ConnectionError, TimeoutError, RemoteError):
                     mesh.failed.set()
                     continue

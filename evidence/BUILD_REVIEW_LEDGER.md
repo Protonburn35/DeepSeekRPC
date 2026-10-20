@@ -626,3 +626,22 @@ requirements, not only DLL imports. Bounded inspection of the hash-pinned
 Triton wheel finds bundled TinyCC, ptxas and CUDA headers/import library; the
 pinned Python standalone archive contains Python.h, pyconfig.h and python312.lib.
 Actual compiler/standalone-interpreter qualification is being added.
+
+## 2026-10-20 — official eighth reference and measurement clock repair
+
+DeepInfer 8b16149741a4935e1dec8cea27853f273b374c5b is hash-pinned as the eighth
+source-only reference. No imports, upstream tests/examples/builds or model
+payload downloads were run. docs/DEEPINFER_REVIEW.md records model/DSpark,
+exact replay, confidence scheduling and sampler/regression findings. Its
+bounded replay, 5e-5 biased correction and fixed-point sampling are not adopted.
+Three additional independent fixtures check conditional two-token joint mass,
+zero residual mass for equal coordinates and confidence-independent sampling.
+The combined sampler suite passes 22 tests.
+
+Windows CPU 39407156592 failed one of 362 tests at benchmark division by zero
+under CPython 3.12's coarse monotonic clock. DSR-AUDIT-016 switches duration
+measurements to perf_counter_ns and handles zero elapsed time without invented
+throughput. Thirteen focused checks pass; the complete cloud CPU suite passes
+362 tests with four actual-Win32-only skips (71.87 s). This passing run does not
+repair DSR-AUDIT-011's previously captured CPU sqrt error. Windows follow-up
+and full vLLM build status are currently blocked by GitHub HTTP 401 responses.

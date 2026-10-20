@@ -15,6 +15,7 @@ local changes here and in the dependency manifest.
 | Zanooda/deepseek-v4.1-flash-cmp170hx | Apache-2.0 | Replica and Engram patch reference |
 | Protonburn35/StrataRPC | MIT | Lifecycle/protocol reference; no deployment changes |
 | MiaAI-Lab/DeepSeek-V4.1-Flash-EXL3-2x-DGX-Sparks | AGPL-3.0 | Source/stream/autotune reference |
+| deepseek-ai/DeepInfer | Apache-2.0 | Eighth source-only reference; no runtime code copied or dependency introduced |
 | deepseek-ai/DeepSeek-V4.1-Flash-1017 | Model repository LICENSE (MIT text observed) | Pinned config, encoding and independent numerical reference |
 | LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw | Model repository LICENSE (MIT text observed) | Metadata and bounded shard headers only |
 

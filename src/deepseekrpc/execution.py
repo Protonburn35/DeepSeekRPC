@@ -232,7 +232,7 @@ class StageExecution:
         import torch
         import time
         from . import metrics
-        first = time.monotonic_ns()
+        first = time.perf_counter_ns()
         with self._compute():
             window = self._current()
             if self._forwarded:
@@ -266,7 +266,7 @@ class StageExecution:
                 self.stage.attention.fail()
                 raise
             finally:
-                metrics.current.observe("stage_host_forward", time.monotonic_ns() - first)
+                metrics.current.observe("stage_host_forward", time.perf_counter_ns() - first)
 
     def export_source(self, source):
         import torch

@@ -17,10 +17,13 @@ def measure_stream(client, body):
     if not isinstance(body, dict) or type(body.get("seed")) is not int:
         raise ValidationError("matched benchmarks need an explicit request JSON object with a fixed integer seed")
     request = {**body, "stream": True, "stream_options": {"include_usage": True}}
-    started, first, usage, reason, done = time.monotonic_ns(), None, None, None, False
+    # On CPython 3.12 Windows, monotonic_ns uses GetTickCount64 (about 15 ms
+    # resolution). QueryPerformanceCounter also remains monotonic and resolves
+    # local requests below a tick. Do not invent throughput if no time elapsed.
+    started, first, usage, reason, done = time.perf_counter_ns(), None, None, None, False
     events = total_bytes = 0
     with client.open("POST", "/chat/completions", body=request) as response:
-        headers_ns = time.monotonic_ns() - started
+        headers_ns = time.perf_counter_ns() - started
         while line := response.readline(1024 * 1024 + 1):
             total_bytes += len(line)
             if len(line) > 1024 * 1024 or total_bytes > 1024 ** 3 or events > 2 * 1048576:
@@ -39,10 +42,10 @@ def measure_stream(client, body):
                 usage = value["usage"]
             for choice in value.get("choices", []):
                 if first is None and _visible(choice.get("delta", {})):
-                    first = time.monotonic_ns() - started
+                    first = time.perf_counter_ns() - started
                 if choice.get("finish_reason") is not None:
                     reason = choice["finish_reason"]
-    elapsed = time.monotonic_ns() - started
+    elapsed = time.perf_counter_ns() - started
     if not done or usage is None or reason not in {"stop", "length", "tool_calls"}:
         raise RuntimeError("benchmark stream did not complete with actual usage and a successful finish reason")
     if not isinstance(usage, dict) or not {"prompt_tokens", "completion_tokens", "total_tokens"} <= set(usage):
@@ -55,7 +58,7 @@ def measure_stream(client, body):
     return {"wall_seconds": elapsed / 1e9, "headers_seconds": headers_ns / 1e9,
         "first_visible_delta_seconds": None if first is None else first / 1e9,
         "usage": usage, "finish_reason": reason, "stream_events": events, "wire_bytes": total_bytes,
-        "end_to_end_output_tokens_per_second": usage["completion_tokens"] / (elapsed / 1e9)}
+        "end_to_end_output_tokens_per_second": usage["completion_tokens"] / (elapsed / 1e9) if elapsed > 0 else None}
 
 
 def _counter(snapshot, suffix):
