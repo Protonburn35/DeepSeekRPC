@@ -344,12 +344,25 @@ existing directory containing a non-ASCII character (DistStoreError: no such
 file or directory). The other 379 tests passed. This exposed a startup risk
 when the application's state directory has such a path; it was not a GPU error.
 
-Each owned stage is exactly one local rank. Startup and runtime qualification
-now call the same real Torch HashStore/Gloo initializer, with no rendezvous
-filename, TCP rendezvous listener or libuv requirement. The actual vLLM setup accepts that
-already initialized group and creates its own local world/model groups. The
-three-PC TLS transport is unchanged. CPU coverage performs real collectives,
-destroys/recreates the group, verifies refusal of an already initialized worker,
-and retains a non-ASCII qualification output directory. The complete cloud CPU
-suite passes 378 tests with four actual-Windows-only skips. Native Windows
-repeat qualification and the complete runtime installation remain required.
+Each owned stage is exactly one local rank. An initial HashStore change passed
+the cloud CPU suite but failed Windows run 39416751099 because Windows Torch
+intentionally omits that binding. The pinned Torch 2.11 source confirms this
+and provides a supported Python Store/C++ trampoline. Auxiliary source hashes
+are in provenance/torch-store-reference.lock.json; no upstream code was copied.
+
+Startup and runtime qualification now share a bounded, thread-safe in-process
+Torch Store/Gloo initializer, with no rendezvous filename, TCP rendezvous
+listener or libuv requirement. The actual vLLM setup accepts that already
+initialized group and creates its own local world/model groups. The three-PC
+TLS transport is unchanged. The store implements real C++ callbacks, waits,
+timeouts, atomic counters and compare/set, with key/value/total inventory bounds.
+
+A real additional-group check also exposed a lifetime defect: C++ PrefixStore
+retains the C++ trampoline but not the Python methods/state. Dropping the Python
+store owner caused a subsequent real Gloo new_group to fail after collection.
+The loader now retains that owner in its resource stack until actual vLLM model
+and world groups are destroyed, including partial setup failure. Qualification
+forces collection before creating a real additional group and running its
+metadata collective. It repeats setup/teardown with non-ASCII output paths;
+separate C++ PrefixStore checks cover the actual callbacks and bounds. Native
+Windows repeat qualification and complete runtime installation remain required.

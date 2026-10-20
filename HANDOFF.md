@@ -191,3 +191,12 @@ the single local rank's rendezvous with actual Torch HashStore/Gloo, shared by
 startup and runtime qualification. No filesystem rendezvous or TCP rendezvous
 listener is needed. Local full suite: 378 passed/four actual-Windows-only skips.
 The next Windows CPU run must confirm this fix; preserve long vLLM 39408672207.
+
+The HashStore follow-up failed Windows run 39416751099: that native binding is
+intentionally omitted on Windows. Current source uses LocalRendezvousStore,
+a real bounded Python subclass of Torch Store through its supported C++
+trampoline (auxiliary Torch 2.11 source contract is pinned separately). It
+retains the Python owner until actual vLLM model/world teardown; otherwise a
+real later subgroup lost its Python callback methods. Qualification now forces
+GC, creates a real additional Gloo group, performs its collective and repeats
+cleanup. Check the subsequent Windows run, not either preceding failed attempt.

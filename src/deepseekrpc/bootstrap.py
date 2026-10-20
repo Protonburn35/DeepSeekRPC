@@ -126,7 +126,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, state_root: Path,
     from .routed_experts import BoundedRoutedExperts, ExpertCatalog
     from .runtime_config import make_vllm_config
     from .runtime_memory import plan_runtime_memory
-    from .stage_graph import initialize_local_groups, OwnedStageGraph
+    from .stage_graph import close_local_groups, initialize_local_groups, OwnedStageGraph
     from .storage import RAMCache
     from .tokenizer import TokenizerAdapter
     from .vllm_experts import OwnedExl3Config
@@ -155,10 +155,10 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, state_root: Path,
     finally:
         metrics.current.set_phase("boot")
     vllm_config = make_vllm_config(root)
-    initialize_local_groups(vllm_config)
+    local_store = initialize_local_groups(vllm_config)
     cancellation = threading.Event()
     with ExitStack() as cleanup:
-        cleanup.callback(torch.distributed.destroy_process_group)
+        cleanup.callback(close_local_groups, local_store)
         pins = ShardPin.from_lock(manifest["shards"])
         index = manifest["pack"]["metadata"]["model.safetensors.index.json"]
         progress("WEIGHTS")

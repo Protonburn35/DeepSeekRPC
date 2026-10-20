@@ -18,6 +18,8 @@ import sys
 def qualify_local_gloo(output):
     """Exercise real local stage-group dependencies without CUDA collectives."""
     import tempfile
+    from datetime import timedelta
+    import gc
     import torch
     from deepseekrpc.local_groups import initialize_local_process_group
     distributed = torch.distributed
@@ -25,16 +27,22 @@ def qualify_local_gloo(output):
     # Gloo for inter-PC CUDA tensors. Exercise the same in-memory store as
     # startup, even when the output directory has spaces/non-ASCII characters.
     with tempfile.TemporaryDirectory(prefix="local Gloo \u0394 ", dir=output):
-        initialize_local_process_group()
+        store = initialize_local_process_group()
         try:
+            # The real vLLM setup creates additional groups. Force collection
+            # first to catch a Python Store owner lost behind a C++ PrefixStore.
+            gc.collect()
+            subgroup = distributed.new_group([0], backend="gloo", timeout=timedelta(seconds=30))
             value = torch.tensor([41017], dtype=torch.int64)
-            distributed.all_reduce(value)
+            distributed.all_reduce(value, group=subgroup)
             if value.item() != 41017 or distributed.get_world_size() != 1 or distributed.get_rank() != 0:
                 raise RuntimeError("actual local Gloo collective returned an invalid rank/value")
+            distributed.destroy_process_group(subgroup)
         finally:
             if distributed.is_initialized():
                 distributed.destroy_process_group()
-    return "actual local HashStore/Gloo group and CPU metadata collective; no inter-PC/GPU collective"
+            del store
+    return "actual local bounded Torch Store/Gloo group and CPU metadata collective; no inter-PC/GPU collective"
 
 
 def main():

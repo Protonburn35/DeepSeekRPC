@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/pytorch/pytorch",
+  "commit": "70d99e998b4955e0049d13a98d77ae1b14db1f45",
+  "release": "v2.11.0",
+  "scope": "Source-only review of supported Python Store/C++ trampoline and intentional Windows HashStore omission. No upstream code copied; no native profile change or GPU qualification.",
+  "files": [
+    {
+      "path": "torch/csrc/distributed/c10d/init.cpp",
+      "bytes": 177074,
+      "sha256": "53a700fd09f7217fec339998c2915230500b16fa2811c9f24bc0d5d4fe83c924"
+    },
+    {
+      "path": "test/distributed/test_store.py",
+      "bytes": 40205,
+      "sha256": "dd120dae0c87390fe2bb19eb3ac42df8bb18b6097f6bf0232c833c2a52c23a6b"
+    }
+  ]
+}

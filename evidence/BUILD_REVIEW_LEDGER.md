@@ -762,3 +762,26 @@ The saved cloud configuration draft now includes the eighth DeepInfer source
 review and current whole-runtime continuation gates. Saving is confirmed;
 publication is a separate environment settings action, not an implementation
 blocker. No new secret, repository or model download was introduced.
+
+## 2026-10-20 — qualify the actual Windows-supported Store contract and lifetime
+
+Windows CPU 39416751099 rejected the HashStore attempt: Windows Torch omits
+that native binding (379 other tests passed, two new Gloo checks failed, one
+intentional skip). Pinned Torch 2.11 source confirms the omission and its
+supported Python Store/C++ trampoline contract. This auxiliary API reference
+has its own immutable source hashes; no upstream implementation was copied.
+
+LocalRendezvousStore is an actual bounded, thread-safe Torch Store, used by
+real Gloo on both startup and installation qualification. It has no filesystem
+rendezvous or TCP rendezvous listener. Actual C++ PrefixStore tests exercise
+get/set, counters, compare/set, waits, timeout, cloning, deletion and rejection
+of oversized state. The C++ trampoline needs the Python owner kept alive:
+a real extra Gloo group failed after that owner was dropped. Loading now
+retains the owner through all actual vLLM model/world teardown, including
+partial initialization failure. Qualification forces collection, creates an
+additional real group, runs its collective, destroys all groups and repeats.
+
+The complete cloud CPU suite passes 379 tests/four actual-Windows-only skips;
+focused Store checks follow the final timeout/bounds addition. Native Windows
+confirmation and complete private installation are still required. Long vLLM
+39408672207 is unchanged and preserved; no GPU/model result is asserted.

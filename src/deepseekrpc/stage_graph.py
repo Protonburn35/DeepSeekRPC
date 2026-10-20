@@ -35,12 +35,29 @@ def initialize_local_groups(vllm_config):
         raise ValidationError("local stage groups require exactly one rank per process")
     set_custom_all_reduce(False)
     with set_current_vllm_config(vllm_config):
-        initialize_local_process_group()
+        store = initialize_local_process_group()
         # The pinned vLLM function accepts the already initialized real Torch
         # group, then creates its actual world/model groups from that store.
-        init_distributed_environment(world_size=1, rank=0, local_rank=0, backend="gloo",
-                                     distributed_init_method="env://")
-        ensure_model_parallel_initialized(1, 1, backend="gloo")
+        try:
+            init_distributed_environment(world_size=1, rank=0, local_rank=0, backend="gloo",
+                                         distributed_init_method="env://")
+            ensure_model_parallel_initialized(1, 1, backend="gloo")
+        except BaseException:
+            close_local_groups(store)
+            raise
+    return store
+
+
+def close_local_groups(store):
+    """Hold the Python Store owner until every real vLLM/Torch group is gone."""
+    from .local_groups import LocalRendezvousStore
+    from vllm.distributed.parallel_state import destroy_model_parallel, destroy_distributed_environment
+    if not isinstance(store, LocalRendezvousStore):
+        raise ValidationError("local group teardown requires its retained rendezvous owner")
+    try:
+        destroy_model_parallel()
+    finally:
+        destroy_distributed_environment()
 
 
 @dataclass(frozen=True)
