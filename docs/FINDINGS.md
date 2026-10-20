@@ -460,3 +460,32 @@ claiming Windows compilation, GPU execution or full-model qualification.
 The fresh Torch 2.11 CPU audit passed all six installed integration checks,
 all 20 original parser checks and pip check. Complete Windows qualification now
 also imports the actual decoder and checks both factories before completion.
+
+## DSR-AUDIT-026 — keep vLLM metadata/config state inside the worker directory
+
+An actual CPU metadata-only configuration probe tried to save model inspection
+information below the default user-profile .cache/vllm directory and hit the
+cloud's read-only profile. Configuration then reached the expected CUDA-only
+Engram validation, which the empty CPU audit build cannot satisfy. This is not
+a successful complete model configuration or a Windows/GPU failure report.
+
+Stage startup now selects VLLM_CACHE_ROOT and VLLM_CONFIG_ROOT under its own
+state_root/kernels/vllm directory before any vLLM import. Runtime verification
+without an explicit worker directory uses the private interpreter directory.
+Inherited profile/shared cache selectors are replaced; a later
+directory or cached-selector change is refused. No HOME value is changed.
+Installed qualification and CPU integration use their own evidence directory
+for this state. Installer sealing and review evidence require the private-cache
+check. This metadata cache never provides a model-weight fallback on stage B.
+
+Real filesystem/process checks cover non-ASCII paths, inherited selectors,
+directory changes, mutation refusal and preserving an existing file. Native
+source and the running CUDA build are unchanged.
+The refreshed actual installed audit passed all seven checks. A fresh real
+model-inspection probe wrote its 873-byte JSON into the owned cache directory,
+then hit the same expected CPU Engram refusal. Actual worker/early API startup
+preserves the before-import ordering, and a separate actual vLLM import followed
+by late cache selection is refused. Reports and exact application identity are
+retained in evidence/owned-cache-*-audit.json and
+evidence/owned-cache-audit-provenance.json. Full native Windows installation and
+complete CUDA configuration remain separate gates.

@@ -17,7 +17,7 @@ def main():
     if ("failure" in report or report["source_commit"] != manifest["source_commit"] or
             report["python"] != "3.12.14" or report.get("CUDA_execution") != "not run" or
             any(item.get("status") != "passed" for item in report["checks"]) or
-            not {"versions", "application_source_identity", "private_compilers_without_sdk", "native_without_sdk", "actual_local_gloo", "complete_python_integration", "actual_original_parser"}
+            not {"private_vllm_cache", "versions", "application_source_identity", "private_compilers_without_sdk", "native_without_sdk", "actual_local_gloo", "complete_python_integration", "actual_original_parser"}
                 <= {item["name"] for item in report["checks"]}):
         raise RuntimeError("complete actual installed runtime qualification has not passed on this source")
     destination = root / "evidence/installed-runtime"

@@ -1,0 +1,22 @@
+{
+  "scope": "actual CPU metadata inspection/cache writer only; complete CUDA configuration not qualified",
+  "private_cache_policy": {
+    "private_metadata_cache": true,
+    "private_configuration": true
+  },
+  "actual_model_metadata_files": [
+    {
+      "path": "cache/modelinfos/vllm-models-deepseek_v41-DeepseekV41ForCausalLM.json",
+      "bytes": 873,
+      "sha256": "cbc43eb2273317bd7ba8abf22cb010e86f26c86b96446a1a61acf7090add2bb6"
+    }
+  ],
+  "application_source_identity": {
+    "sha256": "2b3f99ad2cdad442a7d6806a1df40754dcb94ff0c22b7fb665d0221178900895",
+    "files": 104
+  },
+  "complete_vllm_configuration": "not constructed; actual CUDA-only Engram validator refused the CPU audit build",
+  "native_Windows_build": "not run",
+  "GPU_execution": "not run",
+  "full_model_validation": "not run"
+}

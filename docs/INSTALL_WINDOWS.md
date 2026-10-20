@@ -30,6 +30,11 @@ GPU correctness. Launchers
 refuse an incomplete or mismatched installation. The installer requires network
 access to the pinned Python/PyPI/PyTorch artifacts; it downloads no model data.
 
+Worker model-inspection metadata and vLLM configuration stay under
+`state_root/kernels/vllm/`. Startup selects those directories before importing
+vLLM and refuses later cache-directory changes. Qualification uses its private
+evidence directory for the same state.
+
 Generate one private deployment credential set on A:
 
 ```powershell

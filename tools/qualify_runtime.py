@@ -182,6 +182,8 @@ def main():
         return "actual installed classes/API, without model construction or GPU qualification"
 
     try:
+        from deepseekrpc.runtime_policy import configure_owned_vllm_cache
+        record("private_vllm_cache", lambda: configure_owned_vllm_cache(output / "vllm"))
         record("versions", versions)
         record("application_source_identity", source_identity)
         record("private_compilers_without_sdk", compiler_checks)

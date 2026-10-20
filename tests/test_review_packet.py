@@ -24,7 +24,7 @@ def evidence_fixture(tmp_path):
          "evidence/installed-runtime/parser.json")}
     reports["evidence/installed-runtime/runtime.json"] = {"source_commit": commit, "python": "3.12.14",
         "CUDA_execution": "not run", "full_model_validation": "not run",
-        "checks": [{"name": name, "status": "passed"} for name in ("versions", "application_source_identity",
+        "checks": [{"name": name, "status": "passed"} for name in ("private_vllm_cache", "versions", "application_source_identity",
             "private_compilers_without_sdk", "native_without_sdk", "actual_local_gloo", "complete_python_integration", "actual_original_parser")]}
     manifest = {"kind": "runtime", "source_commit": commit, "architectures": ["sm_89", "sm_120"],
         "installed_qualification": {"status": "passed"}, "GPU_execution": "not run", "full_model_validation": "not run", "files": {}}

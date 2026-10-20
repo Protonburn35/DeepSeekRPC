@@ -7,6 +7,50 @@ import sys
 import pytest
 
 
+def test_private_metadata_cache_is_owned_and_cannot_be_redirected_after_start(tmp_path):
+    code = '''
+from pathlib import Path
+import os, sys
+from deepseekrpc.runtime_policy import configure_owned_vllm_cache, assert_owned_vllm_cache
+from deepseekrpc.jsonutil import ValidationError
+root = Path(sys.argv[1]) / 'worker cache \u0394'
+configure_owned_vllm_cache(root)
+configure_owned_vllm_cache(root)
+assert_owned_vllm_cache()
+assert Path(os.environ['VLLM_CACHE_ROOT']) == root / 'cache'
+assert Path(os.environ['VLLM_CONFIG_ROOT']) == root / 'config'
+assert all((root / name).is_dir() for name in ('cache','config'))
+try:
+    configure_owned_vllm_cache(root.parent / 'other worker')
+except ValidationError:
+    pass
+else:
+    raise AssertionError('a live worker switched to another cache')
+os.environ['VLLM_CACHE_ROOT'] = str(root.parent / 'external cache')
+try:
+    assert_owned_vllm_cache()
+except ValidationError:
+    pass
+else:
+    raise AssertionError('a redirected metadata cache was accepted')
+'''
+    env = dict(os.environ, VLLM_CACHE_ROOT="inherited shared cache", VLLM_CONFIG_ROOT="inherited shared config",
+               PYTHONPATH=str(Path(__file__).parents[1] / "src"))
+    result = subprocess.run([sys.executable, "-c", code, str(tmp_path)], env=env, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    assert not (tmp_path / 'external cache').exists()
+
+
+def test_private_metadata_cache_refuses_an_existing_file(tmp_path):
+    path = tmp_path / 'not a directory'
+    path.write_bytes(b'original')
+    from deepseekrpc.runtime_policy import configure_owned_vllm_cache
+    from deepseekrpc.jsonutil import ValidationError
+    with pytest.raises(ValidationError, match='not a directory'):
+        configure_owned_vllm_cache(path)
+    assert path.read_bytes() == b'original'
+
+
 def test_compiler_child_has_no_inherited_sdk_selector_but_retains_unrelated_controls():
     from deepseekrpc.triton_policy import compiler_qualification_environment
     original = {"SystemRoot": str(Path('/windows')), "PATH": "ambient developer tools", "CC": "external compiler",

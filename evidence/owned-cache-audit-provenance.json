@@ -1,0 +1,27 @@
+{
+  "scope": "actual Linux CPU metadata/cache and startup-order diagnostics only",
+  "source_base_commit": "e97591dce5ffb83629f4f37f07428c3fe50629f8",
+  "source_changes": "private vLLM cache/config selection, before-import ownership, mutation refusal and mandatory installation/review evidence",
+  "installed_application_wheel": {
+    "name": "deepseekrpc-0.0.1.dev2-py3-none-any.whl",
+    "sha256": "4da7358ca316b0c1a6cd7f6ba80f9f938425ca6a0003af5eaedd61056e6cbe3d"
+  },
+  "application_source_identity": {
+    "sha256": "2b3f99ad2cdad442a7d6806a1df40754dcb94ff0c22b7fb665d0221178900895",
+    "files": 104
+  },
+  "actual_probe_exit_codes": {
+    "installed_integration": 0,
+    "metadata_writer_and_expected_CPU_refusal": 0,
+    "late_import_refusal": 0,
+    "worker_and_early_API_startup_order": 0
+  },
+  "focused_tests": {
+    "runtime_policy_and_review_gate": 8,
+    "review_gate_after_new_required_check": 3
+  },
+  "complete_model_configuration": "not qualified; actual CUDA-only Engram validation rejects the CPU audit build",
+  "Windows_installation": "must run against the complete native bundle",
+  "GPU_execution": "not run",
+  "full_model_validation": "not run"
+}

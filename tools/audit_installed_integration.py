@@ -20,7 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    from deepseekrpc.runtime_policy import configure_exact_exl3
+    from deepseekrpc.runtime_policy import configure_exact_exl3, configure_owned_vllm_cache
     configure_exact_exl3()
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -105,6 +105,7 @@ def main():
         return "actual vLLM routed-method, learned Engram and concrete BF16 attention classes; CUDA constructors/execution not run"
 
     try:
+        record("private_vllm_cache", lambda: configure_owned_vllm_cache(args.output.absolute().parent / "vllm-audit-state"))
         record("import_vllm", import_vllm)
         record("plugin_entrypoint", plugin_entrypoint)
         record("import_plugin", import_plugin)
