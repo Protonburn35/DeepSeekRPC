@@ -68,8 +68,11 @@ ownership, the original streaming parser, persistent Windows startup and
 authenticated interrupted-mesh replacement now have integrated source. Early
 control/API diagnostics run before model loading; Ctrl+C cancels a request and
 Ctrl+Break explicitly shuts down. Native worker/model execution is unrun.
-Exact prefix checkpoints, snapshots, structured grammar controls, the complete
-Windows dependency/install bundle and broader GPU diagnostics remain unfinished.
+Exact prefix checkpoints, bounded all-stage state save/restore, administrative
+pause and exact pending-input/RNG continuation now have integrated source and
+HTTP/CLI entry points. Their actual GPU/distributed execution remains unrun.
+Structured grammar controls, the complete Windows dependency/install bundle and
+broader GPU diagnostics remain unfinished.
 
 ## Verification
 
@@ -120,3 +123,10 @@ one failure in the still-open Linux CPU sqrt finding. Immediate captured sqrt
 bytes reproduce the error, have no later mutation, and three repeated calls on
 the identical captured input are accurate. This is evidence for a transient
 real CPU library path, not a resolved defect. Keep all tolerances unchanged.
+
+The later prefix/archive suite passed 323 tests/four skips; the integrated
+snapshot/session suite passed 332/four skips. Neither pass repairs the prior
+CPU failure. The latest private API/archive/inventory/prefix focused checks
+passed 36 tests. Windows CPU run 39350431569 and project native run 39350431617
+passed checkpoint 8100979. Full vLLM/EXLlama runs 39345608248/39345608258 remain
+in progress. See docs/SESSIONS.md for implemented source semantics and limits.

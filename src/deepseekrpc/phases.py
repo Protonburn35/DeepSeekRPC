@@ -79,18 +79,22 @@ class PhaseLedger:
         self._seeded = False
         self._publication = None
 
-    def reset(self, *, session, request, epoch, history_digest, encoder_tokens):
+    def reset(self, *, session, request, epoch, history_digest, encoder_tokens, encoder_start=0):
         hex_id(session, 32, "phase session")
         hex_id(request, 32, "phase request")
         hex_id(history_digest, 64, "immutable full prompt/image history")
         integer(epoch, "phase epoch", 0, (1 << 63) - 1)
         integer(encoder_tokens, "full encoded prompt extent", 1, 1048576)
+        integer(encoder_start, "reused exact encoder prefix", 0, encoder_tokens - 1)
+        if encoder_start % 64:
+            raise ValidationError("encoder reuse must preserve original 64-row chunk boundaries")
         if (self._active is not None or epoch <= self.epoch or
                 (self._awaiting is not None or self._publication is not None) and self.phase != "faulted"):
             raise ValidationError("phase reset requires quiescence and a newer epoch")
         self.session, self.request, self.epoch = session, request, epoch
         self.history_digest, self.encoder_tokens = history_digest, encoder_tokens
         self.encoder_cursor = self.target_cursor = self.processed = 0
+        self.encoder_cursor = encoder_start
         self.pending_token, self.phase = None, "encoder"
         self.stop_reason = None
         self._next, self._prepared, self._encoder_barrier = 1, None, None
@@ -133,6 +137,21 @@ class PhaseLedger:
                 raise ValidationError("incremental visibility must match this bounded tentative window")
         self._active = window
         return None
+
+    def restore_committed(self, value, *, session, request, epoch, history_digest):
+        """Expose a validated restored GPU state under fresh operation identity."""
+        from .snapshot_state import validate_timeline
+        validate_timeline(value)
+        if value["history"] != history_digest:
+            raise ValidationError("restored timeline differs from its validated exact history")
+        self.reset(session=session, request=request, epoch=epoch, history_digest=history_digest,
+                   encoder_tokens=value["encoder_tokens"])
+        self.phase = "decode"
+        self.encoder_cursor = self.target_cursor = value["encoder_tokens"]
+        self.processed, self.pending_token = value["processed"], value["pending_token"]
+        self.stop_reason = value["stop_reason"]
+        self._next, self._sealed_number = value["next_operation"], value["next_operation"] - 1
+        self._seeded = True
 
     def prepare(self, window, *, accepted, result_digest, pending_token=None):
         """Validate a decision before any irreversible local GPU finish."""

@@ -123,6 +123,30 @@ def run_cuda_checks():
         finally:
             pool.close()
 
+    def prefix_pool_retention():
+        from .cache_pool import DeviceRowPool
+        from .state import Operation
+        pool = DeviceRowPool(8, 128, context=16, offset=3, admitted_bytes=1024 * 1024, device=device)
+        try:
+            pool.reset("a" * 32, 0)
+            op = Operation("a" * 32, "b" * 32, 0, 1, "c" * 32, "d" * 64, 0, 8)
+            pool.begin(op)
+            values, _ = bf16_array(rng.normal(0, .2, (8, 128)))
+            pool.write(list(range(8)), list(range(8)), values)
+            pool.finish(op, 8)
+            pool.retain_prefix("e" * 32, 1, 4)
+            torch.testing.assert_close(pool.data[pool.physical(range(4))].view(torch.int16),
+                                       values[:4].view(torch.int16), rtol=0, atol=0)
+            np.testing.assert_array_equal(pool.generations.cpu().numpy(), pool.map.generations)
+            try:
+                pool.physical([4])
+            except ValidationError:
+                pass
+            else:
+                raise AssertionError("prefix retention left a tail row valid")
+        finally:
+            pool.close()
+
     def tiled_index():
         from .cache_pool import DeviceRowPool
         from .index_selection import TiledIndexer
@@ -232,6 +256,7 @@ def run_cuda_checks():
     record("Engram: finite E4M3 codes and UE8M0 byte zero", engram_decode)
     record("BF16 scatter: bit preservation and stale generation refusal", scatter)
     record("BF16 row pool: partial acceptance, ring overwrite and abort", row_pool_rollback)
+    record("BF16 encoder prefix: preserved bytes, new generations and invalid tail", prefix_pool_retention)
     record("BF16 tiled index: independent slots, global ranking and candidate restriction", tiled_index)
     record("BF16 vision attention: fused 9216 patches, 16 heads, head width 64", vision_attention_shape)
     record("FP32 compressor: odd chunks, exact pair closures, partial acceptance and retry", compression_pair_rollback)

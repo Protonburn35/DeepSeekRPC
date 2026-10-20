@@ -56,6 +56,12 @@ class LockedOwnedWeights:
             raise ValidationError("resident weights are closed or tensor is not owned")
         return self._layout[name][1]
 
+    def revalidate_residency(self):
+        if self.closed:
+            raise ValidationError("resident weights are closed")
+        self.residency = self._buffer.verify_locked_pages()
+        return self.residency
+
     def read_range(self, name: str, offset: int, length: int) -> bytes:
         info = self.info(name)
         integer(offset, "resident tensor offset", 0, info.nbytes)

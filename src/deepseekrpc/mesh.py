@@ -73,6 +73,11 @@ class MeshChannels:
                 connection.close()
                 raise ValidationError("duplicate peer/plane in an authenticated mesh")
             self._connections[key] = connection
+            if connection.plane == "data":
+                # A peer may spend time in a bounded GPU/disk operation before
+                # the next tile. Cancellation still closes this socket
+                # immediately and has a separate responsive control plane.
+                connection.timeout = 120
             if connection.plane == "control":
                 gate = ControlGate(self._status, self.failed, connection)
                 rpc = ControlRPC(connection, gate.handle, on_failure=gate.failure)

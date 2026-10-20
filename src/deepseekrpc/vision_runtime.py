@@ -13,6 +13,14 @@ class ImageWindowResolver:
             raise ValidationError("image row resolver requires the actual owned A graph and matching original assets")
         self.stage, self.assets = stage, assets
 
+    def can_reuse_prefix(self, history, end):
+        for span in history.images:
+            if span.start < end:
+                if not self.assets.has_features(span.key):
+                    return False
+                self.assets.read_rows(span.key, 0, 1)
+        return True
+
     def __call__(self, history, window):
         import torch
         if history.identity != self.stage.identity or window.history_digest != history.digest:

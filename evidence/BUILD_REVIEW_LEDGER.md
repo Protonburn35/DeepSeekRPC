@@ -500,3 +500,41 @@ calls. No tolerance was changed or later pass substituted for this failure.
 Windows runtime dependencies resolve to 155 hash-pinned packages; installed
 Windows import/pip consistency is still pending. Full vLLM/EXLlama jobs at
 fad5701 remain in progress. Persistent Windows CUDA model/API recovery is unrun.
+
+## 2026-10-20 — exact prefix checkpoints and state persistence source
+
+Added unanimous token/image/component prefix negotiation and the real encoder
+SWA/FP32-pair checkpoint. Large source/index/shadow rows stay in their admitted
+pools and receive a new local epoch; tail validity is cleared. Reuse keeps the
+original fixed chunk boundary and still performs complete exact target replay.
+Missing original features or changed image bytes prevent reuse. The focused
+prefix/history/pool/phase suite passed 35 tests.
+
+Implemented state-only snapshot inventory, bounded archive/TLS streaming,
+host-owned atomic manifests and two-pass restore. Every complete stage archive
+is checked before any GPU application. Windows file handles deny write/delete
+sharing through both passes. State includes valid BF16 rows, FP32 open pairs,
+exact history/images, encoder checkpoints, pending inputs and C's RNG/stop state.
+Restore establishes fresh independent slot generations, rebuilds original
+Engram hash history and rechecks B's locked weight pages. All three apply
+receipts precede readiness. Actual GPU save/restore remains unrun.
+
+Added explicit committed-boundary pause and continuation without reseeding or
+re-forwarding an already processed input. Manual continuation exposes bounded
+NDJSON token/text events; ordinary OpenAI completions retain their preserving
+parser. Host HTTP and CLI entry points connect these source paths to the actual
+coordinator. No model is emulated by the persistence or API tests.
+
+The prefix/archive full suite passed 323 tests/four Win32-only skips. The later
+integrated snapshot/session suite passed 332/four skips; focused client/API/
+archive/inventory/prefix checks passed 36. These passes do not resolve the prior
+captured Linux CPU sqrt failure (DSR-AUDIT-011). Windows CPU run 39350431569 and
+project ABI-2 native run 39350431617 passed 8100979. Full pinned vLLM/EXLlama jobs
+39345608248/39345608258 continue. No GPU kernel/model has executed here.
+
+The application wheel built and installed outside the checkout. Snapshot,
+restore, resume and private-client modules imported from that installed wheel;
+application_source_identity covered 89 files with SHA-256
+0a2f6d5ff91409dc09a7ccee969bb20362c4bbf6d0baaf60db9827691a238e97.
+Installed snapshot CLI help exited successfully. This is packaging/import
+evidence, without native model construction or full-model qualification.

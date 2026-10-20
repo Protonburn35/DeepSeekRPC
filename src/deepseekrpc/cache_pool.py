@@ -112,6 +112,31 @@ class SlotMap:
             result.append(slot)
         return result
 
+    def validate_prefix(self, count):
+        integer(count, "retained compressed rows", 0, self.slots)
+        if self.active is not None:
+            raise ValidationError("prefix retention requires quiescent cache metadata")
+        for start in range(0, count, 8192):
+            logical = np.arange(start, min(count, start + 8192), dtype=np.int64)
+            slots = (logical + self.offset) % self.slots
+            if np.any(self.logical[slots] != logical) or np.any(self.generations[slots] <= 0):
+                raise ValidationError("retained encoder prefix has missing or overwritten source rows")
+
+    def retain_prefix(self, session, epoch, count):
+        """A new local generation, preserving only validated logical rows."""
+        from .protocol import hex_id
+        hex_id(session, 32, "retained prefix session")
+        integer(epoch, "retained prefix epoch", self.epoch + 1, I64_MAX)
+        self.validate_prefix(count)
+        for start in range(0, self.slots, 8192):
+            logical = self.logical[start:start + 8192]
+            generations = self.generations[start:start + 8192]
+            valid = (logical >= 0) & (logical < count)
+            logical[~valid] = -1
+            generations[:] = valid
+        self.session, self.epoch = session, epoch
+        self.journal.clear()
+
     def rejected(self, operation: Operation, accepted: int):
         integer(accepted, "cache accepted prefix", 0, operation.rows)
         if self.active != operation:
@@ -209,6 +234,57 @@ class DeviceRowPool:
             self.map.generations.fill(0)
             self.generations.zero_()
             torch.cuda.synchronize(self.device)
+
+    def retain_prefix(self, session, epoch, count):
+        import torch
+        with self._mutex, torch.cuda.device(self.device):
+            self._open()
+            if self._needs_rollback:
+                raise ValidationError("failed tentative writes cannot be retained as an encoder prefix")
+            self.map.retain_prefix(session, epoch, count)
+            for start in range(0, self.map.slots, 8192):
+                end = min(self.map.slots, start + 8192)
+                self.generations[start:end].copy_(torch.from_numpy(self.map.generations[start:end]), non_blocking=False)
+            torch.cuda.synchronize(self.device)
+
+    def restore_ring(self, session, epoch, logical, data):
+        """Restore an internal bounded encoder checkpoint into this SWA map."""
+        import torch
+        with self._mutex, torch.cuda.device(self.device):
+            self._open()
+            if (self.map.slots != 128 or logical.shape != (128,) or logical.dtype != np.int64 or
+                    data.shape != self.data.shape or data.dtype != torch.bfloat16 or data.device != self.device):
+                raise ValidationError("encoder checkpoint ring differs from its admitted SWA allocation")
+            self.reset(session, epoch)
+            self.data.copy_(data)
+            self.map.logical[:] = logical
+            self.map.generations[:] = logical >= 0
+            self.generations.copy_(torch.from_numpy(self.map.generations), non_blocking=False)
+            torch.cuda.synchronize(self.device)
+
+    def restore_rows(self, logical_positions, values):
+        """Apply a validated snapshot tile into a fresh, quiescent epoch."""
+        import torch
+        with self._mutex, torch.cuda.device(self.device):
+            self._open()
+            if (self.map.active is not None or self._needs_rollback or not 1 <= len(logical_positions) <= 1024 or
+                    values.device != self.device or values.dtype != torch.bfloat16 or
+                    values.shape != (len(logical_positions), self.width) or not values.is_contiguous()):
+                raise ValidationError("snapshot restore tile differs from its quiescent BF16 pool")
+            slots, seen = [], set()
+            for logical in logical_positions:
+                integer(logical, "restored logical cache row", 0, self.map.context - 1)
+                slot = (logical + self.map.offset) % self.map.slots
+                if self.map.generations[slot] or slot in seen:
+                    raise ValidationError("snapshot repeats or overwrites a restored physical row")
+                slots.append(slot)
+                seen.add(slot)
+            indices = torch.tensor(slots, dtype=torch.int64, device=self.device)
+            self.data.index_copy_(0, indices, values)
+            self.generations.index_fill_(0, indices, 1)
+            torch.cuda.synchronize(self.device)
+            self.map.logical[slots] = logical_positions
+            self.map.generations[slots] = 1
 
     def write(self, logical_positions, token_positions, values):
         import torch

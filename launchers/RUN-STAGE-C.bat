@@ -1,4 +1,4 @@
 @echo off
 setlocal
-"%~dp0..\runtime\Scripts\python.exe" -m deepseekrpc.cli serve %*
+"%~dp0..\runtime\Scripts\python.exe" -m deepseekrpc.cli serve --stage C %*
 exit /b %errorlevel%

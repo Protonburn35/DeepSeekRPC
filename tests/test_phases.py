@@ -11,11 +11,11 @@ from deepseekrpc.state import Operation
 from deepseekrpc.execution import StepInput, source_closures
 
 
-def ledgers(tokens=129):
+def ledgers(tokens=129, encoder_start=0):
     result = [PhaseLedger(role) for role in Role]
     for ledger in result:
         ledger.reset(session="a" * 32, request="b" * 32, epoch=0,
-                     history_digest="c" * 64, encoder_tokens=tokens)
+                     history_digest="c" * 64, encoder_tokens=tokens, encoder_start=encoder_start)
     return result
 
 
@@ -68,6 +68,36 @@ def test_ced_requires_complete_identical_chunks_and_unanimous_full_encoder_barri
         ledger.publish_seed(token=17, history_digest="e" * 64)
         assert ledger.pending_token == 17
         assert ledger.processed == 129  # Seed emission is not a forward pass.
+
+
+def test_encoder_prefix_reuse_still_requires_full_target_replay_and_all_stage_barrier():
+    cluster = ledgers(encoder_start=64)
+    for number, start, rows in ((1, 64, 64), (2, 128, 1)):
+        receipts, digest = finish_all(cluster, window(number, start, rows, "encoder"), rows)
+    for ledger in cluster:
+        ledger.encoder_barrier(receipts, commit_digest=digest)
+        ledger.activate_target()
+        with pytest.raises(ValidationError, match="whole prompt"):
+            ledger.admit(window(3, 64, 64, "target"))
+    for number, start, rows in ((3, 0, 64), (4, 64, 64), (5, 128, 1)):
+        finish_all(cluster, window(number, start, rows, "target"), rows)
+    assert all((ledger.phase, ledger.encoder_cursor, ledger.target_cursor, ledger.processed) ==
+               ("decode", 129, 129, 129) for ledger in cluster)
+
+
+def test_restored_timeline_retains_pending_input_and_operation_cursor_under_new_epoch():
+    ledger = ledgers()[0]
+    value = {"session": "c" * 32, "request": "d" * 32, "epoch": 7,
+             "history": "e" * 64, "encoder_tokens": 129, "processed": 153,
+             "pending_token": 11, "stop_reason": None, "next_operation": 42}
+    ledger.restore_committed(value, session="f" * 32, request="1" * 32, epoch=8, history_digest="e" * 64)
+    assert ledger.processed == 153 and ledger.pending_token == 11 and ledger._next == 42
+    assert ledger.history_digest == "e" * 64 and ledger.encoder_cursor == ledger.target_cursor == 129
+    step = AttentionWindow(Operation("f" * 32, "1" * 32, 8, 42, "2" * 32, "3" * 64, 153, 6),
+                           "e" * 64, "decode", 159)
+    assert ledger.admit(step) is None
+    with pytest.raises(ValidationError):
+        ledger.admit(replace(step, operation=replace(step.operation, epoch=7)))
 
 
 def test_local_finish_alone_cannot_allow_more_work_and_duplicate_commit_is_idempotent():

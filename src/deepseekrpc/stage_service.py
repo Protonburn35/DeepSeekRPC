@@ -23,6 +23,11 @@ COMMAND_KINDS = {
     "sample_begin": Kind.DRAFT, "normal_decode": Kind.DRAFT, "verify": Kind.VERIFY_RESULT,
     "output_prepare": Kind.COMMIT, "output_commit": Kind.COMMIT, "output_finalize": Kind.COMMIT,
     "fault": Kind.ABORT,
+    "prefix_checkpoint": Kind.PREFIX_ACCEPT,
+    "snapshot_prepare": Kind.SNAPSHOT_PREPARE, "snapshot_export": Kind.SNAPSHOT_SEAL,
+    "snapshot_seal": Kind.SNAPSHOT_SEAL, "restore_prepare": Kind.RESTORE_PREPARE,
+    "restore_validate": Kind.RESTORE_PREPARE, "restore_apply": Kind.RESTORE_APPLY,
+    "restore_seal": Kind.RESTORE_ACK,
 }
 
 
@@ -49,6 +54,8 @@ class StageService:
         self._ready, self._settings, self._sampler, self._sampling, self._outputs = False, None, None, None, None
         self._stops = None
         self._reset_context = None
+        self._snapshot = self._restore = self._snapshot_exported = None
+        self._session_stop_state = None
         self._status_lock = threading.Lock()
         self._status = {}
         self._refresh_status()
@@ -113,6 +120,9 @@ class StageService:
                   "processed": ledger.processed, "pending_token": ledger.pending_token,
                   "stop_reason": ledger.stop_reason,
                   "history_digest": ledger.history_digest,
+                  "prefix_offer": self.execution.prefix.offer,
+                  "next_operation": ledger._next,
+                  "settings_digest": self._settings.digest if self._settings is not None else None,
                   "minimum_next_epoch": max(ledger.epoch + 1, self.execution.stage.attention.next_reset_epoch)}
         if self._reset_context is not None:
             status.update(session=self._reset_context.session, request=self._reset_context.request,
@@ -213,6 +223,10 @@ class StageService:
         if self._sampling is not None and not self._sampling.closed:
             self._sampling.abort()
         self._sampling = None
+        for operation in (self._snapshot, self._restore):
+            if operation is not None:
+                operation.close()
+        self._snapshot = self._restore = self._snapshot_exported = None
         self.execution.fault()
         self._refresh_status()
 
@@ -274,6 +288,10 @@ class StageService:
             raise ActorInvalidated("queued control work belongs to a retired mesh incarnation")
         action = body.get("action")
         try:
+            if action.startswith(("snapshot_", "restore_")):
+                return self._administrative(frame, body)
+            if self._snapshot is not None or self._restore is not None:
+                raise ValidationError("model state is frozen by an administrative snapshot transaction")
             if action == "admit":
                 fields(body, ("action", "peers"))
                 if not self.status()["transport_ready"]:
@@ -294,7 +312,7 @@ class StageService:
             if not self._ready:
                 raise ValidationError("stage is loaded but has not admitted the complete matching mesh")
             if action == "reset":
-                fields(body, ("action", "prompt", "settings"))
+                fields(body, ("action", "prompt", "settings", "prefix"))
                 spec, settings = PromptSpec.from_wire(body["prompt"]), RequestSettings.from_wire(body["settings"])
                 self._frame_context(frame, spec=spec)
                 if spec.identity != self.execution.stage.identity:
@@ -315,7 +333,7 @@ class StageService:
                     raise ValidationError("stage A reset requires the exact validated local full prompt")
                 tokens, mask, images = prompt.export_prompt()
                 result = self.execution.reset(session=spec.session, request=spec.request, epoch=spec.epoch,
-                                              tokens=tokens, text_mask=mask, images=images, expected_history=spec.history_digest)
+                    tokens=tokens, text_mask=mask, images=images, expected_history=spec.history_digest, prefix=body["prefix"])
                 self._reset_context = None
                 self._settings = settings
                 self._sampler = TerminalSampler(settings.seed) if self.role == Role.TERMINAL else None
@@ -327,6 +345,9 @@ class StageService:
                        if self.role == Role.TERMINAL else {}))
                 return {**result, "settings_digest": settings.digest}
             self._frame_context(frame)
+            if action == "prefix_checkpoint":
+                fields(body, ("action",))
+                return {"prefix": self.execution.capture_prefix()}
             if action == "step":
                 fields(body, ("action", "window", "inputs"))
                 window, inputs = window_from(body["window"]), input_from(body["inputs"])
@@ -418,6 +439,130 @@ class StageService:
             raise
         finally:
             self._refresh_status()
+
+    def _administrative(self, frame, body):
+        from .snapshot_archive import MAX_ARCHIVE
+        from .snapshot_restore import StageRestore
+        from .snapshot_state import StageSnapshot
+        from .snapshot_wire import receive_archive, send_archive, template
+        from .jsonutil import integer
+        from .protocol import hex_id
+        action = body["action"]
+        if action == "snapshot_prepare":
+            fields(body, ("action", "id"))
+            self._frame_context(frame)
+            if self._snapshot is not None or self._restore is not None:
+                raise ValidationError("another snapshot transaction already owns this stage")
+            with self.execution._compute():
+                self._snapshot = StageSnapshot(self, body["id"])
+            return self._snapshot.offer()
+        if action == "restore_prepare":
+            fields(body, ("action", "id", "bytes", "sha256", "header_sha256"))
+            if self._snapshot is not None or self._restore is not None:
+                raise ValidationError("another snapshot transaction already owns this stage")
+            if not self.execution.ledger.quiescent and self.execution.ledger.phase not in {"empty", "faulted"}:
+                raise ValidationError("restore cannot interrupt an uncommitted live GPU operation")
+            self._restore = StageRestore(self, body["id"], total=body["bytes"], sha256=body["sha256"], header_sha256=body["header_sha256"])
+            self.execution.stage.cancellation.clear()
+            self._ready = False
+            return {"prepared": True, "id": body["id"]}
+        operation = self._snapshot if action.startswith("snapshot_") else self._restore
+        if operation is None or body.get("id") != operation.id:
+            raise ValidationError("snapshot command differs from its admitted frozen transaction")
+        if action == "snapshot_export":
+            fields(body, ("action", "id"))
+            if self.role == Role.HOST:
+                raise ValidationError("A writes its own snapshot locally through its serialized model owner")
+            self._frame_context(frame)
+            connection = self.data.connections[Role.HOST]
+            ledger = self.execution.ledger
+            transfer = template(connection, operation.id, sender=self.role,
+                session=ledger.session, request=ledger.request, epoch=ledger.epoch)
+            with self.execution._compute():
+                self._snapshot_exported = send_archive(connection, transfer, operation.chunks(), total=operation.total,
+                                                       cancelled=self.execution.stage.cancellation.is_set)
+            return self._snapshot_exported
+        if action == "snapshot_seal":
+            fields(body, ("action", "id", "files"))
+            if not isinstance(body["files"], dict) or set(body["files"]) != set("ABC") or self._snapshot_exported is None:
+                raise ValidationError("snapshot seal requires three complete state stream acknowledgments")
+            for record in body["files"].values():
+                fields(record, ("bytes", "sha256", "header_sha256"))
+                integer(record["bytes"], "sealed snapshot bytes", 1, MAX_ARCHIVE)
+                hex_id(record["sha256"], 64, "sealed snapshot checksum")
+                hex_id(record["header_sha256"], 64, "sealed snapshot inventory checksum")
+            record = body["files"]["ABC"[int(self.role)]]
+            if (record["bytes"], record["sha256"], record["header_sha256"]) != (
+                    self._snapshot_exported["bytes"], self._snapshot_exported["sha256"], operation.header_sha256):
+                raise ValidationError("snapshot seal differs from this stage's actual exported stream")
+            operation.close()
+            self._snapshot = self._snapshot_exported = None
+            return {"sealed": True, "id": body["id"]}
+        if action in {"restore_validate", "restore_apply"}:
+            fields(body, ("action", "id", "session", "request", "epoch") if action == "restore_apply" else ("action", "id"))
+            if self.role == Role.HOST:
+                raise ValidationError("A restores its own host-owned stream through its serialized model owner")
+            connection = self.data.connections[Role.HOST]
+            transfer = template(connection, operation.id, sender=Role.HOST, session=frame.session,
+                                request=frame.request, epoch=frame.epoch)
+            chunks = receive_archive(connection, transfer, total=operation.total, sha256=operation.sha256,
+                                     cancelled=self.execution.stage.cancellation.is_set)
+            if action == "restore_validate":
+                return operation.validate(chunks)
+            with self.execution._compute():
+                result = operation.apply(chunks, session=body["session"], request=body["request"], epoch=body["epoch"])
+                return {**result, "stage": int(self.role)}
+        if action == "restore_seal":
+            fields(body, ("action", "id", "receipts"))
+            receipts = body["receipts"]
+            if not operation.applied or not isinstance(receipts, list) or len(receipts) != 3:
+                raise ValidationError("restore readiness requires all three actual successful apply receipts")
+            roles, common = set(), None
+            for receipt in receipts:
+                fields(receipt, ("applied", "id", "session", "request", "epoch", "history", "processed", "pending_token", "settings_digest", "next_operation", "stage"))
+                role = integer(receipt["stage"], "restored receipt stage", 0, 2)
+                value = {key: val for key, val in receipt.items() if key != "stage"}
+                if role in roles or common is not None and common != value:
+                    raise ValidationError("restore receipts disagree on the committed session")
+                common = value
+                roles.add(role)
+            ledger = self.execution.ledger
+            if (common["applied"] is not True or common["id"] != operation.id or
+                    (common["session"], common["request"], common["epoch"], common["history"], common["processed"],
+                     common["pending_token"], common["settings_digest"], common["next_operation"]) !=
+                    (ledger.session, ledger.request, ledger.epoch, ledger.history_digest, ledger.processed,
+                     ledger.pending_token, self._settings.digest, ledger._next)):
+                raise ValidationError("restore readiness differs from this stage's actual applied state")
+            self._ready = True
+            operation.close()
+            self._restore = None
+            return {"restored": True, "id": body["id"], "history": ledger.history_digest, "epoch": ledger.epoch}
+        raise ValidationError("unknown snapshot administrative action")
+
+    def export_local_snapshot(self, write_stage):
+        if self.role != Role.HOST or not callable(write_stage):
+            raise ValidationError("only A may write its own serialized snapshot to host-owned storage")
+        def export():
+            if self._snapshot is None:
+                raise ValidationError("A snapshot state is not sealed")
+            with self.execution._compute():
+                self._snapshot_exported = write_stage("A", self._snapshot.chunks())
+            return self._snapshot_exported
+        return self.actor.call(export)
+
+    def restore_local(self, chunks, *, apply=None):
+        if self.role != Role.HOST:
+            raise ValidationError("only A may consume a host-owned snapshot archive locally")
+        def restore():
+            if self._restore is None:
+                raise ValidationError("A restore transaction has not been admitted")
+            if apply is None:
+                return self._restore.validate(chunks)
+            with self.execution._compute():
+                result = self._restore.apply(chunks, **apply)
+            self._refresh_status()
+            return {**result, "stage": int(self.role)}
+        return self.actor.call(restore)
 
     def close(self):
         self.actor.invalidate()

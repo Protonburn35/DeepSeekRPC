@@ -1,5 +1,5 @@
 """Stage A's real three-stage CED/speculative scheduler and publication barrier."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import threading
 import uuid
 
@@ -9,7 +9,7 @@ from .jsonutil import ValidationError, fingerprint, integer
 from .phases import unanimous_receipts
 from .planner import Role
 from .prompt_wire import PromptSpec, send_prompt
-from .protocol import Frame, Kind
+from .protocol import Frame, Kind, hex_id
 from .publication import OutputPlan, unanimous_outputs
 from .request_settings import RequestSettings
 from .runtime_messages import receipt_from, wire
@@ -24,6 +24,7 @@ class TokenBatch:
     pending_token: int | None
     history_digest: str
     mode: str
+    paused: bool = False
 
 
 class ClusterNotReady(ConnectionError):
@@ -47,6 +48,8 @@ class ClusterCoordinator:
         self._spec = self._window = None
         self._number, self._cancel_sent = 1, False
         self._external_cancelled = None
+        self._external_paused = None
+        self.last_prefill = None
 
     @property
     def idle(self):
@@ -140,15 +143,22 @@ class ClusterCoordinator:
         return receipts, digest
 
     def _prefill(self):
+        from .prefix import checkpoint_anchor
         history, extent = self.host.execution.history, self._spec.tokens
+        anchor = checkpoint_anchor(history)
         for phase in ("encoder", "target"):
             last = None
-            for start in range(0, extent, 64):
+            first = self.host.execution.ledger.encoder_cursor if phase == "encoder" else 0
+            for start in range(first, extent, 64):
                 self._check_cancel()
                 tokens, mask = history.rows(start, min(64, extent - start))
                 self._begin_window(StepInput(tokens, mask), phase=phase, start=start, encoder_tokens=extent)
                 result = fingerprint({"window": wire(self._window), "completed_phase_chunk": True})
                 last = self._commit_window(accepted=len(tokens), result_digest=result)
+                if phase == "encoder" and self.host.execution.ledger.encoder_cursor == anchor and anchor:
+                    offers = self._all({"action": "prefix_checkpoint"})
+                    if any(offer != offers[Role.HOST] for offer in offers.values()):
+                        raise ValidationError("actual stages disagree on the sealed encoder checkpoint")
             if phase == "encoder":
                 receipts, digest = last
                 self._all({"action": "target", "receipts": [wire(r) for r in receipts], "commit_digest": digest})
@@ -198,13 +208,44 @@ class ClusterCoordinator:
                     pass  # Channel failure itself invalidates that peer service.
             return True
 
-    def generate(self, prompt: TokenHistory, settings: RequestSettings, *, cancelled=None):
+    def _decode_once(self, settings):
+        self._check_cancel()
+        ledger = self.host.execution.ledger
+        seed, start = ledger.pending_token, ledger.processed
+        self._terminal("sample_begin")
+        proposals, mode = (), "speculative"
+        if settings.speculative and self.host.execution.history.capacity - start >= 6:
+            results = self._begin_window(StepInput((seed, 128799, 128799, 128799, 128799), (True,) * 5),
+                phase="draft", start=start, encoder_tokens=start + 5)
+            proposed = results[Role.TERMINAL]["proposal_ids"]
+            if not isinstance(proposed, list) or not 1 <= len(proposed) <= 5:
+                raise ValidationError("stage C returned an invalid DSpark proposal prefix")
+            proposals = tuple(integer(token, "draft proposal", 0, 129279) for token in proposed)
+            self._commit_window(accepted=0, result_digest=fingerprint({"proposals": proposals, "window": wire(self._window)}))
+        else:
+            mode = "normal_disabled" if not settings.speculative else "normal_context_tail"
+            self._terminal("normal_decode")
+        inputs = StepInput((seed, *proposals), (True,) * (1 + len(proposals)))
+        self._begin_window(inputs, phase="decode", start=start, encoder_tokens=start + len(inputs.tokens))
+        decision = self._terminal("verify")
+        accepted = integer(decision.get("accepted_target_rows"), "accepted verification inputs", 1, len(inputs.tokens))
+        self._commit_window(accepted=accepted, result_digest=decision["digest"], pending_token=decision["pending_token"])
+        return self._publish(decision, initial=False, mode=mode)
+
+    def _pause_batch(self, batch):
+        if batch.stop_reason is None and self._external_paused is not None and self._external_paused():
+            return replace(batch, paused=True)
+        return batch
+
+    def generate(self, prompt: TokenHistory, settings: RequestSettings, *, cancelled=None, paused=None):
         if not isinstance(prompt, TokenHistory) or not isinstance(settings, RequestSettings):
             raise ValidationError("generation needs validated full original token/image history and immutable settings")
         if prompt.identity != self.host.execution.stage.identity or not 1 <= prompt.length < prompt.capacity:
             raise ValidationError("prompt identity/context leaves no admitted output capacity")
         if cancelled is not None and not callable(cancelled):
             raise ValidationError("request cancellation must be a persistent bounded observer")
+        if paused is not None and not callable(paused):
+            raise ValidationError("request pause must be a persistent bounded observer")
         with self._cancel_lock:
             if not self._request_lock.acquire(blocking=False):
                 raise RuntimeError("the three-stage runtime already has an active request")
@@ -212,17 +253,26 @@ class ClusterCoordinator:
             self._cancel_sent = False
             self._cancelled.clear()
             self._external_cancelled = cancelled
+            self._external_paused = paused
         complete = False
         try:
             self._window, self._number = None, 1
             self._check_cancel()
             peers = self.admit()
+            from .prefix import select_prefix
+            resolver = self.host.image_rows
+            prefix, reason = select_prefix([peer.get("prefix_offer") for peer in peers], prompt,
+                features_available=lambda end: not any(span.start < end for span in prompt.images) or
+                    resolver is not None and resolver.can_reuse_prefix(prompt, end))
+            reused = 0 if prefix is None else prefix["end"]
+            self.last_prefill = {"reused_encoder_tokens": reused, "new_encoder_tokens": prompt.length - reused,
+                                 "target_replay_tokens": prompt.length, "reason": reason}
             epoch = max(peer["minimum_next_epoch"] for peer in peers)
             self._spec = PromptSpec.from_history(prompt, session=uuid.uuid4().hex, request=uuid.uuid4().hex,
                                                 epoch=epoch, transaction=uuid.uuid4().hex)
-            resets = self._all({"action": "reset", "prompt": wire(self._spec), "settings": settings.as_dict()}, prompt=prompt)
-            if any((value.get("history_digest"), value.get("epoch"), value.get("settings_digest")) !=
-                   (prompt.digest, epoch, settings.digest) for value in resets.values()):
+            resets = self._all({"action": "reset", "prompt": wire(self._spec), "settings": settings.as_dict(), "prefix": prefix}, prompt=prompt)
+            if any((value.get("history_digest"), value.get("epoch"), value.get("settings_digest"), value.get("reused_encoder_tokens"),
+                    value.get("prefix")) != (prompt.digest, epoch, settings.digest, reused, prefix) for value in resets.values()):
                 raise ValidationError("stage reset did not admit the same original history and request controls")
             self._prefill()
             decision = self._terminal("sample_seed")
@@ -230,36 +280,59 @@ class ClusterCoordinator:
                 raise ValidationError("initial sampling cannot claim a forwarded target input")
             batch = self._publish(decision, initial=True, mode="seed")
             while True:
-                complete = batch.stop_reason is not None
+                batch = self._pause_batch(batch)
+                complete = batch.stop_reason is not None or batch.paused
                 yield batch
                 if complete:
                     return
-                self._check_cancel()
-                ledger = self.host.execution.ledger
-                seed, start = ledger.pending_token, ledger.processed
-                self._terminal("sample_begin")
-                proposals = ()
-                mode = "speculative"
-                if settings.speculative and prompt.capacity - start >= 6:
-                    results = self._begin_window(StepInput((seed, 128799, 128799, 128799, 128799), (True,) * 5),
-                        phase="draft", start=start, encoder_tokens=start + 5)
-                    proposed = results[Role.TERMINAL]["proposal_ids"]
-                    if not isinstance(proposed, list) or not 1 <= len(proposed) <= 5:
-                        raise ValidationError("stage C returned an invalid DSpark proposal prefix")
-                    proposals = tuple(integer(token, "draft proposal", 0, 129279) for token in proposed)
-                    self._commit_window(accepted=0, result_digest=fingerprint({"proposals": proposals, "window": wire(self._window)}))
-                else:
-                    mode = "normal_disabled" if not settings.speculative else "normal_context_tail"
-                    self._terminal("normal_decode")
-                inputs = StepInput((seed, *proposals), (True,) * (1 + len(proposals)))
-                self._begin_window(inputs, phase="decode", start=start, encoder_tokens=start + len(inputs.tokens))
-                decision = self._terminal("verify")
-                accepted = integer(decision.get("accepted_target_rows"), "accepted verification inputs", 1, len(inputs.tokens))
-                self._commit_window(accepted=accepted, result_digest=decision["digest"], pending_token=decision["pending_token"])
-                batch = self._publish(decision, initial=False, mode=mode)
+                batch = self._decode_once(settings)
         finally:
             if not complete:
                 self.cancel()
             with self._cancel_lock:
-                self._window = self._spec = self._external_cancelled = None
+                self._window = self._spec = self._external_cancelled = self._external_paused = None
+                self._request_lock.release()
+
+    def resume(self, session, *, cancelled=None, paused=None):
+        """Continue the exact pending input/RNG state of a paused session.
+
+        EOS/stop/length-ended requests stay ended. This administrative token
+        stream does not substitute a new chat prompt or reseed sampling.
+        """
+        from types import SimpleNamespace
+        hex_id(session, 32, "paused session")
+        if any(value is not None and not callable(value) for value in (cancelled, paused)):
+            raise ValidationError("session continuation needs stable cancellation/pause observers")
+        ledger = self.host.execution.ledger
+        if (session != ledger.session or ledger.phase != "decode" or not ledger.quiescent or
+                ledger.stop_reason is not None or ledger.pending_token is None):
+            raise ValidationError("only the current paused committed session can continue")
+        with self._cancel_lock:
+            if not self._request_lock.acquire(blocking=False):
+                raise RuntimeError("another request already owns the cluster")
+            self._cancelled.clear()
+            self._cancel_sent = False
+            self._external_cancelled, self._external_paused = cancelled, paused
+            self._window, self._number = None, ledger._next
+            self._spec = SimpleNamespace(session=ledger.session, request=ledger.request, epoch=ledger.epoch,
+                transaction=uuid.uuid4().hex, tokens=self.host.execution.history.length)
+        complete = False
+        try:
+            peers = self.admit()
+            keys = ("session", "request", "epoch", "phase", "processed", "pending_token", "history_digest",
+                    "stop_reason", "next_operation", "settings_digest")
+            expected = {key: peers[0][key] for key in keys}
+            if any({key: peer[key] for key in keys} != expected for peer in peers[1:]):
+                raise ValidationError("actual stages disagree on the exact paused session/RNG settings")
+            while True:
+                batch = self._pause_batch(self._decode_once(self.host._settings))
+                complete = batch.stop_reason is not None or batch.paused
+                yield batch
+                if complete:
+                    return
+        finally:
+            if not complete:
+                self.cancel()
+            with self._cancel_lock:
+                self._window = self._spec = self._external_cancelled = self._external_paused = None
                 self._request_lock.release()

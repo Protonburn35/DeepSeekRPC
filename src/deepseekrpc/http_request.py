@@ -22,6 +22,7 @@ class HTTPRequestOwner:
         self._on_done = on_done
         self.identifier, self.created = "chatcmpl-" + uuid.uuid4().hex, int(time.time())
         self.cancelled, self.done, self._go = threading.Event(), threading.Event(), threading.Event()
+        self.paused = threading.Event()
         self._queue = queue.Queue(maxsize=2)
         self._runner, self._failure = None, None
         self._thread = threading.Thread(target=self._run, name="deepseekrpc-http-request", daemon=True)
@@ -39,6 +40,12 @@ class HTTPRequestOwner:
         self._go.set()
         if self._runner is not None:
             self._runner.cancel()
+
+    def pause(self):
+        if self.done.is_set() or self.cancelled.is_set():
+            return False
+        self.paused.set()
+        return True
 
     def _put(self, kind, value):
         while not self.cancelled.is_set():
@@ -96,7 +103,7 @@ class HTTPRequestOwner:
                         raise InterruptedError("HTTP response did not acquire its prepared model request")
                 if self.cancelled.is_set():
                     raise InterruptedError("HTTP request cancelled before model scheduling")
-                self._runner = GenerationRunner(lease.coordinator, request, cancelled=self.cancelled).start()
+                self._runner = GenerationRunner(lease.coordinator, request, cancelled=self.cancelled, paused=self.paused).start()
                 count, final = 0, None
                 while True:
                     if self.cancelled.is_set():
@@ -118,17 +125,21 @@ class HTTPRequestOwner:
                     delta = parser.feed(text, batch.output_ids)
                     count += len(batch.output_ids)
                     deltas = [delta] if delta is not None else []
-                    if batch.stop_reason is not None:
-                        tail = parser.feed(decoder.finish(), [], finished=True)
+                    if batch.stop_reason is not None or batch.paused:
+                        tail = parser.feed("" if batch.paused else decoder.finish(), [], finished=True)
                         if tail is not None:
                             deltas.append(tail)
                         message = parser.message(require_eos=batch.stop_reason == "eos")
                         if request.tool_choice == "none" and message.get("tool_calls"):
                             raise ValidationError("model emitted tool calls although tool choice was disabled")
-                        reason = "length" if batch.stop_reason == "length" else "tool_calls" if message.get("tool_calls") else "stop"
+                        reason = "length" if batch.stop_reason == "length" or batch.paused else "tool_calls" if message.get("tool_calls") else "stop"
                         usage = {"prompt_tokens": request.history.length, "completion_tokens": count,
                                  "total_tokens": request.history.length + count}
                         final = {"finish_reason": reason, "usage": usage}
+                        if batch.paused:
+                            session = lease.coordinator.host.status()["session"]
+                            final["deepseekrpc_session"] = session
+                            lease.coordinator.host._session_stop_state = (session, decoder.snapshot())
                         if not request.stream:
                             final["message"] = message
                     if request.stream:

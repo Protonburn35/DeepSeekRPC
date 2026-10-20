@@ -32,6 +32,28 @@ def test_all_vocabulary_byte_decoding_matches_actual_rust_tokenizer(tokenizer):
     assert token_bytes._lookup.cache_info().currsize <= 4096
 
 
+def test_stop_snapshot_preserves_held_prefix_and_rejects_inconsistent_restore(tokenizer):
+    first = StopTracker(TokenBytes(tokenizer), ("STOP", "TOPIC"))
+    for token in tokenizer.encode("hello ST"):
+        first.commit(first.preview((token,)))
+    saved = first.snapshot()
+    restored = StopTracker(TokenBytes(tokenizer), first.stops)
+    restored.restore(saved)
+    assert restored.identity == first.identity
+    for token in tokenizer.encode("OP trailing"):
+        a, b = first.preview((token,)), restored.preview((token,))
+        assert a == b
+        first.commit(a)
+        restored.commit(b)
+        if a.matched:
+            break
+    broken = {**saved, "prefixes": [0, 0]}
+    with pytest.raises(ValidationError, match="prefixes"):
+        restored.restore(broken)
+    with pytest.raises(ValidationError, match="UTF-8"):
+        restored.restore({**saved, "pending": "ff"})
+
+
 @pytest.mark.parametrize("text", ["привет 中文 🌍 end", "<｜begin▁of▁sentence｜>a\n\x00b<｜end▁of▁sentence｜>",
                                   "Combining é العربية 👩‍💻 and C++ $() `x`"])
 def test_incremental_utf8_never_inserts_partial_byte_replacements(tokenizer, text):

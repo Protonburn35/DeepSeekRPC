@@ -96,6 +96,42 @@ class StopTracker:
     def snapshot(self):
         return {**self._state, "prefixes": list(self._state["prefixes"])}
 
+    def restore(self, state):
+        self._state = self.validate_snapshot(state, self.stops)
+
+    @staticmethod
+    def validate_snapshot(state, stops):
+        if (not isinstance(state, dict) or set(state) != {"pending", "tail", "prefixes", "ended"} or
+                not isinstance(state["pending"], str) or len(state["pending"]) > 6 or
+                not isinstance(state["tail"], str) or len(state["tail"].encode("utf-8")) > 4096 or
+                not isinstance(state["prefixes"], list) or len(state["prefixes"]) != len(stops) or
+                type(state["ended"]) is not bool):
+            raise ValidationError("invalid bounded stop/UTF-8 snapshot")
+        try:
+            pending = bytes.fromhex(state["pending"])
+            decoder = codecs.getincrementaldecoder("utf-8")("replace")
+            text = decoder.decode(pending, final=False)
+        except (ValueError, UnicodeError):
+            raise ValidationError("invalid pending UTF-8 snapshot bytes") from None
+        if text or decoder.getstate()[0] != pending or pending.hex() != state["pending"]:
+            raise ValidationError("stop snapshot does not contain an incomplete canonical UTF-8 suffix")
+        expected = []
+        for stop, table in ((stop, _prefix_table(stop)) for stop in stops):
+            prefix = 0
+            for character in state["tail"]:
+                while prefix and character != stop[prefix]:
+                    prefix = table[prefix - 1]
+                if character == stop[prefix]:
+                    prefix += 1
+                if prefix == len(stop):
+                    raise ValidationError("stop snapshot contains an already complete stop in its held tail")
+            expected.append(prefix)
+        if (any(type(v) is not int for v in state["prefixes"]) or state["prefixes"] != expected or
+                len(state["tail"]) != max(expected, default=0) or
+                state["ended"] and (pending or state["tail"] or any(expected))):
+            raise ValidationError("stop snapshot prefixes disagree with their exact buffered text")
+        return {**state, "prefixes": list(expected)}
+
     def preview(self, tokens):
         if not isinstance(tokens, (tuple, list)) or not 1 <= len(tokens) <= 6 or self._state["ended"]:
             raise ValidationError("stop preview requires one bounded open output token batch")

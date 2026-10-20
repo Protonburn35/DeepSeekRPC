@@ -22,6 +22,8 @@ def capabilities():
                         "phase/commit ledger and actual stage execution boundary",
                         "persistent stage actor/service and full CED/speculative coordinator source",
                         "OpenAI streaming API, persistent Windows launch path and authenticated mesh recovery source",
+                        "CED encoder prefix checkpoints with full exact target replay",
+                        "bounded all-stage snapshots, prevalidated restore and paused pending-input continuation source",
                         "all-stage history publication and Stage C RNG finalization",
                         "original image processing and bounded exact BF16 feature storage source",
                         "exact ByteLevel UTF-8 decoding and transactional token-aligned stops",
@@ -32,7 +34,7 @@ def capabilities():
         "unqualified_or_missing": ["actual EXL3/GPU numerical execution",
                                     "full-model exact CED and every-phase cancellation", "full-size laptop residency",
                                     "actual full-model streaming API and image/GPU execution", "actual distributed DSpark execution",
-                                    "prefix checkpoint reuse", "three-stage snapshots", "Windows deployment bundle/launchers"],
+                                    "actual GPU prefix/snapshot/continuation qualification", "complete Windows deployment dependency bundle"],
         "hardware_validation": "not run", "independent_astra_review": "pending",
     }
 
@@ -45,10 +47,21 @@ def main(argv=None):
     commands.add_parser("selftest-cuda", help="run small native CUDA operation checks on a real GPU")
     worker = commands.add_parser("serve", help="load the real owned Windows CUDA stage once and keep it resident")
     worker.add_argument("--config", type=Path, required=True)
+    worker.add_argument("--stage", choices=["A", "B", "C"], help="refuse a role configuration passed to the wrong launcher")
     mode = worker.add_mutually_exclusive_group()
     mode.add_argument("--print-effective-config", action="store_true")
     mode.add_argument("--preflight", action="store_true", help="check local metadata/TLS without opening listeners or constructing a model")
     mode.add_argument("--self-test", action="store_true", help="run local metadata/runtime/native GPU diagnostics without loading weights")
+    snapshots = commands.add_parser("snapshots", help="manual bounded host-owned state administration; no model reload")
+    snapshots.add_argument("action", choices=["list", "save", "restore", "delete"])
+    snapshots.add_argument("--id", dest="identifier")
+    snapshots.add_argument("--base-url", default="http://127.0.0.1:8081/v1")
+    snapshots.add_argument("--api-key-file", type=Path)
+    session = commands.add_parser("session", help="inspect, pause or continue the current exact token/RNG state")
+    session.add_argument("action", choices=["status", "pause", "resume"])
+    session.add_argument("--id", dest="identifier")
+    session.add_argument("--base-url", default="http://127.0.0.1:8081/v1")
+    session.add_argument("--api-key-file", type=Path)
     plan = commands.add_parser("plan", help="derive ownership and prospective source/shadow bytes from config")
     plan.add_argument("--model-config", type=Path, required=True)
     plan.add_argument("--split", default="18,5,17")
@@ -60,10 +73,31 @@ def main(argv=None):
         elif args.command == "selftest-cuda":
             from .gpu_selftest import run_cuda_checks
             result = run_cuda_checks()
+        elif args.command in {"snapshots", "session"}:
+            from .admin_client import AdminClient
+            from .protocol import hex_id
+            client = AdminClient(args.base_url, api_key_file=args.api_key_file)
+            if args.command == "snapshots":
+                if args.action in {"restore", "delete"}:
+                    hex_id(args.identifier, 32, "opaque snapshot")
+                elif args.identifier is not None:
+                    raise ValidationError("snapshot list/save do not take an existing snapshot ID")
+                suffix = "/snapshots" if args.action in {"list", "save"} else f"/snapshots/{args.identifier}" + ("/restore" if args.action == "restore" else "")
+                result = client.request({"list": "GET", "save": "POST", "restore": "POST", "delete": "DELETE"}[args.action], suffix)
+            elif args.action == "resume":
+                for event in client.resume(args.identifier):
+                    print(json.dumps(event, ensure_ascii=True), flush=True)
+                return 0
+            else:
+                if args.identifier is not None:
+                    raise ValidationError("session status/pause select the currently active session")
+                result = client.request("GET" if args.action == "status" else "POST", "/session" if args.action == "status" else "/sessions/pause")
         elif args.command == "serve":
             from .deployment_config import DeploymentConfig
             from .worker import PersistentWorker, preflight
             config = DeploymentConfig.read(args.config)
+            if args.stage is not None and "ABC"[int(config.role)] != args.stage:
+                raise ValidationError("this launcher requires the matching A/B/C role configuration")
             if args.print_effective_config:
                 result = config.effective()
             elif args.preflight or args.self_test:

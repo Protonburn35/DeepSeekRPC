@@ -134,6 +134,7 @@ class PersistentWorker:
         self._lock, self._state, self._code = threading.Lock(), "STARTING", None
         self.stage = self.service = self.coordinator = self.assets = self.http = self.runtime = self.network = None
         self._bound, self.failure = None, None
+        self.snapshots = None
 
     def status(self):
         with self._lock:
@@ -224,7 +225,7 @@ class PersistentWorker:
             if self.config.role == Role.HOST and self.status()["status"] != "READY":
                 try:
                     self.coordinator.admit()
-                    self.runtime.attach(self.coordinator, self.assets)
+                    self.runtime.attach(self.coordinator, self.assets, snapshots=self.snapshots)
                 except ClusterNotReady:
                     continue
                 except RemoteError as exc:
@@ -245,6 +246,7 @@ class PersistentWorker:
             raise RuntimeError("actual persistent inference requires native Windows 11 and a supported CUDA GPU")
         with own_state(self.config.state_root) as state, self._signals():
             try:
+                preflight(self.config, device_checks=False)
                 # Bind and report diagnostics before any model payload is
                 # loaded. Port conflicts fail before constructing the graph.
                 if self.config.role == Role.HOST:
@@ -260,7 +262,9 @@ class PersistentWorker:
                     device=self.config.device, requested_ram_tier_bytes=self.config.ram_tier_bytes)
                 if self.config.role == Role.HOST:
                     from .image_assets import ImageAssets
+                    from .snapshot_archive import SnapshotStore
                     self.assets = ImageAssets(state / "images", identity=self.stage.identity)
+                    self.snapshots = SnapshotStore(state / "snapshots", identity=self.stage.identity)
                 self._state_is("LOADED")
                 self._serve()
             except BaseException as exc:
@@ -269,6 +273,8 @@ class PersistentWorker:
                 import sys
                 print(f"DeepSeekRPC stage {'ABC'[int(self.config.role)]}: FAILED / INTERNAL ({type(exc).__name__}). "
                       "Diagnostics remain available; Ctrl+Break shuts down.", file=sys.stderr, flush=True)
+                if self.http is None and self.network is None:
+                    raise
                 mesh = self.network.current if self.network is not None else None
                 if mesh is not None:
                     for gate in mesh.gates.values():

@@ -22,6 +22,22 @@ def test_live_asgi_models_and_loading_refusal_do_not_advertise_fake_readiness():
                 "messages": [{"role": "user", "content": "public readiness fixture"}]})
             assert response.status_code == 503 and response.json()["error"]["code"] == "runtime_not_ready"
         assert not runtime.status()["active_request"]
+
+
+def test_unloaded_snapshot_and_session_routes_release_ownership_and_refuse_invalid_ids():
+    runtime = APIRuntime()
+    with TestClient(create_app(runtime)) as client:
+        assert client.get("/v1/session").status_code == 503
+        assert client.post("/v1/sessions/pause", json={}).json() == {"pause_requested": False}
+        for _ in range(4):
+            assert client.get("/v1/snapshots").status_code == 503
+            assert client.post("/v1/snapshots", json={}).status_code == 503
+            assert client.post(f"/v1/snapshots/{'a' * 32}/restore", json={}).status_code == 503
+            assert client.post(f"/v1/sessions/{'a' * 32}/resume", json={}).status_code == 503
+        assert client.post("/v1/snapshots/invalid/restore", json={}).status_code == 400
+        assert client.post("/v1/sessions/invalid/resume", json={}).status_code == 400
+        assert client.post("/v1/snapshots", content=b"x" * 1025).status_code == 413
+        assert not runtime.status()["active_request"]
     with pytest.raises(ValidationError):
         runtime.set_status("ready")
     with pytest.raises(RuntimeUnavailable):

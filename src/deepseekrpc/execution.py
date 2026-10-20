@@ -69,6 +69,8 @@ class StageExecution:
         self._hashes = self._last_logits = None
         self._hash_pending = self._forwarded = False
         self._imported_sources, self._imported_selections = set(), set()
+        from .prefix import EncoderCheckpoint
+        self.prefix = EncoderCheckpoint(self)
 
     @contextmanager
     def _compute(self):
@@ -84,6 +86,7 @@ class StageExecution:
 
     def fault(self):
         self.stage.cancellation.set()
+        self.prefix.invalidate()
         with self._mutex:
             # Keep every allocation owned until already submitted CUDA work
             # has quiesced. A failed synchronize is a device/runtime failure;
@@ -92,7 +95,7 @@ class StageExecution:
             self.stage.attention.fail()
             self.ledger.fault()
 
-    def reset(self, *, session, request, epoch, tokens, text_mask=None, images=(), expected_history):
+    def reset(self, *, session, request, epoch, tokens, text_mask=None, images=(), expected_history, prefix=None):
         hex_id(session, 32, "new execution session")
         hex_id(request, 32, "new execution request")
         hex_id(expected_history, 64, "full prompt history")
@@ -105,15 +108,22 @@ class StageExecution:
             incoming = TokenHistory(self.stage.identity)
             if incoming.set_prompt(tokens, text_mask, images) != expected_history:
                 raise ValidationError("prompt token/image history differs from the all-stage request identity")
+            if prefix is not None:
+                self.prefix.validate(prefix, incoming)
             try:
-                if self.ledger.phase == "faulted":
+                reused = 0
+                if prefix is not None:
+                    reused = self.prefix.restore(prefix, incoming, session=session, epoch=epoch)
+                elif self.ledger.phase == "faulted":
+                    self.prefix.invalidate()
                     self.stage.attention.discard_session(session, epoch)
                 else:
+                    self.prefix.invalidate()
                     self.stage.attention.reset(session, epoch)
-                if self.stage.engram_history is not None:
+                if prefix is None and self.stage.engram_history is not None:
                     self.stage.engram_history.reset()
                 self.ledger.reset(session=session, request=request, epoch=epoch,
-                                  history_digest=expected_history, encoder_tokens=incoming.length)
+                                  history_digest=expected_history, encoder_tokens=incoming.length, encoder_start=reused)
                 self.history = incoming
                 self._window = self._inputs = self._result = self._prepared = None
                 self._hashes = self._last_logits = None
@@ -124,7 +134,12 @@ class StageExecution:
                 self.fault()
                 raise
             return {"history_digest": self.history.digest, "epoch": epoch,
-                    "minimum_next_epoch": epoch + 1, "weights_retained": True}
+                    "minimum_next_epoch": epoch + 1, "weights_retained": True,
+                    "reused_encoder_tokens": reused, "prefix": self.prefix.offer}
+
+    def capture_prefix(self):
+        with self._compute():
+            return self.prefix.capture()
 
     def begin(self, window: AttentionWindow, inputs: StepInput):
         import torch

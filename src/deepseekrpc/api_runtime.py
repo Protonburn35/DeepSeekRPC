@@ -29,6 +29,7 @@ class APIRuntime:
         self.default_output = integer(default_output, "default output token limit", 1, 1048576)
         self._lock, self._reservation = threading.RLock(), threading.Lock()
         self._state, self._code, self._resources = "starting", None, None
+        self._snapshot_store = None
         self._active_reservation = None
         self._owner, self._cancelling, self._waiter = None, False, False
         self._condition = threading.Condition(self._lock)
@@ -42,7 +43,7 @@ class APIRuntime:
                     "ready": state == "ready", "active_request": self._reservation.locked()}
 
     def set_status(self, state, *, code=None):
-        if state not in {"starting", "loading", "connecting", "recovering", "failed", "stopping"}:
+        if state not in {"starting", "loading", "connecting", "recovering", "saving", "restoring", "failed", "stopping"}:
             raise ValidationError("ready status requires actual attached native runtime resources")
         if code is not None and code not in {"WEIGHTS", "MEMORY", "TLS", "RPC", "CUDA", "INTERNAL"}:
             raise ValidationError("runtime status requires a bounded public diagnostic code")
@@ -50,15 +51,20 @@ class APIRuntime:
             self._state, self._code = state, code
             self._condition.notify_all()
 
-    def attach(self, coordinator: ClusterCoordinator, assets: ImageAssets):
+    def attach(self, coordinator: ClusterCoordinator, assets: ImageAssets, *, snapshots=None):
         if (not isinstance(coordinator, ClusterCoordinator) or not isinstance(assets, ImageAssets) or
                 coordinator.host.execution.stage.identity != assets.identity or coordinator.host.execution.stage.tokenizer is None or
                 coordinator.host.status()["status"] != "READY" or coordinator.host.execution.stage.closed):
             raise ValidationError("API readiness requires the actual persistent A graph/coordinator and matching image assets")
+        if snapshots is not None:
+            from .snapshot_archive import SnapshotStore
+            if not isinstance(snapshots, SnapshotStore) or snapshots.identity != assets.identity:
+                raise ValidationError("snapshot storage must match the actual loaded model/runtime identity")
         with self._lock:
             if self._reservation.locked():
                 raise RequestBusy("the prior request has not released its persistent runtime ownership")
             self._resources = coordinator, assets, coordinator.host.execution.stage.tokenizer
+            self._snapshot_store = snapshots
             self._state, self._code = "ready", None
             self._condition.notify_all()
 
@@ -74,8 +80,8 @@ class APIRuntime:
                     if status["ready"] and self._resources is not None and self._reservation.acquire(blocking=False):
                         token = object()
                         self._active_reservation, self._owner, self._cancelling = token, owner, False
-                        return RequestReservation(self, token, *self._resources)
-                    recovering = self._resources is not None and status["status"] in {"recovering", "connecting"}
+                        return RequestReservation(self, token, *self._resources, snapshot_store=self._snapshot_store)
+                    recovering = self._resources is not None and status["status"] in {"recovering", "connecting", "saving", "restoring"}
                     if not self._cancelling and not recovering:
                         if self._reservation.locked():
                             raise RequestBusy("one model request is already active")
@@ -106,6 +112,30 @@ class APIRuntime:
         owner.cancel()
         return True
 
+    def pause_active(self):
+        with self._lock:
+            owner = self._owner
+        return False if owner is None or not callable(getattr(owner, "pause", None)) else owner.pause()
+
+    def session_status(self):
+        with self._lock:
+            if self._resources is None:
+                raise RuntimeUnavailable("the actual cluster is still loading")
+            status = self._resources[0].host.status()
+            return {key: status[key] for key in ("session", "phase", "processed", "pending_token", "history_digest", "stop_reason")}
+
+    def finish_administration(self, owner):
+        with self._condition:
+            if self._owner is not owner or self._resources is None:
+                raise ValidationError("administrative completion belongs to a stale runtime reservation")
+            coordinator = self._resources[0]
+            status = coordinator.host.status()
+            if status["status"] == "READY" and status["transport_ready"] and not coordinator.host.actor.closed:
+                self._state, self._code = "ready", None
+            else:
+                self._state, self._code = "recovering", "RPC"
+            self._condition.notify_all()
+
     def _release(self, token):
         with self._lock:
             if not self._reservation.locked() or token is not self._active_reservation:
@@ -117,9 +147,10 @@ class APIRuntime:
 
 
 class RequestReservation:
-    def __init__(self, owner, token, coordinator, assets, tokenizer):
+    def __init__(self, owner, token, coordinator, assets, tokenizer, *, snapshot_store=None):
         self.owner, self._token = owner, token
         self.coordinator, self.assets, self.tokenizer = coordinator, assets, tokenizer
+        self.snapshot_store = snapshot_store
         self._lock, self._closed = threading.Lock(), False
 
     def close(self):
@@ -136,13 +167,16 @@ class GenerationRunner:
     general executor. This owner closes it on its own thread and retains the
     request reservation until it has quiesced.
     """
-    def __init__(self, coordinator: ClusterCoordinator, request: PreparedChat, *, cancelled=None):
+    def __init__(self, coordinator: ClusterCoordinator, request: PreparedChat, *, cancelled=None, paused=None):
         if not isinstance(coordinator, ClusterCoordinator) or not isinstance(request, PreparedChat):
             raise ValidationError("HTTP generation requires the actual cluster and validated original prompt")
         self.coordinator, self.request = coordinator, request
         if cancelled is not None and not isinstance(cancelled, threading.Event):
             raise ValidationError("generation cancellation requires the actual request event")
         self.cancelled, self.done = cancelled if cancelled is not None else threading.Event(), threading.Event()
+        if paused is not None and not isinstance(paused, threading.Event):
+            raise ValidationError("generation pause requires the actual request event")
+        self.paused = paused if paused is not None else threading.Event()
         self._cancel_observer = self.cancelled.is_set
         self._queue = queue.Queue(maxsize=2)
         self._failure, self._started = None, False
@@ -166,7 +200,8 @@ class GenerationRunner:
 
     def _run(self):
         try:
-            generator = self.coordinator.generate(self.request.history, self.request.settings, cancelled=self._cancel_observer)
+            generator = self.coordinator.generate(self.request.history, self.request.settings,
+                cancelled=self._cancel_observer, paused=self.paused.is_set)
             with closing(generator):
                 for batch in generator:
                     self._put(("tokens", batch))
