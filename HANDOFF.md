@@ -71,8 +71,10 @@ Ctrl+Break explicitly shuts down. Native worker/model execution is unrun.
 Exact prefix checkpoints, bounded all-stage state save/restore, administrative
 pause and exact pending-input/RNG continuation now have integrated source and
 HTTP/CLI entry points. Their actual GPU/distributed execution remains unrun.
-Structured grammar controls, the complete Windows dependency/install bundle and
-broader GPU diagnostics remain unfinished.
+The complete Windows dependency/install bundle and broader GPU diagnostics are
+being qualified. Optional grammar/response-format and named tool constraints
+are explicitly rejected; the specification allows clear unsupported controls.
+They are not required features being silently deferred.
 
 ## Verification
 

@@ -51,6 +51,11 @@ Incorporated source:
   explicitly binding owned BF16 pools, source visibility and packed matrices.
   The adjacent packaged provenance records the original file hash. Exact
   decoder factory and FP32 router source patches are recorded under patches/.
+- `reference_packed.py` expresses the pinned ExLlama trellis and 16x16 MMA
+  fragment format as independent NumPy diagnostic equations. The format source
+  is the MIT-licensed ExLlama revision in provenance/sources.lock.json. CUDA
+  tests use the separately pinned AGPL plugin's scalar codebook implementation;
+  it is not an inference fallback. Runtime source identities include that file.
 
 Complete reference archive hashes and model metadata hashes are in provenance/.
 No full model payloads, credentials, copied proprietary SDKs or compiled

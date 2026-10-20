@@ -117,6 +117,10 @@ def create_app(runtime: APIRuntime):
             if owner is None:
                 ticket.close()
 
+    @app.post("/v1/diagnostics/cluster")
+    async def cluster_probe(request: Request):
+        return await administer_snapshot(request, "probe")
+
     @app.get("/v1/snapshots")
     async def snapshot_list(request: Request):
         return await administer_snapshot(request, "list")

@@ -45,6 +45,9 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("capabilities", help="report implemented and missing capabilities truthfully")
     commands.add_parser("selftest-cuda", help="run small native CUDA operation checks on a real GPU")
+    cluster = commands.add_parser("selftest-cluster", help="probe the already loaded cluster and qualify DSpark on its current mesh")
+    cluster.add_argument("--base-url", default="http://127.0.0.1:8081/v1")
+    cluster.add_argument("--api-key-file", type=Path)
     credentials = commands.add_parser("init-credentials", help="generate a new private deployment CA and role/API keys locally")
     credentials.add_argument("--output", type=Path, required=True)
     worker = commands.add_parser("serve", help="load the real owned Windows CUDA stage once and keep it resident")
@@ -75,6 +78,9 @@ def main(argv=None):
         elif args.command == "selftest-cuda":
             from .gpu_selftest import run_cuda_checks
             result = run_cuda_checks()
+        elif args.command == "selftest-cluster":
+            from .admin_client import AdminClient
+            result = AdminClient(args.base_url, api_key_file=args.api_key_file).request("POST", "/diagnostics/cluster")
         elif args.command == "init-credentials":
             from .pki import initialize_credentials
             result = initialize_credentials(args.output)

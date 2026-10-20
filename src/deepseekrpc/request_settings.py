@@ -11,7 +11,7 @@ class RequestSettings:
     seed: int
     max_tokens: int
     policy: SamplingPolicy = SamplingPolicy()
-    speculative: bool = True
+    speculative: bool = False
     eos_ids: tuple[int, ...] = (1,)
     logit_bias: tuple[tuple[int, float], ...] = ()
     stop: tuple[str, ...] = ()

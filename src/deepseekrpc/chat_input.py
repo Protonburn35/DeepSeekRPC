@@ -135,7 +135,7 @@ def _blocks(value, *, nested=False):
 
 def _booleans(body):
     for name, default in (("stream", False), ("parallel_tool_calls", True), ("logprobs", False), ("store", False),
-                          ("speculative", True)):
+                          ("speculative", False)):
         if type(body.get(name, default)) is not bool:
             raise ValidationError(f"{name} must be a boolean")
     if body.get("parallel_tool_calls") is False or body.get("logprobs") or body.get("store"):
@@ -220,6 +220,6 @@ def prepare_chat(body, *, model, tokenizer, assets: ImageAssets, default_output=
         elif isinstance(stops, list):
             stops = tuple(stops)
         policy = SamplingPolicy(**{name: body[name] for name in SamplingPolicy.__dataclass_fields__ if name in body})
-        settings = RequestSettings(seed, maximum, policy, speculative=body.get("speculative", True),
+        settings = RequestSettings(seed, maximum, policy, speculative=body.get("speculative", False),
                                    logit_bias=tuple(sorted(pairs)), stop=stops)
         yield PreparedChat(model, history, settings, messages, tools, thinking, stream, usage, choice)

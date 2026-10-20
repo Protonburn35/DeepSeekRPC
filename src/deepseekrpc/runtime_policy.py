@@ -9,6 +9,7 @@ _mutex = threading.Lock()
 _configured = False
 _cuda_math_configured = False
 _EXACT_ENV = {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0",
+              "EXL3_GEMV": "0", "EXL3_GEMM_LEGACY_TILES": "0",
               "VLLM_DISABLE_SHARED_EXPERTS_STREAM": "1"}
 
 

@@ -27,6 +27,13 @@ def run_cuda_checks():
               "platform": platform.platform(), "torch": torch.__version__, "cuda": torch.version.cuda,
               "architecture": f"sm_{architecture[0]}{architecture[1]}", "checks": [],
               "full_model_validation": "not run", "physical_residency_validation": "not run"}
+    from .runtime_identity import require_windows_runtime
+    from .host_selftest import run_host_checks
+    report["runtime_identity"] = require_windows_runtime(device.index)
+    report["host_checks"] = run_host_checks()
+    properties = torch.cuda.get_device_properties(device)
+    report["device"] = {"name": properties.name, "total_bytes": properties.total_memory,
+                        "multiprocessors": properties.multi_processor_count}
     rng = np.random.default_rng(41017)
 
     def tensor(array, dtype):
@@ -93,6 +100,24 @@ def run_cuda_checks():
         # This disposable pool is never published. Failed writes in an actual
         # session require its transaction journal to restore tentative state.
 
+    def stream_events():
+        producer, consumer = torch.cuda.Stream(device=device), torch.cuda.Stream(device=device)
+        ready, complete = torch.cuda.Event(), torch.cuda.Event()
+        host = torch.zeros((3, 264), dtype=torch.uint8, pin_memory=True)
+        host[:, :256], host[:, 256:] = 0x38, 127
+        with torch.cuda.stream(producer):
+            encoded = host.to(device, non_blocking=True)
+            ready.record(producer)
+        with torch.cuda.stream(consumer):
+            consumer.wait_event(ready)
+            result = cuda_ops.decode_engram(encoded)
+            encoded.record_stream(consumer)
+            complete.record(consumer)
+        complete.synchronize()
+        # Both producer storage and the pinned source remain alive until the
+        # consuming event. Exercise the real custom kernel's current stream.
+        torch.testing.assert_close(result.cpu(), torch.ones((3, 256), dtype=torch.bfloat16), rtol=0, atol=0)
+
     def row_pool_rollback():
         from .cache_pool import DeviceRowPool
         from .state import Operation
@@ -146,6 +171,38 @@ def run_cuda_checks():
                 raise AssertionError("prefix retention left a tail row valid")
         finally:
             pool.close()
+
+    def verification_rollback_lengths():
+        from .cache_pool import DeviceRowPool
+        from .state import Operation
+        for accepted in range(7):
+            pool = DeviceRowPool(8, 128, context=32, offset=3, admitted_bytes=1024 * 1024, device=device)
+            try:
+                pool.reset("a" * 32, 0)
+                initial = Operation("a" * 32, "b" * 32, 0, 1, "c" * 32, "d" * 64, 0, 8)
+                original, _ = bf16_array(rng.normal(0, .2, (8, 128)))
+                pool.begin(initial)
+                pool.write(list(range(8)), list(range(8)), original)
+                pool.finish(initial, 8)
+                tentative = Operation("a" * 32, "b" * 32, 0, 2, "e" * 32, "f" * 64, 8, 6)
+                replacement, _ = bf16_array(rng.normal(0, .2, (6, 128)))
+                pool.begin(tentative)
+                pool.write(list(range(8, 14)), list(range(8, 14)), replacement)
+                pool.finish(tentative, accepted)
+                logical = list(range(accepted, 8 + accepted))
+                expected = torch.cat((original[accepted:], replacement[:accepted]))
+                torch.testing.assert_close(pool.data[pool.physical(logical)].view(torch.int16),
+                    expected.view(torch.int16), rtol=0, atol=0)
+                np.testing.assert_array_equal(pool.generations.cpu().numpy(), pool.map.generations)
+                for rejected in range(8 + accepted, 14):
+                    try:
+                        pool.physical([rejected])
+                    except ValidationError:
+                        pass
+                    else:
+                        raise AssertionError("verification rollback retained a rejected logical input")
+            finally:
+                pool.close()
 
     def tiled_index():
         from .cache_pool import DeviceRowPool
@@ -255,11 +312,18 @@ def run_cuda_checks():
     record("BF16 index scores: signed weights and causal visibility", index_scores)
     record("Engram: finite E4M3 codes and UE8M0 byte zero", engram_decode)
     record("BF16 scatter: bit preservation and stale generation refusal", scatter)
+    record("CUDA streams: pinned producer, dependency event, actual Engram consumer and retained storage", stream_events)
     record("BF16 row pool: partial acceptance, ring overwrite and abort", row_pool_rollback)
     record("BF16 encoder prefix: preserved bytes, new generations and invalid tail", prefix_pool_retention)
+    record("BF16 verification rollback: every accepted length 0..6, overwritten ring bytes and generations", verification_rollback_lengths)
     record("BF16 tiled index: independent slots, global ranking and candidate restriction", tiled_index)
     record("BF16 vision attention: fused 9216 patches, 16 heads, head width 64", vision_attention_shape)
     record("FP32 compressor: odd chunks, exact pair closures, partial acceptance and retry", compression_pair_rollback)
+    from .packed_selftest import run_packed_checks
+    report["packed_checks"] = run_packed_checks(device)
+    report["checks"].append({"name": "actual EXL3 K2/K3/K4/K5/K6/K8 layouts, 5120/2304 projections and independent rotations", "status": "passed"})
+    from .graph_selftest import run_graph_checks
+    report["checks"].extend(run_graph_checks(device))
     return report
 
 

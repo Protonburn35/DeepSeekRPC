@@ -136,6 +136,13 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
     root = model_root.resolve(strict=True)
     if (role == Role.HOST) != (engram_root is not None):
         raise ValidationError("exactly stage A must supply the original local Engram directory")
+    # Synthetic CPU goldens, full vision shapes and temporary packed matrices
+    # must not overlap the loaded weights and eager 1M cache lifetime. Qualify
+    # first, release the test allocator cache, then measure/admit model memory.
+    with torch.cuda.device(device), torch.inference_mode():
+        checks = run_cuda_checks()
+        torch.cuda.synchronize(device)
+        torch.cuda.empty_cache()
     vllm_config = make_vllm_config(root)
     initialize_local_groups(vllm_config, rendezvous)
     cancellation = threading.Event()
@@ -231,7 +238,6 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
                                             MAX_READ + memory.host["pinned_and_boot_weight_staging"])
             if sum(record["target_bytes"] for record in native) != memory.gpu["permanent_native_weights"]:
                 raise ValidationError("actual native parameters disagree with complete destination-dtype admission")
-            checks = run_cuda_checks()
             stream.synchronize()
         guard = RuntimeBudgetGuard(memory, baseline=baseline, device=device)
         report = {"status": "LOADED", "stage": "ABC"[int(role)], "identity": identity,

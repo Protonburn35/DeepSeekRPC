@@ -42,6 +42,11 @@
       "distribution": "vllm-exl3",
       "path": "vllm_exl3/exl3.py",
       "sha256": "349c6af3debab6273d4a147a25a4a31f2e7806ac94f9a6fb619c4f4d47000df3"
+    },
+    {
+      "distribution": "vllm-exl3",
+      "path": "vllm_exl3/dequant.py",
+      "sha256": "c0b24b26129eb2281d0de14aaf484abbe947be01fb80b7f3e7de0ed9974aa671"
     }
   ]
 }

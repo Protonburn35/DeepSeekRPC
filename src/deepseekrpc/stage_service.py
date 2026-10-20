@@ -28,6 +28,7 @@ COMMAND_KINDS = {
     "snapshot_seal": Kind.SNAPSHOT_SEAL, "restore_prepare": Kind.RESTORE_PREPARE,
     "restore_validate": Kind.RESTORE_PREPARE, "restore_apply": Kind.RESTORE_APPLY,
     "restore_seal": Kind.RESTORE_ACK,
+    "diagnostic_probe": Kind.CAPABILITIES,
 }
 
 
@@ -123,6 +124,7 @@ class StageService:
                   "prefix_offer": self.execution.prefix.offer,
                   "next_operation": ledger._next,
                   "settings_digest": self._settings.digest if self._settings is not None else None,
+                  "administration_active": self._snapshot is not None or self._restore is not None,
                   "minimum_next_epoch": max(ledger.epoch + 1, self.execution.stage.attention.next_reset_epoch)}
         if self._reset_context is not None:
             status.update(session=self._reset_context.session, request=self._reset_context.request,
@@ -145,7 +147,7 @@ class StageService:
         status = self.status()
         if (session, request, epoch) != (status["session"], status["request"], status["epoch"]):
             return {"cancelled": False}
-        if status["phase"] == "faulted" or status["stop_reason"] is not None:
+        if not status["administration_active"] and (status["phase"] == "faulted" or status["stop_reason"] is not None):
             return {"cancelled": True}
         self.actor.invalidate()
         return {"cancelled": True}
@@ -311,6 +313,12 @@ class StageService:
                 return {"ready": True, "identity": self.execution.stage.identity}
             if not self._ready:
                 raise ValidationError("stage is loaded but has not admitted the complete matching mesh")
+            if action == "diagnostic_probe":
+                fields(body, ("action",))
+                self._frame_context(frame)
+                from .cluster_probe import probe_stage
+                with self.execution._compute():
+                    return probe_stage(self)
             if action == "reset":
                 fields(body, ("action", "prompt", "settings", "prefix"))
                 spec, settings = PromptSpec.from_wire(body["prompt"]), RequestSettings.from_wire(body["settings"])

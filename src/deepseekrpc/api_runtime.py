@@ -40,10 +40,11 @@ class APIRuntime:
             if state == "ready" and self._resources is not None and not self._resources[0].host.status()["transport_ready"]:
                 state = "recovering"
             return {"model": self.model, "status": state, "code": self._code,
-                    "ready": state == "ready", "active_request": self._reservation.locked()}
+                    "ready": state == "ready", "active_request": self._reservation.locked(),
+                    "speculation": self._resources[0].speculation_status() if self._resources is not None else {"qualified": False, "default": False}}
 
     def set_status(self, state, *, code=None):
-        if state not in {"starting", "loading", "connecting", "recovering", "saving", "restoring", "failed", "stopping"}:
+        if state not in {"starting", "loading", "connecting", "recovering", "saving", "restoring", "qualifying", "failed", "stopping"}:
             raise ValidationError("ready status requires actual attached native runtime resources")
         if code is not None and code not in {"WEIGHTS", "MEMORY", "TLS", "RPC", "CUDA", "INTERNAL"}:
             raise ValidationError("runtime status requires a bounded public diagnostic code")
@@ -81,7 +82,7 @@ class APIRuntime:
                         token = object()
                         self._active_reservation, self._owner, self._cancelling = token, owner, False
                         return RequestReservation(self, token, *self._resources, snapshot_store=self._snapshot_store)
-                    recovering = self._resources is not None and status["status"] in {"recovering", "connecting", "saving", "restoring"}
+                    recovering = self._resources is not None and status["status"] in {"recovering", "connecting", "saving", "restoring", "qualifying"}
                     if not self._cancelling and not recovering:
                         if self._reservation.locked():
                             raise RequestBusy("one model request is already active")

@@ -212,3 +212,39 @@ The latest DSR-AUDIT-011 capture confirms the bad sqrt bytes exist immediately,
 with no later mutation. The first 1344-element parallel partition is affected;
 three new calls on the captured input are accurate. The broader suite has one
 failure, 304 passes and four actual-Win32 skips. This remains an open CPU issue.
+
+## DSR-AUDIT-014 — ambient EXL3 GEMV can force a different accumulator
+
+The pinned ExLlama small-M QTIP GEMV mode 2 uses FP16 MMA accumulation followed
+by an FP32 fold. The generic EXL3 GEMM uses FP32 accumulators on the selected
+SM89/SM120 architectures; its half-accumulator specialization is SM86-only.
+Although the default Ada/Blackwell heuristic does not select that GEMV path,
+an inherited EXL3_GEMV=2 could force it. Merely disabling the INT8 flags is
+insufficient to make the selected execution path explicit.
+
+The before-import policy now also sets EXL3_GEMV=0 and
+EXL3_GEMM_LEGACY_TILES=0, and refuses later mutation. The actual CUDA diagnostic
+uses native EXL3 K2/K3/K4/K5/K6/K8 matrices, exact independent trellis/fragment
+reconstruction, 5120/2304 projections and independent normalized rotations.
+Its dot/rotation envelope is computed a priori from FP16 input rounding and
+FP32 accumulation bounds, not fitted after observing GPU output. The plugin's
+independent scalar-codebook source now has a required runtime hash.
+These diagnostics are implemented but have not executed on a GPU.
+
+## DSR-AUDIT-015 — speculation must be qualified before admission
+
+RequestSettings and omitted HTTP speculative controls now default to false.
+Explicit speculative=true is rejected until the actual installed cluster probe
+passes on this loaded component identity and authenticated mesh incarnation.
+Reports and edited files cannot enable that in-memory gate. A replacement mesh
+or process requires qualification again. Paused speculative snapshots can be
+restored after the new process has qualified; they cannot bypass the gate.
+
+The shipped probe uses actual three-stage text/image generation, matching
+logical BF16 source/shadow samples, all-page B weight residency, normal/reused
+target repeatability, greedy target-versus-DSpark parity, sampled repeat/RNG
+consistency, and actual pause/save/restore/continuation. It also runs independent
+tiny verifier/correction equations. Split-versus-itself comparisons are explicitly
+metamorphic evidence; they are not independent full-model goldens. Local GPU
+checks cover overwritten row rollback at every accepted length 0..6. Neither
+the cluster probe nor these new CUDA checks has run on the user's hardware.

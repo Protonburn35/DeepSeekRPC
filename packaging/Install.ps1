@@ -110,7 +110,7 @@ if ($Manifest.kind -eq 'bootstrap-test' -and -not $BootstrapOnly) {
 foreach ($Property in $Manifest.files.PSObject.Properties) {
     Verify-File (Owned-Path $Property.Name) $Property.Value
 }
-$Allowed = @('BUNDLE.json', '.bootstrap', '.python', 'runtime', '.installation-check', '.install-complete.json',
+$Allowed = @('BUNDLE.json', '.bootstrap', '.python', 'runtime', '.installation-check', '.install-complete.json', '.install-complete.json.partial',
              '.install-owner', 'installer.lock', 'credentials', 'runtime-A', 'runtime-B', 'runtime-C')
 foreach ($Name in $Manifest.files.PSObject.Properties.Name) { $Allowed += $Name.Split('/')[0] }
 foreach ($Entry in Get-ChildItem -LiteralPath $BundleRoot -Force) {
@@ -123,7 +123,7 @@ $OwnerText = 'DeepSeekRPC isolated runtime installation v1'
 if (Test-Path -LiteralPath $OwnerPath) {
     if ((Get-Content -LiteralPath $OwnerPath -Raw -Encoding UTF8).Trim() -ne $OwnerText) { throw 'Install ownership marker differs.' }
 } else {
-    foreach ($Name in @('.bootstrap', '.python', 'runtime', '.installation-check', '.install-complete.json',
+    foreach ($Name in @('.bootstrap', '.python', 'runtime', '.installation-check', '.install-complete.json', '.install-complete.json.partial',
                         'installer.lock', 'runtime-A', 'runtime-B', 'runtime-C')) {
         if (Test-Path -LiteralPath (Join-Path $BundleRoot $Name)) {
             throw 'An existing runtime/state directory has no matching DeepSeekRPC install owner. Choose a new extracted bundle directory.'
@@ -171,11 +171,26 @@ try {
                       '--no-bin', '--no-registry', '--python-downloads-json-url', $DownloadMetadata,
                       '--no-config', '--no-progress')
     $BasePython = Owned-Path ('.python/' + $Bootstrap.python.key + '/python.exe')
+    if (-not $BootstrapOnly) {
+        foreach ($Relative in $Manifest.app_local_crt) {
+            $Origin = Owned-Path $Relative
+            $Target = Owned-Path ('.python/' + $Bootstrap.python.key + '/' + [IO.Path]::GetFileName($Relative))
+            if (-not (Test-Path -LiteralPath $CompletePath)) { [IO.File]::Copy($Origin, $Target, $true) }
+            Verify-File $Target $Manifest.files.PSObject.Properties[$Relative].Value
+        }
+    }
     Run-Checked $BasePython @('-c', 'import sys; assert sys.version_info[:3] == (3,12,14)')
     $RuntimeRoot = Owned-Path 'runtime'
     $Python = Owned-Path 'runtime/Scripts/python.exe'
     if (-not (Test-Path -LiteralPath $Python)) {
         Run-Checked $Uv @('venv', '--no-project', '--no-python-downloads', '--python', $BasePython, $RuntimeRoot)
+    }
+    if (-not $BootstrapOnly) {
+        foreach ($Relative in $Manifest.app_local_crt) {
+            $Target = Owned-Path ('runtime/Scripts/' + [IO.Path]::GetFileName($Relative))
+            if (-not (Test-Path -LiteralPath $CompletePath)) { [IO.File]::Copy((Owned-Path $Relative), $Target, $true) }
+            Verify-File $Target $Manifest.files.PSObject.Properties[$Relative].Value
+        }
     }
     Run-Checked $Python @('-c', 'import sys; assert sys.version_info[:3] == (3,12,14); assert sys.prefix != sys.base_prefix')
     if ($BootstrapOnly) {
@@ -197,7 +212,13 @@ try {
     } finally { Pop-Location }
     $Complete = @{ format = 1; source_commit = $Manifest.source_commit; python = '3.12.14';
                    scope = 'Native imports, Python dependencies and SDK-free device-independent startup; GPU execution not run' }
-    [IO.File]::WriteAllText((Owned-Path '.install-complete.json'), ($Complete | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+    $CompleteTemporary = Owned-Path '.install-complete.json.partial'
+    $CompleteBytes = [Text.UTF8Encoding]::new($false).GetBytes(($Complete | ConvertTo-Json))
+    $CompleteStream = [IO.File]::Open($CompleteTemporary, [IO.FileMode]::Create, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    try { $CompleteStream.Write($CompleteBytes, 0, $CompleteBytes.Length); $CompleteStream.Flush($true) }
+    finally { $CompleteStream.Dispose() }
+    if (Test-Path -LiteralPath $CompletePath) { [IO.File]::Replace($CompleteTemporary, $CompletePath, $null) }
+    else { [IO.File]::Move($CompleteTemporary, $CompletePath) }
     Write-Output 'DeepSeekRPC isolated runtime installed. Configure the role files and run local preflight before starting a worker.'
 } finally {
     foreach ($Name in $Saved.Keys) { [Environment]::SetEnvironmentVariable($Name, $Saved[$Name], 'Process') }

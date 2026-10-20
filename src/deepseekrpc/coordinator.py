@@ -50,6 +50,24 @@ class ClusterCoordinator:
         self._external_cancelled = None
         self._external_paused = None
         self.last_prefill = None
+        self.last_decode = None
+        self._speculation_proof = None
+        self._qualification_thread = None
+        self.last_qualification = None
+
+    def speculation_status(self):
+        key = self.host.execution.stage.identity, self.host.mesh_nonce
+        proof = self._speculation_proof
+        return {"qualified": proof is not None and proof[0] == key,
+                "default": False, "scope": "current loaded component identity and authenticated mesh incarnation",
+                "report_sha256": proof[1] if proof is not None and proof[0] == key else None}
+
+    def require_speculation(self, settings):
+        if self._qualification_thread is not None and self._qualification_thread != threading.get_ident():
+            raise ValidationError("cluster diagnostics currently own model request admission")
+        if (settings.speculative and not self.speculation_status()["qualified"] and
+                self._qualification_thread != threading.get_ident()):
+            raise ValidationError("speculation is disabled until selftest-cluster passes on this loaded cluster and mesh")
 
     @property
     def idle(self):
@@ -230,7 +248,11 @@ class ClusterCoordinator:
         decision = self._terminal("verify")
         accepted = integer(decision.get("accepted_target_rows"), "accepted verification inputs", 1, len(inputs.tokens))
         self._commit_window(accepted=accepted, result_digest=decision["digest"], pending_token=decision["pending_token"])
-        return self._publish(decision, initial=False, mode=mode)
+        batch = self._publish(decision, initial=False, mode=mode)
+        self.last_decode = {"mode": mode, "proposed_tokens": len(proposals),
+            "verified_target_inputs": len(inputs.tokens), "accepted_drafts": accepted - 1,
+            "rolled_back_inputs": len(inputs.tokens) - accepted, "output_tokens": len(batch.output_ids)}
+        return batch
 
     def _pause_batch(self, batch):
         if batch.stop_reason is None and self._external_paused is not None and self._external_paused():
@@ -240,6 +262,7 @@ class ClusterCoordinator:
     def generate(self, prompt: TokenHistory, settings: RequestSettings, *, cancelled=None, paused=None):
         if not isinstance(prompt, TokenHistory) or not isinstance(settings, RequestSettings):
             raise ValidationError("generation needs validated full original token/image history and immutable settings")
+        self.require_speculation(settings)
         if prompt.identity != self.host.execution.stage.identity or not 1 <= prompt.length < prompt.capacity:
             raise ValidationError("prompt identity/context leaves no admitted output capacity")
         if cancelled is not None and not callable(cancelled):
@@ -256,7 +279,7 @@ class ClusterCoordinator:
             self._external_paused = paused
         complete = False
         try:
-            self._window, self._number = None, 1
+            self._window, self._number, self.last_decode = None, 1, None
             self._check_cancel()
             peers = self.admit()
             from .prefix import select_prefix
@@ -307,6 +330,7 @@ class ClusterCoordinator:
         if (session != ledger.session or ledger.phase != "decode" or not ledger.quiescent or
                 ledger.stop_reason is not None or ledger.pending_token is None):
             raise ValidationError("only the current paused committed session can continue")
+        self.require_speculation(self.host._settings)
         with self._cancel_lock:
             if not self._request_lock.acquire(blocking=False):
                 raise RuntimeError("another request already owns the cluster")

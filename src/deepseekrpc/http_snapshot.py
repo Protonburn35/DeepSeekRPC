@@ -10,7 +10,7 @@ from .snapshot_coordinator import SnapshotCoordinator
 
 class SnapshotRequestOwner:
     def __init__(self, runtime, action, *, identifier=None, on_done=None):
-        if not isinstance(runtime, APIRuntime) or action not in {"list", "save", "restore", "delete"}:
+        if not isinstance(runtime, APIRuntime) or action not in {"list", "save", "restore", "delete", "probe"}:
             raise ValidationError("unknown runtime snapshot administrative action")
         if action in {"restore", "delete"}:
             hex_id(identifier, 32, "opaque snapshot")
@@ -53,6 +53,15 @@ class SnapshotRequestOwner:
                 self._result = {"object": "list", "data": lease.snapshot_store.list()}
             elif self.action == "delete":
                 self._result = lease.snapshot_store.remove(self.id)
+            elif self.action == "probe":
+                from .cluster_probe import ClusterProbe
+                self._operation = ClusterProbe(lease.coordinator, lease.assets, lease.tokenizer,
+                    model=self.runtime.model, snapshots=lease.snapshot_store)
+                if self.cancelled.is_set():
+                    self._operation.cancel()
+                    raise InterruptedError("cluster diagnostics cancelled before admission")
+                self.runtime.set_status("qualifying")
+                self._result = self._operation.run()
             else:
                 self._operation = SnapshotCoordinator(lease.coordinator, lease.snapshot_store)
                 if self.cancelled.is_set():

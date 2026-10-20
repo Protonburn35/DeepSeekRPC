@@ -76,6 +76,13 @@ def main():
     def native_imports():
         from deepseekrpc.runtime_policy import configure_exact_cuda_math
         configure_exact_cuda_math()
+        for relative in manifest["app_local_crt"]:
+            expected = manifest["files"][relative]["sha256"]
+            for directory in (Path(sys.base_prefix), Path(sys.executable).parent):
+                path = directory / Path(relative).name
+                with path.open("rb") as stream:
+                    if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
+                        raise RuntimeError("private app-local MSVC runtime differs from its admitted bundle")
         for record in manifest["native_files"]:
             path = Path(metadata.distribution(record["distribution"]).locate_file(record["path"]))
             if not path.is_relative_to(Path(sys.prefix)):

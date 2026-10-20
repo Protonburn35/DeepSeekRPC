@@ -153,6 +153,9 @@ class PersistentWorker:
             return self.runtime.cancel_active()
         if self.service is not None:
             status = self.service.status()
+            if status["administration_active"]:
+                self.service.actor.invalidate()
+                return True
             if status["phase"] not in {"idle", "faulted"} and status["stop_reason"] is None:
                 return self.service.cancel(session=status["session"], request=status["request"], epoch=status["epoch"])["cancelled"]
         return False

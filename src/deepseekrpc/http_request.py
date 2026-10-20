@@ -88,6 +88,7 @@ class HTTPRequestOwner:
             lease = self.runtime.reserve(owner=self, cancelled=self.cancelled.is_set)
             with prepare_chat(self.body, model=self.runtime.model, tokenizer=lease.tokenizer,
                               assets=lease.assets, default_output=self.runtime.default_output) as request, self._quiescence():
+                lease.coordinator.require_speculation(request.settings)
                 if self.cancelled.is_set():
                     raise InterruptedError("HTTP request cancelled during original prompt preparation")
                 parser = CompletionParser(lease.tokenizer, model=request.model, messages=request.messages,

@@ -538,3 +538,50 @@ application_source_identity covered 89 files with SHA-256
 0a2f6d5ff91409dc09a7ccee969bb20362c4bbf6d0baaf60db9827691a238e97.
 Installed snapshot CLI help exited successfully. This is packaging/import
 evidence, without native model construction or full-model qualification.
+
+## 2026-10-20 — isolated Windows bootstrap, runtime assembly and diagnostics
+
+Windows CPU runs 39355257126 and 39355507560 passed the credential/bootstrap
+source. Bootstrap run 39355507561 passed actual Windows PowerShell 5.1,
+checksum-pinned uv 0.12.23 and CPython 3.12.14, two isolated installs, unchanged
+user/machine PATH and refusal to mark an application installed after bootstrap
+alone. The earlier Get-FileHash command failure was repaired using streaming
+.NET SHA-256. Fresh P256 role credentials use neutral subjects and private
+current-user/SYSTEM Windows ACLs; real mTLS and ACL checks passed.
+
+Full pinned EXLlama run 39345608258 passed compile/link/install/import,
+both architectures and dependency consistency. Its retained wheel SHA-256 is
+980945a64b84da802ebae5529244d50b887861391e251d3a2fc65347a7226bf1.
+Full vLLM run 39345608248 reached step 163/189, then hit its three-hour timeout
+while building FlashAttention. The same complete profile was restarted as
+39400420994 with a six-hour limit. It remains unqualified until completion.
+
+Added complete five-wheel Windows bundle assembly, app-local MSVC runtime,
+hash-locked external dependency installation, bare-system-PATH native/source/
+concrete-class/original-parser qualification and an atomic completion marker.
+Launchers check the completed bundle and private interpreter. This full runtime
+assembly/installation workflow is implemented but has not yet run successfully;
+the bootstrap pass is not substituted for it. Corresponding-source links,
+exact upstream pins and local patches are included in the bundle source offer.
+
+Expanded actual GPU self-test source covers all admitted packed K values,
+5120/2304 projections, independent trellis/layout/rotation equations, width-5120
+mHC, target/draft image-aware routing, stream/event dependencies and rollback
+lengths 0..6. Required diagnostics run before full weights/eager cache allocation
+and release their temporary allocator cache before admission. Synthetic native
+file/Engram/locked-memory checks and Windows effective CPU feature reporting
+are shipped too. GPU execution is still NOT RUN.
+
+The expanded CPU suite finished with 347 passes, four real-Win32 skips and one
+failure at the previously captured Linux Torch sqrt discrepancy, unchanged
+comparison tolerances. A cold-import policy subprocess also exceeded its old
+20-second startup deadline in an earlier focused run; its meaningful precision
+assertions now allow 60 seconds for native Torch startup. The later full suite
+passed that policy test. The cluster-gate/API/persistence/host focused suite
+passed 33 tests after correcting its missing metadata fixture.
+
+Actual installed-cluster probe and incarnation-bound speculation admission are
+now integrated source (DSR-AUDIT-015). The probe invokes real stages and the real
+snapshot coordinator; CPU receipt fixtures do not emulate a GPU model. Its
+full-model parity/residency/image/restore checks remain unrun. The complete
+candidate and independent Astra review remain pending.
