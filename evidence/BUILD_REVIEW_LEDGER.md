@@ -714,3 +714,15 @@ build on main and still validates all component/profile/source identities.
 A whole-source review guide and packet builder are prepared. Packet creation
 requires successful same-commit native Windows CPU and sealed complete private
 runtime evidence; no intermediate candidate is offered as a finished review.
+
+## 2026-10-20 — first-run device diagnostic state ownership
+
+Source review found DSR-AUDIT-019: self-test could create a JIT cache before
+claiming its state root, causing normal startup to reject it as an unrelated
+nonempty directory. Device preflight now owns/locks that directory for the
+entire diagnostic lifetime and releases it on both outcomes. Regression tests
+use actual file locks and cache directories with an explicit I/O observer;
+no GPU/model backend or result is simulated. Fifteen focused checks pass.
+Windows CPU 39412586993 passed preceding f264367. Complete vLLM build and
+installed-runtime qualification remain in progress/pending; no GPU result or
+independent review is claimed.

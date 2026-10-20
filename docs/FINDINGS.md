@@ -310,3 +310,19 @@ The compiler selection/ELF inspection portion of DSR-AUDIT-017 is qualified on
 that exact toolchain. Complete application installation and real GPU/model math
 remain separate pending gates. DSR-AUDIT-018's YAML now parses in CPU CI; running
 native builds are preserved and duplicate pending native runs were cancelled.
+
+## DSR-AUDIT-019 — claim self-test state before JIT cache creation
+
+The new before-import compiler policy can create a role's kernels/triton cache.
+Standalone `serve --self-test` previously called that policy before own_state
+had created its ownership marker. A later normal serve would then correctly
+refuse the nonempty unowned directory. The hardware path has not been run;
+this is a concrete first-run ordering defect found in source review.
+
+Device preflight now claims/locks the same real state directory before any JIT
+cache write and holds ownership throughout diagnostics. It releases ownership
+on success or failure, allowing later normal startup to reuse the marked cache.
+An already loaded owner excludes a concurrent self-test. Regression fixtures
+exercise real file locks/directories and interrupted lifetime, with an explicit
+I/O observer instead of a fabricated GPU result. Fifteen focused state, config
+and precision-policy checks pass. Actual GPU diagnostics remain unrun.

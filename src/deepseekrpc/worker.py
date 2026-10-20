@@ -109,6 +109,27 @@ class APIServer:
         self.socket.close()
 
 
+def _device_preflight(config, state):
+    from .runtime_identity import require_windows_runtime
+    from .gpu_selftest import run_cuda_checks
+    from .memory_budget import query_device_budget
+    from .native_windows import physical_host_memory
+    runtime = require_windows_runtime(config.device, cache_root=state / "kernels/triton")
+    import torch
+    with torch.cuda.device(config.device):
+        checks = run_cuda_checks()
+    return {"component_identity": runtime["component_identity"],
+            "device_budget": asdict(query_device_budget(config.device)), "host": physical_host_memory(),
+            "native_checks": checks}
+
+
+def _owned_device_preflight(config):
+    # JIT checks create a private kernel cache. Claim the directory first so
+    # the later worker recognizes it, and exclude a concurrently loaded owner.
+    with own_state(config.state_root) as state:
+        return _device_preflight(config, state)
+
+
 def preflight(config: DeploymentConfig, *, device_checks=True):
     """No listeners, model construction or weight payload allocation."""
     manifest, _, plan, identity = local_deployment(config.model_root, split=tuple(config.shared["split"]))
@@ -120,17 +141,7 @@ def preflight(config: DeploymentConfig, *, device_checks=True):
     result = {"stage": "ABC"[int(config.role)], "run": config.run, "deployment_identity": identity,
               "plan": plan.as_dict(), "model_construction": "not performed", "payload_preload": "not performed"}
     if device_checks:
-        from .runtime_identity import require_windows_runtime
-        from .gpu_selftest import run_cuda_checks
-        from .memory_budget import query_device_budget
-        from .native_windows import physical_host_memory
-        runtime = require_windows_runtime(config.device, cache_root=config.state_root / "kernels/triton")
-        import torch
-        with torch.cuda.device(config.device):
-            checks = run_cuda_checks()
-        result.update(component_identity=runtime["component_identity"],
-                      device_budget=asdict(query_device_budget(config.device)), host=physical_host_memory(),
-                      native_checks=checks)
+        result.update(_owned_device_preflight(config))
     return result
 
 

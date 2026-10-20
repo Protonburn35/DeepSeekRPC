@@ -2,6 +2,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
+from types import SimpleNamespace
 
 import pytest
 
@@ -79,6 +80,33 @@ def test_runtime_directory_has_real_exclusive_ownership_and_preserves_other_file
         with own_state(unrelated):
             pass
     assert (unrelated / "do-not-touch").read_bytes() == b"preserve"
+
+
+@pytest.mark.parametrize("failed", [False, True])
+def test_device_diagnostics_claim_state_before_cache_writes_and_release_afterward(tmp_path, monkeypatch, failed):
+    from deepseekrpc import worker
+    config = SimpleNamespace(state_root=tmp_path / "fresh-state")
+
+    def lifetime_observer(config, state):
+        # An I/O/ownership fixture only; no device/model result is fabricated.
+        assert (state / ".owner").is_file()
+        with pytest.raises(RuntimeError, match="already owns"):
+            with own_state(state):
+                raise AssertionError("concurrent stage owner admitted during diagnostics")
+        (state / "kernels/triton").mkdir(parents=True)
+        if failed:
+            raise OSError("synthetic diagnostic lifetime interruption")
+        return {"scope": "ownership fixture only"}
+
+    monkeypatch.setattr(worker, "_device_preflight", lifetime_observer)
+    if failed:
+        with pytest.raises(OSError, match="lifetime interruption"):
+            worker._owned_device_preflight(config)
+    else:
+        assert worker._owned_device_preflight(config)["scope"] == "ownership fixture only"
+    # Normal startup can claim the same real directory despite the JIT cache.
+    with own_state(config.state_root):
+        assert (config.state_root / "kernels/triton").is_dir()
 
 
 def test_actual_background_http_listener_reports_loading_without_a_model():
