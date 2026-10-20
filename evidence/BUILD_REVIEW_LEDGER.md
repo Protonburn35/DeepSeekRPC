@@ -821,3 +821,15 @@ bucket. DSR-AUDIT-022 pins it to the intended default 1 before import and checks
 later mutation alongside all existing EXL3 precision selectors. Fourteen focused
 policy/routed/wait tests passed. No native source/profile changed or build was
 restarted. Actual CUDA row invariance remains an independent unrun gate.
+
+## 2026-10-20 — prequalify the full private external dependency stack
+
+The standalone Windows compiler workflow now follows its real TinyCC/Triton
+checks with installation of the entire hash-locked external runtime stack into
+the same pinned private Python 3.12.14. It runs actual pip check, CUDA-Torch
+2.11/vision/audio/TVM imports, Gloo subgroup lifetime/cleanup and unloaded API
+startup under a bare system PATH with GPUs hidden. This independent gate can
+find dependency/import failures while the native vLLM build is still running.
+It does not substitute any native library or claim the complete five-wheel
+runtime is qualified. All seven workflow files and both nested Python child
+programs parse locally; actual native Windows execution follows the push.
