@@ -436,3 +436,27 @@ their exported schemas and SM89/SM120 images, then repeats import without the
 SDK. Complete installation repeats both native registrations. The build emits
 bounded progress counts every 45 seconds without publishing raw paths. Actual
 fresh Windows compile/install qualification is still required.
+
+## DSR-AUDIT-025 — admit the compiler-qualified vLLM wheel version
+
+The retained metadata log from run 39408672207 identifies the distribution as
+0.31.0+deepseekrpc2.cu132. Upstream appends the compiler's CUDA version when it
+differs from its default 13.0. Our actual SDK is 13.2, but runtime admission
+expected only 0.31.0+deepseekrpc2, so complete installation would reject the
+compiled wheel. That earlier run failed before producing a wheel; its metadata
+is not native qualification evidence.
+
+Runtime admission now expects the actual .cu132 distribution version. The
+native source, build command and Torch 2.11.0+cu130 dependency are unchanged.
+No wheel is renamed or repacked. Full installation must still verify the
+completed wheel's metadata, source hashes and actual native registrations.
+
+The separate CPU Python audit now verifies the installed patched vLLM file
+hashes and real decoder factory signature, in addition to importing the actual
+adapter base classes. An older CPU audit wheel did not contain the current
+stage hooks; its earlier import checks did not cover those hooks. Refreshing
+that supported empty build provides Python integration evidence only, without
+claiming Windows compilation, GPU execution or full-model qualification.
+The fresh Torch 2.11 CPU audit passed all six installed integration checks,
+all 20 original parser checks and pip check. Complete Windows qualification now
+also imports the actual decoder and checks both factories before completion.

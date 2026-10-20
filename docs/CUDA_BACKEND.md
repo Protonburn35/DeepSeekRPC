@@ -73,7 +73,8 @@ non-build `.claude/skills` aliases are omitted during Windows extraction, avoidi
 a symlink privilege requirement; runtime/build source files remain intact.
 
 The vLLM wheel selects the explicit `VLLM_DEEPSEEKRPC_EXL3` build profile and
-version `0.31.0+deepseekrpc2`. Exact before/after hashes and patch hashes are
+distribution version `0.31.0+deepseekrpc2.cu132` (the upstream compiler suffix
+for the pinned CUDA 13.2 SDK). Exact before/after hashes and patch hashes are
 recorded under `patches/`. This profile omits upstream SM12x FP8/NVFP4 matrix
 and MoE kernels, which are unused by this model and fail MSVC C2719 in the
 unmodified build. It preserves CUDA's descriptor alignment. Native capability

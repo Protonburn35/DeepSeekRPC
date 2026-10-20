@@ -88,7 +88,18 @@ mistral-common, so the initial bootstrap NumPy 2.5.4 was replaced with 2.3.5.
 Setuptools 80.10.2 meets the upstream >=77,<81 requirement. pip check passes.
 The CPU build is a source-integration audit, not a native Windows runtime build.
 
-Real CUDA kernels, Windows extension builds,
+An additional isolated Linux CPU audit uses the deployed Torch 2.11 release
+family. The verified direct +cpu wheel replaces only the Torch block in derived
+copies of the reference/audit locks; the repository locks stay unchanged.
+All 382 available unit checks pass, with four Windows-only skips. A fresh empty
+vLLM build contains all five current patches. Six installed integration checks
+verify actual imports, disabled usage reporting, current source hashes and both
+decoder factories; all 20 original parser checks and pip check pass. Exact
+wheel hashes and build settings are in
+evidence/installed-integration-audit-torch211-provenance.json. These results do
+not close the separate Torch 2.13 CPU sqrt finding DSR-AUDIT-011.
+
+Complete Windows runtime installation, real CUDA kernel execution,
 BF16 attention/index execution, physical laptop residency, exact CED scheduling,
 vision, distributed full-model behavior and throughput remain unverified.
 These are implementation/build gates, not waived requirements. Ongoing remote

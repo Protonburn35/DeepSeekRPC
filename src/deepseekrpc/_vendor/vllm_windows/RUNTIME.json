@@ -1,7 +1,7 @@
 {
   "scope": "Required source identities for actual Windows stage construction; no GPU qualification claim",
   "versions": {
-    "vllm": "0.31.0+deepseekrpc2",
+    "vllm": "0.31.0+deepseekrpc2.cu132",
     "vllm-exl3": "0.5.0",
     "exllamav3": "1.6.1.post1",
     "torch": "2.11.0+cu130",

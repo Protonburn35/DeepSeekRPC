@@ -7,7 +7,10 @@ It does not inject namespace stubs, build native extensions or qualify a GPU.
 from __future__ import annotations
 
 import argparse
+import hashlib
 from importlib import metadata
+from importlib.resources import files
+import inspect
 import json
 import os
 from pathlib import Path
@@ -27,6 +30,7 @@ def main():
               "CUDA_execution": "not run", "native_Windows_build": "not run", "checks": []}
 
     def record(name, function):
+        print(f"CPU integration check: {name}", flush=True)
         try:
             value = function()
         except Exception as exc:
@@ -61,6 +65,23 @@ def main():
             raise RuntimeError("the actual upstream usage reporter is enabled despite offline startup")
         return "registered; actual upstream usage reporting disabled"
 
+    def current_hook_sources():
+        lock = json.loads(files("deepseekrpc._vendor.vllm_windows").joinpath("RUNTIME.json").read_text())
+        upstream = metadata.distribution("vllm")
+        checked = []
+        for item in lock["files"]:
+            if item["distribution"] != "vllm":
+                continue
+            path = upstream.locate_file(item["path"])
+            with path.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            if digest != item["sha256"]:
+                raise RuntimeError("installed CPU audit wheel differs from the current patched vLLM source")
+            checked.append({"path": item["path"], "sha256": digest})
+        if not checked:
+            raise RuntimeError("the runtime identity contains no vLLM source checks")
+        return checked
+
     def owned_adapters():
         from deepseekrpc.runtime_policy import configure_exact_exl3
         configure_exact_exl3()
@@ -70,6 +91,7 @@ def main():
         from vllm.models.deepseek_v41.attention import DeepseekV4Attention
         from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
         from vllm.models.deepseek_v41.common.engram import Engram
+        from vllm.models.deepseek_v41.nvidia.model import DeepseekV4DecoderLayer
         if (not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or BoundedMoEMethod.__abstractmethods__ or
                 DiskEngram.__bases__ != (Engram,)):
             raise RuntimeError("owned adapters do not bind the real upstream model classes")
@@ -77,6 +99,9 @@ def main():
             raise RuntimeError("owned BF16 attention is not a concrete real upstream subclass")
         if not issubclass(OwnedDSparkAttention, OwnedBF16Attention) or OwnedDSparkAttention.__abstractmethods__:
             raise RuntimeError("owned DSpark attention is not its concrete explicit draft backend")
+        parameters = inspect.signature(DeepseekV4DecoderLayer.__init__).parameters
+        if not {"rpc_attention_factory", "rpc_engram_factory"} <= parameters.keys():
+            raise RuntimeError("actual upstream decoder does not expose the owned stage factories")
         return "actual vLLM routed-method, learned Engram and concrete BF16 attention classes; CUDA constructors/execution not run"
 
     try:
@@ -84,6 +109,7 @@ def main():
         record("plugin_entrypoint", plugin_entrypoint)
         record("import_plugin", import_plugin)
         record("register_plugin", register_plugin)
+        record("current_patched_vllm_sources", current_hook_sources)
         record("owned_adapter_imports", owned_adapters)
     finally:
         args.output.parent.mkdir(parents=True, exist_ok=True)

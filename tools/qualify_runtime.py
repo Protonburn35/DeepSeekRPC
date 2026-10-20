@@ -7,6 +7,7 @@ original parser. No model payload, namespace stub or GPU result is used.
 from importlib import metadata
 import argparse
 import hashlib
+import inspect
 import json
 import os
 from pathlib import Path
@@ -166,9 +167,12 @@ def main():
         from deepseekrpc.vllm_engram import DiskEngram
         from deepseekrpc.vllm_experts import BoundedMoEMethod
         from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
+        from vllm.models.deepseek_v41.nvidia.model import DeepseekV4DecoderLayer
         if (not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or BoundedMoEMethod.__abstractmethods__ or OwnedBF16Attention.__abstractmethods__ or
                 OwnedDSparkAttention.__abstractmethods__ or DiskEngram.__bases__[0].__name__ != "Engram"):
             raise RuntimeError("owned adapters do not bind their actual concrete upstream classes")
+        if not {"rpc_attention_factory", "rpc_engram_factory"} <= inspect.signature(DeepseekV4DecoderLayer.__init__).parameters.keys():
+            raise RuntimeError("actual installed decoder does not expose the owned stage factories")
         from deepseekrpc.api import create_app
         from deepseekrpc.api_runtime import APIRuntime
         from fastapi.testclient import TestClient

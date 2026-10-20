@@ -1,0 +1,55 @@
+{
+  "scope": "installed CPU-only empty vLLM Python integration; no CUDA extensions",
+  "CUDA_execution": "not run",
+  "native_Windows_build": "not run",
+  "checks": [
+    {
+      "name": "import_vllm",
+      "status": "passed",
+      "result": {
+        "version": "0.31.0+empty",
+        "torch": "2.11.0+cpu"
+      }
+    },
+    {
+      "name": "plugin_entrypoint",
+      "status": "passed",
+      "result": [
+        "vllm_exl3:vllm_exl3.bf16_madv_compat:register"
+      ]
+    },
+    {
+      "name": "import_plugin",
+      "status": "passed",
+      "result": "0.5.0"
+    },
+    {
+      "name": "register_plugin",
+      "status": "passed",
+      "result": "registered; actual upstream usage reporting disabled"
+    },
+    {
+      "name": "current_patched_vllm_sources",
+      "status": "passed",
+      "result": [
+        {
+          "path": "vllm/models/deepseek_v4/nvidia/model.py",
+          "sha256": "1bf29b0d2543975e2474bf42b184a504dc7ed90c5eee8afafa4031518fda3a33"
+        },
+        {
+          "path": "vllm/models/deepseek_v41/nvidia/model.py",
+          "sha256": "6ecef14e39598f7cf028f8425317ce0db0a07e6a4ea47a6ff3238beed1ed21f4"
+        },
+        {
+          "path": "vllm/tilelang_utils/__init__.py",
+          "sha256": "9029932935593d4d220a4c27c7db13f96c54b21906445bf8121ec6e924743df7"
+        }
+      ]
+    },
+    {
+      "name": "owned_adapter_imports",
+      "status": "passed",
+      "result": "actual vLLM routed-method, learned Engram and concrete BF16 attention classes; CUDA constructors/execution not run"
+    }
+  ]
+}

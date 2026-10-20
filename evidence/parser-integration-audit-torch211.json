@@ -1,0 +1,107 @@
+{
+  "scope": "actual installed Python parser/tokenizer; no model or GPU execution",
+  "vllm": "0.31.0+empty",
+  "checks": [
+    {
+      "fixture": 0,
+      "token_chunk": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": 0,
+      "token_chunk": 2,
+      "status": "passed"
+    },
+    {
+      "fixture": 0,
+      "token_chunk": 5,
+      "status": "passed"
+    },
+    {
+      "fixture": 0,
+      "token_chunk": 6,
+      "status": "passed"
+    },
+    {
+      "fixture": 1,
+      "token_chunk": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": 1,
+      "token_chunk": 2,
+      "status": "passed"
+    },
+    {
+      "fixture": 1,
+      "token_chunk": 5,
+      "status": "passed"
+    },
+    {
+      "fixture": 1,
+      "token_chunk": 6,
+      "status": "passed"
+    },
+    {
+      "fixture": 2,
+      "token_chunk": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": 2,
+      "token_chunk": 2,
+      "status": "passed"
+    },
+    {
+      "fixture": 2,
+      "token_chunk": 5,
+      "status": "passed"
+    },
+    {
+      "fixture": 2,
+      "token_chunk": 6,
+      "status": "passed"
+    },
+    {
+      "fixture": 3,
+      "token_chunk": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": 3,
+      "token_chunk": 2,
+      "status": "passed"
+    },
+    {
+      "fixture": 3,
+      "token_chunk": 5,
+      "status": "passed"
+    },
+    {
+      "fixture": 3,
+      "token_chunk": 6,
+      "status": "passed"
+    },
+    {
+      "fixture": 4,
+      "token_chunk": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": 4,
+      "token_chunk": 2,
+      "status": "passed"
+    },
+    {
+      "fixture": 4,
+      "token_chunk": 5,
+      "status": "passed"
+    },
+    {
+      "fixture": 4,
+      "token_chunk": 6,
+      "status": "passed"
+    }
+  ],
+  "GPU_execution": "not run"
+}

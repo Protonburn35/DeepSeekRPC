@@ -1,0 +1,95 @@
+{
+  "scope": "Linux CPU Python integration only; no Windows/CUDA/model qualification",
+  "torch": {
+    "version": "2.11.0+cpu",
+    "url": "https://download-r2.pytorch.org/whl/cpu/torch-2.11.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl",
+    "sha256": "f82e2ae20c1545bb03997d1cc3143d94e14b800038669ee1aca45808a9acc338"
+  },
+  "application_source_identity": {
+    "sha256": "4d557643f1220384d2f97e15272a4a5fa66edd799470f54189f1542da1b94ec1",
+    "files": 104
+  },
+  "source_base_commit": "b8d36645f60d3d4d2f83d2b57cf465306476430b",
+  "source_changes": "runtime admission version corrected to upstream .cu132; CPU audit checks current source hashes and decoder factory signature",
+  "vllm_source_archive": {
+    "repository": "SystemPanic/vllm-windows",
+    "commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+    "url": "https://codeload.github.com/SystemPanic/vllm-windows/tar.gz/3b5b6bcac87589cf35297c0283f0ba500e867645",
+    "archive_bytes": 43287234,
+    "archive_sha256": "7ce3ed8f7d353d599c734b4dae2f0874302b013d33f3b18245b1b7eec5bc152d"
+  },
+  "vllm_patches": [
+    {
+      "lock": "vllm-windows-exl3-build.lock.json",
+      "sha256": "8ba0cd5efe7f2cca93f1715d8b2fae85d800f9308f8eea100bb838634b0307cc"
+    },
+    {
+      "lock": "vllm-windows-float-infinity.lock.json",
+      "sha256": "7ad21c030ea60d250013e538cebce7bb77ad63dee20acfad4010bc17a05a71b1"
+    },
+    {
+      "lock": "vllm-windows-mhc.lock.json",
+      "sha256": "4b2cb539e75bfce3c509be9a322f5196b7fcc85242ffd0c5fa4b51c2a4996ef2"
+    },
+    {
+      "lock": "vllm-windows-owned-runtime.lock.json",
+      "sha256": "974afb34134cedc3bdccda2153b0722c94c4982cbadd82d51835b5cfa22d7ce1"
+    },
+    {
+      "lock": "vllm-windows-stage-hooks.lock.json",
+      "sha256": "68126e58cce39e4c730e43c1b4838b99fd6270a1ee5f880913295df5d346153d"
+    }
+  ],
+  "empty_build_environment": {
+    "VLLM_TARGET_DEVICE": "empty",
+    "VLLM_VERSION_OVERRIDE": "0.31.0+empty",
+    "VLLM_REQUIRE_RUST_FRONTEND": "0",
+    "VLLM_DEEPSEEKRPC_EXL3": "0"
+  },
+  "wheels": [
+    {
+      "name": "deepseekrpc-0.0.1.dev2-py3-none-any.whl",
+      "bytes": 310541,
+      "sha256": "dbfc0ae46a51836fa3d71c5093263e4d67329783874771b48e4929763c7efabd",
+      "native_extensions": []
+    },
+    {
+      "name": "vllm-0.31.0+empty-cp312-cp312-linux_x86_64.whl",
+      "bytes": 10610328,
+      "sha256": "46d54fdad5467c824b1fb2e661edfef2c8c9e2b5958f96bcc957778fb45f0aa1",
+      "native_extensions": []
+    },
+    {
+      "name": "vllm_exl3-0.5.0-py3-none-any.whl",
+      "bytes": 121794,
+      "sha256": "d482714da000c630b5cb3becb95eef3e6869e7c33e87a7ce8a7b55d63f4ee28d",
+      "build_mode": "VLLM_EXL3_NO_CUDA=1"
+    }
+  ],
+  "audit_exit_codes": {
+    "installed_python_integration": 0,
+    "original_parser": 0,
+    "pip_check": 0
+  },
+  "unit_suite_at_base_commit": {
+    "passed": 382,
+    "skipped": 4,
+    "failed": 0
+  },
+  "DSR-AUDIT-011": "open; a passing Torch 2.11 run does not explain the intermittent Torch 2.13 CPU sqrt discrepancy",
+  "common_reference_lock": {
+    "repository_file": "requirements-reference-linux.lock",
+    "sha256": "1e3378a6d63a1ca548d1cbdd412a2dbc413f01a9f8149a02ff7b4a4429c83f08",
+    "derived_change": "only the Torch block was replaced by the direct CPU 2.11 URL and SHA256 above; repository lock unchanged"
+  },
+  "upstream_audit_lock": {
+    "repository_file": "tools/cloud/requirements-vllm-audit.lock",
+    "sha256": "92eb99908271b29bc7a6268727bfb3ea3d1293761825e7e64b4d9f0ad795ccbb",
+    "derived_change": "only the Torch block was replaced by the direct CPU 2.11 URL and SHA256 above; repository lock unchanged"
+  },
+  "build_commands": [
+    "python -m pip wheel --no-deps --no-build-isolation --wheel-dir OUTPUT PATCHED_VLLM_SOURCE",
+    "python -m build --wheel --no-isolation --outdir OUTPUT",
+    "uv --system-certs --no-config pip install --torch-backend cpu --require-hashes --only-binary=:all: -r DERIVED_AUDIT_LOCK"
+  ]
+}
