@@ -8,9 +8,9 @@ local changes here and in the dependency manifest.
 
 | Reference | Observed license | Current use |
 | --- | --- | --- |
-| SystemPanic/vllm-windows | Apache-2.0 | Pinned graph/build source audit; intended runtime foundation |
-| vcruz305/vllm-exl3 | AGPL-3.0-only, additional Apache notices | Compatibility checker run externally; intended EXL3 integration |
-| vcruz305/exllamav3 | MIT | Quant/kernel and Windows build audit |
+| SystemPanic/vllm-windows | Apache-2.0 | Actual patched graph/runtime foundation and pinned native build source |
+| vcruz305/vllm-exl3 | AGPL-3.0-only, additional Apache notices | Actual registered plugin and packed-layout integration with the owned executor |
+| vcruz305/exllamav3 | MIT | Actual packed CUDA kernel dependency; native Windows build/import evidence is separate from GPU qualification |
 | sybil-solutions/dsv41-flash-offload | MIT | Cache/numerical failure reference |
 | Zanooda/deepseek-v4.1-flash-cmp170hx | Apache-2.0 | Replica and Engram patch reference |
 | Protonburn35/StrataRPC | MIT | Lifecycle/protocol reference; no deployment changes |
@@ -59,8 +59,20 @@ Incorporated source:
   tests use the separately pinned AGPL plugin's scalar codebook implementation;
   it is not an inference fallback. Runtime source identities include that file.
 
+Native build source notices:
+
+Exact MIT/BSD notices for CUTLASS, Triton kernels, DeepSelect, MSA/FMHA,
+FlashMLA, TML-FA4 and vLLM FlashAttention are retained in `licenses/native/`.
+This includes the four pinned nested CUTLASS revisions and the AUTHORS files
+referenced by the FlashAttention/TML licenses. Source URLs, revisions, lengths
+and hashes are in `provenance/native-notices.lock.json`. Bundle assembly checks
+these against the actual fetched dependency/submodule identities and includes
+the notices for those recorded sources alongside the native wheels. Actual
+kernel/architecture selection remains in the component build evidence. The
+wheels retain their own distribution licenses and notices.
+
 Complete reference archive hashes and model metadata hashes are in provenance/.
-No full model payloads, credentials, copied proprietary SDKs or compiled
-third-party binary artifacts are included. Distribution of an integrated
+This source repository includes no full model payloads, credentials, copied
+proprietary SDKs or compiled third-party binary artifacts. Distribution of an integrated
 application requires preserving all applicable notices and corresponding-source
 requirements, including the plugin's network-service obligations.

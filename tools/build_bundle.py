@@ -26,6 +26,45 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def copy_native_notices(destination, dependencies):
+    lock = json.loads((ROOT / "provenance/native-notices.lock.json").read_text(encoding="utf-8"))
+    pins = {item["component"]: item for item in json.loads(
+        (ROOT / "provenance/vllm-native-deps.lock.json").read_text())["dependencies"]}
+    observed = {item["component"]: item for item in dependencies}
+    covered, inventory = set(), []
+    for record in lock["files"]:
+        dependency = record["dependency"]
+        if record["parent_commit"] != pins[dependency]["commit"]:
+            raise RuntimeError("native source notices differ from their dependency pin")
+        if dependency not in observed:
+            continue
+        if observed[dependency]["commit"] != record["parent_commit"]:
+            raise RuntimeError("native source notices differ from the actual built dependency")
+        if "submodule_path" in record:
+            entries = [line[1:].split()[:2] for line in observed[dependency]["submodules"] if line.startswith(" ")]
+            if [record["commit"], record["submodule_path"]] not in entries:
+                raise RuntimeError("native submodule notices differ from the actual fetched source")
+        elif record["commit"] != record["parent_commit"]:
+            raise RuntimeError("native source notice revision is inconsistent")
+        name = PurePosixPath(record["file"])
+        if len(name.parts) != 1 or name.name in {".", ".."} or "\\" in record["file"]:
+            raise RuntimeError("native source notice has an unsafe file name")
+        source = ROOT / "licenses/native" / name.name
+        if (source.is_symlink() or not source.is_file() or not 0 < record["bytes"] <= 65536 or
+                source.stat().st_size != record["bytes"] or digest(source) != record["sha256"]):
+            raise RuntimeError("native source notice failed its exact source checksum")
+        target = destination / name.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        inventory.append({"file": "licenses/native/" + name.name, "sha256": record["sha256"],
+                          "dependency": dependency, "source_commit": record["commit"]})
+        if record["source_path"].startswith("LICENSE") and "submodule_path" not in record:
+            covered.add(dependency)
+    if covered != set(observed):
+        raise RuntimeError("a built native source dependency has no retained root license")
+    return inventory
+
+
 def report_wheel(directory, *, component):
     reports = list(directory.rglob("BUILD.json"))
     if len(reports) != 1:
@@ -147,6 +186,7 @@ def main():
         shutil.copyfile(wheel, wheels / wheel.name)
         reports[name] = report
         admitted.append(wheels / wheel.name)
+    native_notices = copy_native_notices(output / "licenses/native", reports["vllm"]["native_dependencies"])
     source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     build_wheels = work / "application-wheels"
     build_wheels.mkdir(exist_ok=False)
@@ -179,6 +219,7 @@ def main():
             "provenance/windows-bootstrap.lock.json", "provenance/python-windows-download.json",
             "provenance/token-map.lock.json", "tools/qualify_runtime.py", "tools/audit_parser_integration.py",
             "provenance/sources.lock.json", "provenance/vllm-native-deps.lock.json",
+            "provenance/native-notices.lock.json",
             "provenance/opencode-client.lock.json", "provenance/deepinfer-review.lock.json", "provenance/compiler-elf-reference.lock.json",
             "provenance/torch-store-reference.lock.json",
             "docs/DEEPINFER_REVIEW.md", "tests/fixtures/tokenizer.json.gz", "docs/SESSIONS.md",
@@ -218,6 +259,7 @@ def main():
         "application_source_identity": application_identity, "native_files": native_files,
         "architectures": ["sm_89", "sm_120"], "protocol_abi": 1, "snapshot_abi": 1, "native_abi": 2,
         "app_local_crt": [path.relative_to(output).as_posix() for path in sorted(crt.glob("*.dll"))],
+        "native_source_notices": native_notices,
         "scope": "Complete application/native wheel bundle; installed Python/DLL qualification must run before install completion",
         "GPU_execution": "not run", "full_model_validation": "not run"}
     (output / "BUNDLE.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

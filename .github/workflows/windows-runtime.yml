@@ -91,6 +91,7 @@ jobs:
             ${{ runner.temp }}/DeepSeekRPC/THIRD_PARTY_NOTICES.md
             ${{ runner.temp }}/DeepSeekRPC/SOURCE.md
             ${{ runner.temp }}/DeepSeekRPC/patches
+            ${{ runner.temp }}/DeepSeekRPC/licenses
             ${{ runner.temp }}/DeepSeekRPC/evidence
           retention-days: 7
       - name: Retain bounded failed installation diagnostics
