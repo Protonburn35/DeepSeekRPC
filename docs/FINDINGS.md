@@ -259,3 +259,35 @@ start/end boundaries. A zero-duration observation reports null throughput; no
 artificial elapsed time is invented. The actual HTTP fixture covers both a
 normal clock and a frozen-clock boundary. Thirteen focused checks passed;
 Windows CI must still qualify the repair.
+
+## DSR-AUDIT-017 — ambient Windows JIT compiler and interpreter selection
+
+The pinned triton-windows 3.6.0.post26 wheel bundles TinyCC and CUDA ptxas,
+headers/import libraries. The pinned Python standalone archive includes Python.h,
+pyconfig.h and python312.lib. Source inspection also finds ambient CC/MSVC/CUDA
+selectors, interpreter mode, architecture and kernel/cache overrides. Bare PATH
+alone does not exclude these selectors.
+
+Before importing Triton, the worker now verifies pinned compiler inputs, selects
+its private bundled tools/cache and IEEE FP32 dot default, disables interpreter
+and kernel overrides and refuses later mutations. Installed component identity
+includes Triton source, binaries and compiler libraries. A real Windows compiler
+subset workflow builds/loads a TinyCC CPython extension and compiles explicit
+SM89/SM120 Triton inputs, inspecting PTX targets and CUDA ELF architecture flags
+without initializing a GPU context. The full installer requires that check too.
+These compiler execution checks are implemented but not yet Windows-run at this
+checkpoint; policy configuration is not an execution claim.
+
+## DSR-AUDIT-018 — runtime workflow YAML and native build cancellation
+
+The manual runtime workflow's plain run scalar contained an unquoted colon at
+`--only-binary=:all:`, so GitHub rejected its YAML before any job could start.
+It now uses a folded scalar. CPU checks parse all shipped workflows with unique
+mapping keys before running tests; this checks YAML, not every Actions semantic.
+
+Adding DeepInfer to sources.lock.json also matched the long vLLM workflow's
+source-pin trigger and cancelled run 39400420994 after about 69 minutes. No
+compiler failure was reported in that run. Replacement 39408672207 is building
+the same five-patch profile. The vLLM workflow now preserves running builds on
+later pushes, as the EXLlama workflow already did. Exact source/patch checks
+still determine whether a retained native component can enter a runtime bundle.

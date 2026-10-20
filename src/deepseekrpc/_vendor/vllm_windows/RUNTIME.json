@@ -10,7 +10,8 @@
     "tokenizers": "0.23.3",
     "safetensors": "0.8.0",
     "huggingface-hub": "1.33.0",
-    "pillow": "13.0.0"
+    "pillow": "13.0.0",
+    "triton-windows": "3.6.0.post26"
   },
   "files": [
     {
@@ -47,6 +48,31 @@
       "distribution": "vllm-exl3",
       "path": "vllm_exl3/dequant.py",
       "sha256": "c0b24b26129eb2281d0de14aaf484abbe947be01fb80b7f3e7de0ed9974aa671"
+    },
+    {
+      "distribution": "triton-windows",
+      "path": "triton/runtime/build.py",
+      "sha256": "8e1d02742d887b110638ae73cf13bcebec1f76ea75c138acc022182eb3abd9dd"
+    },
+    {
+      "distribution": "triton-windows",
+      "path": "triton/windows_utils.py",
+      "sha256": "bd4ad8f25a3c88795276e52500ca8b7969d340b0b681a09399ea61b1ca146bd4"
+    },
+    {
+      "distribution": "triton-windows",
+      "path": "triton/knobs.py",
+      "sha256": "53776bdbeb3c06da277b4fac1ae6ffacdc3ddea5a9eefc2a4987ca7ad426dac8"
+    },
+    {
+      "distribution": "triton-windows",
+      "path": "triton/backends/nvidia/driver.py",
+      "sha256": "e7e76aa1ec22f8974ae1f518819cb12787d4ed42bf6907772fd6e87c2e4d15cd"
+    },
+    {
+      "distribution": "triton-windows",
+      "path": "triton/backends/nvidia/compiler.py",
+      "sha256": "f0754e1c22109e9fe774d6fd99d602341946c90385aba5e9cd4376e933140c06"
     }
   ]
 }

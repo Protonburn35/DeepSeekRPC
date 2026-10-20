@@ -56,6 +56,8 @@ def configure_exact_cuda_math():
 
 def assert_exact_cuda_math():
     import torch
+    from .triton_policy import assert_windows_triton
+    assert_windows_triton(required=False)
     assert_exact_exl3()
     vllm_envs = sys.modules.get("vllm.envs")
     if (vllm_envs is not None and not vllm_envs.VLLM_DISABLE_SHARED_EXPERTS_STREAM or

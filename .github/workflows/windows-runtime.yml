@@ -38,7 +38,8 @@ jobs:
         with:
           arch: x64
       - name: Install hash-pinned Python packaging tools
-        run: python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.lock
+        run: >-
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.lock
       - name: Fetch successful native component wheels and their exact build reports
         env:
           VLLM_RUN: ${{ inputs.vllm_run }}

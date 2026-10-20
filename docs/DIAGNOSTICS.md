@@ -22,6 +22,14 @@ in the CPU-only development environment. Compilation/import and mathematical
 CPU fixtures are separate evidence. No full-model numerical golden or measured
 throughput is available yet.
 
+The installer separately qualifies the real bundled TinyCC extension build/load
+and offline Triton SM89/SM120 compilation with GPUs hidden, bare system PATH and
+inherited SDK/compiler selectors removed. The exact Triton source/binary and
+standalone Python development inputs are pinned in the packaged TRITON.json.
+Stage identity also binds the actual Triton compiler components. Kernel source
+overrides, forced architecture and CPU interpreter fallback are refused. This
+compiler check creates no GPU context and makes no GPU execution claim.
+
 After the planned reviews, start C/B/A normally and wait for all-stage READY.
 Run the installed-model probe against that existing process:
 

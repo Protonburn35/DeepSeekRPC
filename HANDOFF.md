@@ -31,6 +31,13 @@ IMPLEMENTATION_SPEC.md; the older handoff is background research. User
 instructions supersede both, including current push/CI authorization, all-Windows
 hardware, BF16-only caches, FP32 wire and complete implementation before review.
 
+The user added official deepseek-ai/DeepInfer as an eighth source-only reference.
+It is pinned at 8b16149741a4935e1dec8cea27853f273b374c5b. Read
+docs/DEEPINFER_REVIEW.md: preserve full target replay, exact rejection correction
+and confidence-independent fixed proposal verification. Do not run upstream
+examples/tests that acquire model payloads. Independent tiny joint-law fixtures
+pass; no upstream model/GPU execution has occurred.
+
 ## Implemented components
 
 - Complete physical pack inventory and selective publisher-verified local reads;

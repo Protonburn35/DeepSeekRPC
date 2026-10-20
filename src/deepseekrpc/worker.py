@@ -124,7 +124,7 @@ def preflight(config: DeploymentConfig, *, device_checks=True):
         from .gpu_selftest import run_cuda_checks
         from .memory_budget import query_device_budget
         from .native_windows import physical_host_memory
-        runtime = require_windows_runtime(config.device)
+        runtime = require_windows_runtime(config.device, cache_root=config.state_root / "kernels/triton")
         import torch
         with torch.cuda.device(config.device):
             checks = run_cuda_checks()

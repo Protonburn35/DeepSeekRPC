@@ -1,0 +1,87 @@
+{
+  "format": 1,
+  "distribution": "triton-windows",
+  "version": "3.6.0.post26",
+  "wheel_sha256": "189d8c57911aa9d2ff983a715e5c967b325f576307db60924cab22b501a36515",
+  "scope": "actual bundled TinyCC/CUDA compiler inputs; compiler qualification is separate from GPU execution",
+  "files": [
+    {
+      "path": "triton/runtime/build.py",
+      "bytes": 7246,
+      "sha256": "8e1d02742d887b110638ae73cf13bcebec1f76ea75c138acc022182eb3abd9dd"
+    },
+    {
+      "path": "triton/windows_utils.py",
+      "bytes": 15291,
+      "sha256": "bd4ad8f25a3c88795276e52500ca8b7969d340b0b681a09399ea61b1ca146bd4"
+    },
+    {
+      "path": "triton/knobs.py",
+      "bytes": 17763,
+      "sha256": "53776bdbeb3c06da277b4fac1ae6ffacdc3ddea5a9eefc2a4987ca7ad426dac8"
+    },
+    {
+      "path": "triton/backends/nvidia/driver.py",
+      "bytes": 26623,
+      "sha256": "e7e76aa1ec22f8974ae1f518819cb12787d4ed42bf6907772fd6e87c2e4d15cd"
+    },
+    {
+      "path": "triton/backends/nvidia/compiler.py",
+      "bytes": 23863,
+      "sha256": "f0754e1c22109e9fe774d6fd99d602341946c90385aba5e9cd4376e933140c06"
+    },
+    {
+      "path": "triton/runtime/tcc/tcc.exe",
+      "bytes": 25088,
+      "sha256": "78dc86cfd8dfb47251a6f7c905a74d61547505c522edbb429c953665d4acb447"
+    },
+    {
+      "path": "triton/runtime/tcc/libtcc.dll",
+      "bytes": 374272,
+      "sha256": "1e990d684011ae24060ec758eb1b963637f8ca65e1630346b7d5a9979dfd85eb"
+    },
+    {
+      "path": "triton/runtime/tcc/lib/python312.def",
+      "bytes": 35695,
+      "sha256": "c88c1b7970dc1a73df0234e8f3da04a23ae542dad6e9a54fbc69bb18c5f544db"
+    },
+    {
+      "path": "triton/backends/nvidia/bin/ptxas.exe",
+      "bytes": 24753152,
+      "sha256": "7f6f04d25e5a7ab2c07c15e4ef26a07cec08104ebfebf364331fafa8f3c443d6"
+    },
+    {
+      "path": "triton/backends/nvidia/lib/libdevice.10.bc",
+      "bytes": 473728,
+      "sha256": "5c2fae37c86e68c3a38605a95f512d7d12d5f3db986310be47f57304aa72a5ee"
+    },
+    {
+      "path": "triton/backends/nvidia/include/cuda.h",
+      "bytes": 1183268,
+      "sha256": "167e383a3791226c5e809dfd6a9614b29b1e11f4d6346c29a921943a71e3e566"
+    },
+    {
+      "path": "triton/backends/nvidia/lib/x64/cuda.lib",
+      "bytes": 160840,
+      "sha256": "2390d97d1f1a43dc28758a37b6bb2449b26925df651ef657b27119dcd577d0b4"
+    }
+  ],
+  "python_version": "3.12.14",
+  "python_headers": [
+    {
+      "path": "include/Python.h",
+      "bytes": 2854,
+      "sha256": "729ef157f6026e6e1b3104593f87dddc597c3b83b60c7c2965878c62a56c6f7d"
+    },
+    {
+      "path": "include/pyconfig.h",
+      "bytes": 22043,
+      "sha256": "0d0cfe802715933db0b8a889a99788906b82d75201e462a941705d2ea81395cd"
+    },
+    {
+      "path": "libs/python312.lib",
+      "bytes": 380762,
+      "sha256": "07a569389d37b48e51fccc401d13c6d804a43c0b89973eff64bc50e485b6ae0e"
+    }
+  ]
+}

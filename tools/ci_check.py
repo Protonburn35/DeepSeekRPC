@@ -29,6 +29,7 @@ def main():
         if result.returncode:
             raise RuntimeError(f"{name} failed; see {output / (name + '.log')}")
     try:
+        run("workflow-syntax", [sys.executable, str(root / "tools/check_workflows.py")])
         import torch
         if torch.version.cuda is not None:
             raise RuntimeError("CPU reference job must use the explicit CPU-only Torch wheel")

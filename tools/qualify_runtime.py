@@ -27,16 +27,11 @@ def main():
     if sys.platform != "win32" or manifest["kind"] != "runtime":
         raise RuntimeError("full runtime qualification requires the actual native Windows bundle")
     if not args.child:
-        env = dict(os.environ)
-        for key in list(env):
-            if key.upper() in {"CUDA_PATH", "CUDA_HOME", "PYTHONPATH"} or key.upper().startswith("CUDA_PATH_V"):
-                del env[key]
-        windows = Path(os.environ["SystemRoot"])
+        from deepseekrpc.triton_policy import compiler_qualification_environment
+        env = compiler_qualification_environment(os.environ)
         # No developer toolchain, SDK, user-site package or ambient PATH entry
         # can supply a concealed DLL to the installation check.
-        env.update(PATH=os.pathsep.join([str(windows / "System32"), str(windows)]),
-            PYTHONNOUSERSITE="1", PYTHONUTF8="1", CUDA_VISIBLE_DEVICES="-1",
-            VLLM_TARGET_DEVICE="empty", HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
+        env.update(VLLM_TARGET_DEVICE="empty", HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
             HF_HUB_DISABLE_TELEMETRY="1", DO_NOT_TRACK="1", VLLM_NO_USAGE_STATS="1")
         command = [sys.executable, str(Path(__file__).resolve()), "--bundle", str(root), "--output", str(output), "--child"]
         subprocess.run(command, env=env, cwd=output, check=True)
@@ -113,6 +108,10 @@ def main():
                 report["native"].append({"file": path.name, "sha256": hashlib.file_digest(stream, "sha256").hexdigest()})
         return "actual native exports/registration imported with a bare Windows system PATH"
 
+    def compiler_checks():
+        from deepseekrpc.compiler_selftest import run_compiler_checks
+        return run_compiler_checks(output / "triton")
+
     def python_integration():
         import exllamav3
         import vllm
@@ -141,6 +140,7 @@ def main():
     try:
         record("versions", versions)
         record("application_source_identity", source_identity)
+        record("private_compilers_without_sdk", compiler_checks)
         record("native_without_sdk", native_imports)
         record("complete_python_integration", python_integration)
         subprocess.run([sys.executable, "-m", "pip", "check"], check=True)

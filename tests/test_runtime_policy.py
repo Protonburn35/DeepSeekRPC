@@ -7,6 +7,19 @@ import sys
 import pytest
 
 
+def test_compiler_child_has_no_inherited_sdk_selector_but_retains_unrelated_controls():
+    from deepseekrpc.triton_policy import compiler_qualification_environment
+    original = {"SystemRoot": str(Path('/windows')), "PATH": "ambient developer tools", "CC": "external compiler",
+        "INCLUDE": "sdk headers", "LIB": "sdk libraries", "VCINSTALLDIR": "msvc", "WindowsSDKVersion": "external",
+        "TRITON_CACHE_MANAGER": "external.module", "TRITON_INTERPRET": "1", "CUDA_PATH_V13_2": "external cuda",
+        "PTXAS_OPTIONS": "external flags", "PYTHONPATH": "ambient modules", "unrelated": "preserved"}
+    actual = compiler_qualification_environment(original)
+    assert all(name not in actual for name in original if name not in {"SystemRoot", "PATH", "unrelated"})
+    assert actual["unrelated"] == "preserved" and actual["CUDA_VISIBLE_DEVICES"] == "-1"
+    assert actual["PATH"] == os.pathsep.join([str(Path('/windows/System32')), str(Path('/windows'))])
+    assert original["TRITON_INTERPRET"] == "1"  # The parent is not modified.
+
+
 def test_exact_policy_overrides_int8_defaults_before_import_and_detects_changes():
     code = '''
 import json, os

@@ -177,7 +177,8 @@ def main():
             "provenance/windows-bootstrap.lock.json", "provenance/python-windows-download.json",
             "provenance/token-map.lock.json", "tools/qualify_runtime.py", "tools/audit_parser_integration.py",
             "provenance/sources.lock.json", "provenance/vllm-native-deps.lock.json",
-            "provenance/opencode-client.lock.json", "tests/fixtures/tokenizer.json.gz", "docs/SESSIONS.md",
+            "provenance/opencode-client.lock.json", "provenance/deepinfer-review.lock.json",
+            "docs/DEEPINFER_REVIEW.md", "tests/fixtures/tokenizer.json.gz", "docs/SESSIONS.md",
             "docs/INSTALL_WINDOWS.md", "docs/DIAGNOSTICS.md", "docs/OBSERVABILITY.md", "docs/OPENCODE.md"]:
         destination = output / relative
         destination.parent.mkdir(parents=True, exist_ok=True)

@@ -111,7 +111,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
     progress("CUDA")
     from .runtime_identity import require_windows_runtime
     # Establish exact EXL3/math policy before any model/backend import.
-    runtime = require_windows_runtime(device)
+    runtime = require_windows_runtime(device, cache_root=rendezvous.parent / "kernels/triton")
     import torch
     from .attention_state import AttentionState
     from .cache_pool import DeviceRowPool

@@ -36,7 +36,7 @@ def _distribution_identity(name):
     for relative in distribution.files or ():
         pure = PurePosixPath(str(relative).replace("\\", "/"))
         if (pure.is_absolute() or ".." in pure.parts or any(part.endswith(".dist-info") for part in pure.parts) or
-                pure.suffix not in {".py", ".json", ".pyd", ".dll"}):
+                pure.suffix not in {".py", ".json", ".pyd", ".dll", ".exe", ".bc", ".lib", ".def", ".h", ".hpp", ".a"}):
             continue
         path = Path(distribution.locate_file(relative))
         size = path.stat().st_size
@@ -50,9 +50,11 @@ def _distribution_identity(name):
     return {"sha256": fingerprint(entries), "files": len(entries), "bytes": total}
 
 
-def require_windows_runtime(device=0):
+def require_windows_runtime(device=0, *, cache_root=None):
     if sys.platform != "win32":
         raise RuntimeError("the model runtime requires native Windows; CPU source diagnostics are separate")
+    from .triton_policy import configure_windows_triton
+    compiler_policy = configure_windows_triton(cache_root)
     configure_exact_cuda_math()
     lock = json.loads(resources.files("deepseekrpc._vendor.vllm_windows").joinpath("RUNTIME.json").read_text())
     for name, expected in lock["versions"].items():
@@ -78,7 +80,7 @@ def require_windows_runtime(device=0):
     if (not callable(exllamav3_ext.exl3_gemm) or deepseekrpc_cuda.abi_version() != 2 or
             not callable(getattr(deepseekrpc_cuda, "windows_memory_budget", None))):
         raise ValidationError("the actual packed/native operation ABI does not match")
-    components = {name: _distribution_identity(name) for name in ("vllm", "vllm-exl3", "exllamav3", "deepseekrpc-cuda")}
+    components = {name: _distribution_identity(name) for name in ("vllm", "vllm-exl3", "exllamav3", "deepseekrpc-cuda", "triton-windows")}
     # Compressed extensions may extract the actual loaded .pyd on import.
     # Bind that binary as well as all files recorded by the wheel installer.
     for name, module in (("exllamav3_ext", exllamav3_ext), ("deepseekrpc_cuda", deepseekrpc_cuda)):
@@ -91,4 +93,4 @@ def require_windows_runtime(device=0):
     return {"versions": lock["versions"], "source_fingerprints_verified": True,
             "components": components, "component_identity": fingerprint({"versions": lock["versions"], "files": components}),
             "architecture": f"sm_{architecture[0]}{architecture[1]}",
-            "GPU_execution": "not established by this identity check"}
+            "compiler_policy": compiler_policy, "GPU_execution": "not established by this identity check"}

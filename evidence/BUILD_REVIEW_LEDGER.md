@@ -645,3 +645,31 @@ throughput. Thirteen focused checks pass; the complete cloud CPU suite passes
 362 tests with four actual-Win32-only skips (71.87 s). This passing run does not
 repair DSR-AUDIT-011's previously captured CPU sqrt error. Windows follow-up
 and full vLLM build status are currently blocked by GitHub HTTP 401 responses.
+
+## 2026-10-20 — private JIT compiler policy and workflow qualification
+
+GitHub API credentials recovered without user action. Windows CPU 39408672138
+passed 441b344, including the real pinned SDK Node audit and original tokenizer/
+template preparation of its captured text/image/tool requests. The same push
+updated sources.lock.json for DeepInfer and unintentionally restarted vLLM:
+39400420994 was cancelled; 39408672207 now builds the unchanged five-patch
+profile. Running native builds are preserved on future pushes.
+
+The full runtime workflow had an invalid plain YAML run scalar and had not
+started a job. It is repaired and all seven workflow files parse with unique
+mapping keys. This is syntax evidence, not installed-runtime qualification.
+
+The actual pinned standalone Python archive and Windows Triton wheel are
+inspected and their compiler/development inputs hashed. Before-import policy
+pins bundled TinyCC/ptxas/CUDA inputs, private cache and IEEE FP32 dot default,
+refuses interpreter/kernel/architecture overrides and binds compiler components
+into installed stage identity. Added a CPU-only native Windows compiler-subset
+workflow and a required full-installer check. These build/load an actual small
+CPython extension and compile explicit-target SM89/SM120 cubins without a GPU
+context. Their source is implemented; actual Windows results are pending.
+
+The updated cloud CPU suite passes 363 tests with four real-Win32 skips
+(62.97 s). Sixteen focused precision/policy/configuration/memory checks pass.
+A passing run does not repair DSR-AUDIT-011. No GPU/model qualification is
+claimed. Final runtime evidence copies only explicit bounded JSON reports;
+regenerable compiler cache binaries and paths are not distributed as evidence.

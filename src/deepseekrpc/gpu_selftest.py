@@ -11,6 +11,8 @@ from .runtime_policy import configure_exact_cuda_math
 
 
 def run_cuda_checks():
+    from .triton_policy import configure_windows_triton
+    configure_windows_triton()
     configure_exact_cuda_math()
     import torch
     from . import cuda_ops

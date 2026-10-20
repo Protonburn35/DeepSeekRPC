@@ -20,7 +20,10 @@ permissions:
 
 concurrency:
   group: windows-vllm-${{ github.ref }}
-  cancel-in-progress: true
+  # Native compilation takes several hours. A new reference/provenance commit
+  # must not discard a valid build in progress; queued redundant runs can be
+  # cancelled after comparing their exact source and five-patch identities.
+  cancel-in-progress: false
 
 jobs:
   compile:

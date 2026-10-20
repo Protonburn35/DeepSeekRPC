@@ -23,7 +23,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "deepseekrpc._vendor.deepseek_1017" = ["LICENSE", "PROVENANCE.json"]
-"deepseekrpc._vendor.vllm_windows" = ["LICENSE", "PROVENANCE.json", "RUNTIME.json", "DEPLOYMENT.json"]
+"deepseekrpc._vendor.vllm_windows" = ["LICENSE", "PROVENANCE.json", "RUNTIME.json", "DEPLOYMENT.json", "TRITON.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

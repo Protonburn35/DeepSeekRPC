@@ -19,8 +19,14 @@ dependencies plus the five actual application/native/plugin wheels. It copies
 the admitted MSVC CRT beside the private interpreter. It changes neither the
 user/machine PATH nor Python registration. Its completion marker is published
 only after dependency, native DLL, source identity, concrete class and original
-parser checks pass with a bare Windows system PATH. These checks hide GPUs;
-they establish installed imports, not model or GPU correctness. Launchers
+parser checks pass with a bare Windows system PATH. It also builds and loads
+a real Python extension with bundled TinyCC and compiles explicit SM89/SM120
+Triton inputs to SASS without initializing a GPU context. The pinned standalone
+Python includes its development headers/import library; Triton's verified wheel
+provides its C compiler, ptxas and minimal CUDA inputs. Inherited compiler,
+interpreter and kernel override settings are removed or refused. These checks
+hide GPUs and establish installed imports and compiler operation, not model or
+GPU correctness. Launchers
 refuse an incomplete or mismatched installation. The installer requires network
 access to the pinned Python/PyPI/PyTorch artifacts; it downloads no model data.
 
