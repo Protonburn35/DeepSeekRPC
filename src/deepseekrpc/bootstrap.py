@@ -102,7 +102,7 @@ class LoadedStage:
             self.closed = True
 
 
-def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
+def load_stage(model_root: Path, *, role: Role, run_id: str, state_root: Path,
                engram_root: Path | None = None, split=(18, 5, 17), device=0,
                requested_ram_tier_bytes=8 * 1024 ** 3, progress=None):
     progress = progress if progress is not None else lambda _area: None
@@ -111,7 +111,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
     progress("CUDA")
     from .runtime_identity import require_windows_runtime
     # Establish exact EXL3/math policy before any model/backend import.
-    runtime = require_windows_runtime(device, cache_root=rendezvous.parent / "kernels/triton")
+    runtime = require_windows_runtime(device, cache_root=state_root / "kernels/triton")
     import torch
     from .attention_state import AttentionState
     from .cache_pool import DeviceRowPool
@@ -155,7 +155,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
     finally:
         metrics.current.set_phase("boot")
     vllm_config = make_vllm_config(root)
-    initialize_local_groups(vllm_config, rendezvous)
+    initialize_local_groups(vllm_config)
     cancellation = threading.Event()
     with ExitStack() as cleanup:
         cleanup.callback(torch.distributed.destroy_process_group)

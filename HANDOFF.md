@@ -184,3 +184,10 @@ installation qualification, whole-candidate self-review and the exact-source
 review packet. No optional grammar expansion or platform/model substitution is
 required. All actual CUDA/model/hardware tests remain unrun, speculation remains
 gated off until actual cluster qualification, and DSR-AUDIT-011 remains open.
+
+Windows CPU 39415738104 exposed FileStore's non-ASCII Windows filename failure
+(379 tests passed, one failed, one intentional skip). DSR-AUDIT-020 replaces
+the single local rank's rendezvous with actual Torch HashStore/Gloo, shared by
+startup and runtime qualification. No filesystem rendezvous or TCP rendezvous
+listener is needed. Local full suite: 378 passed/four actual-Windows-only skips.
+The next Windows CPU run must confirm this fix; preserve long vLLM 39408672207.

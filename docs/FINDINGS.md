@@ -336,3 +336,20 @@ for high accuracy. This identifies the reduced-accuracy path signature, but
 why it was selected intermittently remains unresolved. Actual captured arrays,
 source probe and scoped numeric reports are preserved under
 evidence/cpu-sqrt-diagnostic/. No oracle, tolerance or production setting changed.
+
+## DSR-AUDIT-020 — local Windows rendezvous must not depend on narrow paths
+
+Actual Windows CPU run 39415738104 failed when Torch FileStore opened an
+existing directory containing a non-ASCII character (DistStoreError: no such
+file or directory). The other 379 tests passed. This exposed a startup risk
+when the application's state directory has such a path; it was not a GPU error.
+
+Each owned stage is exactly one local rank. Startup and runtime qualification
+now call the same real Torch HashStore/Gloo initializer, with no rendezvous
+filename, TCP rendezvous listener or libuv requirement. The actual vLLM setup accepts that
+already initialized group and creates its own local world/model groups. The
+three-PC TLS transport is unchanged. CPU coverage performs real collectives,
+destroys/recreates the group, verifies refusal of an already initialized worker,
+and retains a non-ASCII qualification output directory. The complete cloud CPU
+suite passes 378 tests with four actual-Windows-only skips. Native Windows
+repeat qualification and the complete runtime installation remain required.

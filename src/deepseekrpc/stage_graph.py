@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import inspect
-from pathlib import Path
 import threading
 
 import torch
@@ -22,22 +21,25 @@ from .runtime_policy import assert_exact_cuda_math
 from .state import Operation
 
 
-def initialize_local_groups(vllm_config, rendezvous: Path):
+def initialize_local_groups(vllm_config):
     """Real loopback-local Gloo groups; TCP stage RPC remains separate."""
     from vllm.config import set_current_vllm_config
     from vllm.distributed.parallel_state import (
         ensure_model_parallel_initialized, init_distributed_environment, set_custom_all_reduce,
     )
-    if torch.distributed.is_initialized() or rendezvous.exists():
-        raise ValidationError("local stage groups require a fresh worker and unused rendezvous file")
-    if not torch.distributed.is_gloo_available():
-        raise RuntimeError("the Windows Torch build must provide the actual Gloo backend")
+    from .local_groups import initialize_local_process_group
+    parallel = vllm_config.parallel_config
+    if any(getattr(parallel, key) != 1 for key in (
+            "tensor_parallel_size", "pipeline_parallel_size", "data_parallel_size",
+            "prefill_context_parallel_size", "decode_context_parallel_size", "nnodes")):
+        raise ValidationError("local stage groups require exactly one rank per process")
     set_custom_all_reduce(False)
     with set_current_vllm_config(vllm_config):
-        # The pinned vLLM code strips file:// and passes the native path to
-        # FileStore directly. A Windows file URI's leading slash is unsuitable.
+        initialize_local_process_group()
+        # The pinned vLLM function accepts the already initialized real Torch
+        # group, then creates its actual world/model groups from that store.
         init_distributed_environment(world_size=1, rank=0, local_rank=0, backend="gloo",
-                                     distributed_init_method="file://" + str(rendezvous.resolve()))
+                                     distributed_init_method="env://")
         ensure_model_parallel_initialized(1, 1, backend="gloo")
 
 

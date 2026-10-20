@@ -17,20 +17,16 @@ import sys
 
 def qualify_local_gloo(output):
     """Exercise real local stage-group dependencies without CUDA collectives."""
-    from datetime import timedelta
     import tempfile
     import torch
+    from deepseekrpc.local_groups import initialize_local_process_group
     distributed = torch.distributed
-    if distributed.is_initialized() or not distributed.is_gloo_available():
-        raise RuntimeError("the actual private Torch runtime requires a fresh available Gloo backend")
     # Stage groups are local TP=PP=1; the three-PC protocol does not use
-    # Gloo for inter-PC CUDA tensors. Exercise Windows FileStore semantics,
-    # including a path with spaces/non-ASCII characters.
-    with tempfile.TemporaryDirectory(prefix="local Gloo \u0394 ", dir=output) as temporary:
-        store = distributed.FileStore(str(Path(temporary) / "rendezvous"), 1)
+    # Gloo for inter-PC CUDA tensors. Exercise the same in-memory store as
+    # startup, even when the output directory has spaces/non-ASCII characters.
+    with tempfile.TemporaryDirectory(prefix="local Gloo \u0394 ", dir=output):
+        initialize_local_process_group()
         try:
-            distributed.init_process_group(backend="gloo", store=store, rank=0, world_size=1,
-                                           timeout=timedelta(seconds=30))
             value = torch.tensor([41017], dtype=torch.int64)
             distributed.all_reduce(value)
             if value.item() != 41017 or distributed.get_world_size() != 1 or distributed.get_rank() != 0:
@@ -38,8 +34,7 @@ def qualify_local_gloo(output):
         finally:
             if distributed.is_initialized():
                 distributed.destroy_process_group()
-            del store
-    return "actual local FileStore/Gloo group and CPU metadata collective; no inter-PC/GPU collective"
+    return "actual local HashStore/Gloo group and CPU metadata collective; no inter-PC/GPU collective"
 
 
 def main():

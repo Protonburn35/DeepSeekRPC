@@ -744,3 +744,21 @@ Linux development CPU; its Windows check is newly added to CPU CI and the
 complete private-runtime gate. The full cloud suite passes 377 tests/four real
 Win32 skips (77.93 s); the real installed empty-vLLM source audit passes again,
 including the concrete routed MoE class check. These are not GPU results.
+
+## 2026-10-20 — actual Windows local-rendezvous failure and in-memory repair
+
+Windows CPU run 39415738104 at 276178f passed 379 tests but exposed Torch
+FileStore's failure opening an existing non-ASCII directory on Windows. The
+startup path could have the same failure. DSR-AUDIT-020 now uses a real Torch
+HashStore for the exactly one local rank, before the real vLLM world/model
+setup. Startup and complete-runtime qualification share that initializer;
+inter-PC TLS is unchanged. Tests exercise real Gloo collectives, repeated
+creation/destruction and fresh-worker refusal without a namespace substitute.
+The complete cloud CPU suite passes 378 tests/four actual-Windows-only skips
+at unchanged mathematical tolerances. Native Windows confirmation follows the
+push. Long native vLLM 39408672207 remains in progress and is preserved.
+
+The saved cloud configuration draft now includes the eighth DeepInfer source
+review and current whole-runtime continuation gates. Saving is confirmed;
+publication is a separate environment settings action, not an implementation
+blocker. No new secret, repository or model download was introduced.

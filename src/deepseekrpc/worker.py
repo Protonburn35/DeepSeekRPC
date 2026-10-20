@@ -6,7 +6,6 @@ from pathlib import Path
 import signal
 import threading
 import time
-import uuid
 
 from .bootstrap import load_stage, local_deployment
 from .deployment_config import DeploymentConfig
@@ -311,10 +310,9 @@ class PersistentWorker:
                 self.network = MeshNetwork(role=self.config.role, run=self.config.run, tls=self.config.tls,
                     endpoints=self.config.endpoints, status=self.status).start()
                 self._state_is("LOADING")
-                rendezvous = state / f"collective-{uuid.uuid4().hex}"
                 with telemetry.measure("load"):
                     self.stage = load_stage(self.config.model_root, role=self.config.role, run_id=self.config.run,
-                        rendezvous=rendezvous, engram_root=self.config.engram_root, split=tuple(self.config.shared["split"]),
+                        state_root=state, engram_root=self.config.engram_root, split=tuple(self.config.shared["split"]),
                         device=self.config.device, requested_ram_tier_bytes=self.config.ram_tier_bytes, progress=self._load_progress)
                 telemetry.event("loaded")
                 telemetry.set_phase("inference")
