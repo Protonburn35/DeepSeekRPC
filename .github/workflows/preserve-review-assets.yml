@@ -16,7 +16,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PYTHONUTF8: '1'
       DSR_CANDIDATE_REPO: ${{ github.workspace }}/candidate
-      DSR_EVIDENCE_ROOT: ${{ runner.temp }}/candidate-assets
+      DSR_EVIDENCE_ROOT: ${{ github.workspace }}/candidate-assets
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -48,5 +48,5 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: persistent-review-554f155
-          path: ${{ runner.temp }}/candidate-assets/release-554f155
+          path: ${{ env.DSR_EVIDENCE_ROOT }}/release-554f155
           retention-days: 90
