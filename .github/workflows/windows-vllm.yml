@@ -25,7 +25,10 @@ concurrency:
 jobs:
   compile:
     runs-on: windows-2025
-    timeout-minutes: 180
+    # The pinned core, MoE and FlashAttention SM89/SM120 targets reached
+    # 163/189 at the previous three-hour limit. Preserve the complete profile
+    # and give its actual MSVC/nvcc build enough time to finish and qualify.
+    timeout-minutes: 360
     env:
       PYTHONUTF8: "1"
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
