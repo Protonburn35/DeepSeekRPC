@@ -291,3 +291,14 @@ compiler failure was reported in that run. Replacement 39408672207 is building
 the same five-patch profile. The vLLM workflow now preserves running builds on
 later pushes, as the EXLlama workflow already did. Exact source/patch checks
 still determine whether a retained native component can enter a runtime bundle.
+
+The first actual DSR-AUDIT-017 Windows compiler run built/loaded TinyCC's Python
+extension and compiled the SM89 input. The SM120 input also compiled, but the
+inspector incorrectly read the old low-byte architecture field. Diagnostic run
+39410453853 captured CUDA ELF ABI 8, header
+7f454c46020101410800000000000000 and flags 0x0600780a. The pinned LLVM ELF
+reference documents ABI 8's SM mask 0xff00 and offset 8. The inspector now reads
+the correct ABI-specific field, still requiring CUDA ELF64/little endian,
+explicit requested PTX and matching embedded SM. A regression uses the actual
+captured header/flags; unsupported ABI/layouts remain errors. This is an
+inspector repair, not a change to generated code or a GPU execution result.

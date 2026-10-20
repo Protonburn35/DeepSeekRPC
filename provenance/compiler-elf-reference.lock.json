@@ -1,0 +1,13 @@
+{
+  "repository": "llvm/llvm-project",
+  "commit": "18201343912ea2f8268ed21c655bd1a09c630d6a",
+  "path": "llvm/include/llvm/BinaryFormat/ELF.h",
+  "url": "https://raw.githubusercontent.com/llvm/llvm-project/18201343912ea2f8268ed21c655bd1a09c630d6a/llvm/include/llvm/BinaryFormat/ELF.h",
+  "bytes": 82166,
+  "sha256": "e8127435540e2b85d216251458cdd4e3dba2e300f0fff7e2c4a4cfd61f2e5e54",
+  "license": "Apache-2.0 WITH LLVM-exception",
+  "use": "auxiliary source-only reference for CUDA ELF ABI version and SM flag masks; no code copied",
+  "observed_windows_run": 39410453853,
+  "observed_abi8_header": "7f454c46020101410800000000000000",
+  "observed_abi8_flags": 100694026
+}

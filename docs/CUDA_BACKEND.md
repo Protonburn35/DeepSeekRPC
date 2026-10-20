@@ -1,6 +1,6 @@
 # Native CUDA operation contract
 
-The native extension is part of the unfinished runtime. Windows compile/link,
+The native extension is part of the runtime under qualification. Windows compile/link,
 wheel install, CPU import and both SM89/SM120 cubins passed in run 39314752138.
 The expanded checks also passed in run 39316435141. ABI 2 compile/link/import,
 both architectures and imports without the compiler SDK passed in 39334269334;
@@ -58,9 +58,9 @@ compile/link, wheel installation, native/Python imports, dependency consistency
 and both SM89/SM120 cubins. The retained wheel SHA and build report are in
 `evidence/exllama-first-build.json`. The first run's import used the SDK PATH;
 future qualifications also remove SDK DLL directories for a separate installed
-native import check. Run 39326981917 also passed the full build and package
-imports, but predates that new separate native import check. Run 39336142655
-includes the new check and remains pending. No EXL3 GPU product or actual model
+native import check. Later run 39345608258 passed the full build, package and
+native imports with the SDK removed from PATH, dependency consistency and both
+architectures. No EXL3 GPU product or actual model
 has executed here.
 
 `windows-vllm.yml` separately builds the full pinned upstream native wheel with
@@ -84,8 +84,9 @@ EXL3 application. The new build profile has not yet passed Windows qualification
 and scatter comparisons on an actual SM89 or SM120 GPU. It is intentionally
 excluded from CPU CI and remains unrun here. It loads no model and establishes
 neither full-model correctness nor physical residency. The bounded expert
-executor and vLLM quant-method adapter still need integration into the complete
-owned staged graph and separate real packed-weight GPU comparisons.
+executor and vLLM quant-method adapter are integrated into the owned staged
+graph. Independent packed reconstruction/rotation/projection GPU comparisons
+are implemented but unrun.
 
 `index_selection.TiledIndexer` scores at most 8192 keys at a time, gathers BF16
 keys through the local physical slot map, and carries a bounded global top-512
@@ -93,9 +94,10 @@ selection. Source 20 also publishes at most 2048 candidate block IDs (eight
 positions each), pinning the newest partial block. Later indexers score only
 those blocks. Logical IDs are sorted for consumption and padded with -1. Equal
 scores use lower logical IDs as a defined deterministic tie rule; equality with
-the upstream CUDA top-k's unspecified tie choices is not claimed. The actual
-query/weight projection, RoPE and exact CED visibility still require the graph
-adapter. Cancellation can stop between tiles; cache readers hold a window lease
+the upstream CUDA top-k's unspecified tie choices is not claimed. The owned
+graph provides actual query/weight projection, RoPE and exact CED visibility;
+their GPU/model qualification remains unrun. Cancellation can stop between
+tiles; cache readers hold a window lease
 through CUDA completion so another thread cannot restore slots while in use.
 
 `vllm_engram.DiskEngram` subclasses the actual vLLM common Engram graph and
@@ -147,8 +149,9 @@ not by themselves establish that global barrier or distributed commit.
 `native_weights` copies learned native parameters through a bounded startup
 tile, including declared source/destination dtype conversions in its manifest.
 B's source is exclusively the locked resident store. Native parameter memory,
-boot scratch and packed storage require separate explicit admission. The full
-vision/DSpark binding plan and actual graph bootstrap still need integration.
+boot scratch and packed storage have separate explicit admission. The full
+vision/DSpark binding plan and actual graph bootstrap are integrated source;
+their hardware execution remains unrun.
 
 `stage_graph.OwnedStageGraph` now constructs only each stage's actual patched
 decoder layers, the native A vision tower/aligner and both disk Engrams, and C's
@@ -163,12 +166,14 @@ Draft attention has a distinct bidirectional five-row backend. Each draft
 layer's persistent context is seeded from that layer's own projection of target
 attention-input features at layers 37/38/39. Proposed rows never enter that ring.
 Graph methods expose full draft logits and sequential Markov bias/confidence;
-the global sampling/acceptance coordinator is still required. C's explicit
+the global coordinator verifies and commits accepted prefixes across all three
+actual stage services. C's explicit
 text-embedding replica and its additional memory are recorded in MEMORY_PLAN.md.
 Runtime construction checks pinned package versions and exact patched source
-hashes. All GPU graph constructors/execution remain unrun. Complete bootstrap,
-global CED scheduling/commit, image preprocessing/API, snapshots and prefix reuse
-remain unfinished; these source components are not a finished application.
+hashes. All GPU graph constructors/execution remain unrun. Bootstrap, global CED
+scheduling/commit, original image processing/API, snapshots and prefix reuse
+have integrated source. Complete Windows runtime installation and full-model
+qualification remain open gates.
 
 Native ABI 2 retains the four CUDA operations and adds an actual Windows DXGI
 budget query using CUDA's adapter LUID. The extension links the system DXGI

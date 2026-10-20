@@ -16,6 +16,7 @@ local changes here and in the dependency manifest.
 | Protonburn35/StrataRPC | MIT | Lifecycle/protocol reference; no deployment changes |
 | MiaAI-Lab/DeepSeek-V4.1-Flash-EXL3-2x-DGX-Sparks | AGPL-3.0 | Source/stream/autotune reference |
 | deepseek-ai/DeepInfer | Apache-2.0 | Eighth source-only reference; no runtime code copied or dependency introduced |
+| llvm/llvm-project, BinaryFormat/ELF.h | Apache-2.0 WITH LLVM-exception | Auxiliary source-only reference for CUDA ELF ABI 7/8 architecture masks; no code copied |
 | deepseek-ai/DeepSeek-V4.1-Flash-1017 | Model repository LICENSE (MIT text observed) | Pinned config, encoding and independent numerical reference |
 | LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw | Model repository LICENSE (MIT text observed) | Metadata and bounded shard headers only |
 

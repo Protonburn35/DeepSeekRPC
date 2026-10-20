@@ -10,7 +10,7 @@ from .planner import Geometry, StagePlan
 
 def capabilities():
     return {
-        "version": __version__, "status": "incomplete engineering checkpoint",
+        "version": __version__, "status": "runtime implementation under qualification",
         "release_candidate": False,
         "implemented": ["bounded mutual TLS control/data framing and RPC", "streamed CUDA tensor transfer source",
                         "complete physical pack inventory and publisher-verified selective loader",
@@ -27,14 +27,19 @@ def capabilities():
                         "all-stage history publication and Stage C RNG finalization",
                         "original image processing and bounded exact BF16 feature storage source",
                         "exact ByteLevel UTF-8 decoding and transactional token-aligned stops",
-                        "DSpark graph, Markov sampling and exact rejection/RNG arithmetic"],
+                        "DSpark graph, Markov sampling and exact rejection/RNG arithmetic",
+                        "loaded-cluster qualification and incarnation-bound speculative admission gate",
+                        "bounded numeric logs, diagnostics archives and matched actual API benchmark mode",
+                        "private Windows installer, credential generation and launchers",
+                        "pinned private Triton compiler policy and offline compiler qualification source",
+                        "pinned OpenCode SDK text/image/tool/reasoning/cancellation protocol audits"],
         "native_build_evidence": {"project_ABI_2": "Windows compile/link/import and both SMs passed",
                                   "full_EXLlama": "Windows compile/link/import and both SMs passed",
                                   "full_vLLM": "in progress; full serving dependency bundle pending"},
         "unqualified_or_missing": ["actual EXL3/GPU numerical execution",
                                     "full-model exact CED and every-phase cancellation", "full-size laptop residency",
                                     "actual full-model streaming API and image/GPU execution", "actual distributed DSpark execution",
-                                    "actual GPU prefix/snapshot/continuation qualification", "complete Windows deployment dependency bundle"],
+                                    "actual GPU prefix/snapshot/continuation qualification", "complete Windows runtime installation qualification"],
         "hardware_validation": "not run", "independent_astra_review": "pending",
     }
 

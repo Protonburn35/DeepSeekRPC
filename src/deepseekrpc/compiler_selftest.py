@@ -31,6 +31,19 @@ PyMODINIT_FUNC PyInit_deepseekrpc_compiler_probe(void) {
 '''
 
 
+def cubin_architecture(binary):
+    """Decode the documented CUDA ELF ABI 7/8 architecture field.
+
+    Blackwell ABI 8 moves EF_CUDA_SM from bits 0..7 to bits 8..15.
+    See provenance/compiler-elf-reference.lock.json; no LLVM code is copied.
+    """
+    if (len(binary) < 64 or binary[:6] != b"\x7fELF\x02\x01" or
+            struct.unpack_from("<H", binary, 18)[0] != 190 or binary[8] not in (7, 8)):
+        raise ValidationError("offline output is not supported little-endian 64-bit CUDA ELF")
+    flags = struct.unpack_from("<I", binary, 48)[0]
+    return (flags >> 8) & 0xff if binary[8] == 8 else flags & 0xff
+
+
 def run_compiler_checks(cache_root=None):
     policy = configure_windows_triton(cache_root)
     lock = json.loads(resources.files("deepseekrpc._vendor.vllm_windows").joinpath("TRITON.json").read_text())
@@ -79,11 +92,11 @@ def run_compiler_checks(cache_root=None):
             "header": binary[:16].hex(), "bytes": len(binary),
             "machine": struct.unpack_from("<H", binary, 18)[0] if len(binary) >= 20 else None,
             "flags": struct.unpack_from("<I", binary, 48)[0] if len(binary) >= 52 else None}
-        if (not re.search(rf"\.target\s+sm_{architecture}(?:[af])?\b", ptx) or len(binary) < 64 or
-                binary[:6] != b"\x7fELF\x02\x01" or struct.unpack_from("<H", binary, 18)[0] != 190 or
-                struct.unpack_from("<I", binary, 48)[0] & 0xff != architecture):
+        if (not re.search(rf"\.target\s+sm_{architecture}(?:[af])?\b", ptx) or
+                cubin_architecture(binary) != architecture):
             raise AssertionError("offline Triton output failed architecture inspection: " + json.dumps(observed, sort_keys=True))
         compiled.append({"architecture": f"sm_{architecture}", "cubin_bytes": len(binary),
+            "elf_abi": binary[8], "elf_flags": observed["flags"],
             "cubin_sha256": hashlib.sha256(binary).hexdigest(), "ptx_sha256": hashlib.sha256(ptx.encode()).hexdigest(),
             "status": "compiled; not GPU-executed"})
     # Exercise the real initialized-policy guard, then restore it exactly.

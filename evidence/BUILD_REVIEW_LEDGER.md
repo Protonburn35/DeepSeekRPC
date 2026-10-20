@@ -673,3 +673,17 @@ The updated cloud CPU suite passes 363 tests with four real-Win32 skips
 A passing run does not repair DSR-AUDIT-011. No GPU/model qualification is
 claimed. Final runtime evidence copies only explicit bounded JSON reports;
 regenerable compiler cache binaries and paths are not distributed as evidence.
+
+## 2026-10-20 — actual compiler subset reaches Blackwell ELF inspection
+
+Windows CPU 39410453663 passed 0e2bcfc, including current policy and SDK client
+checks. Compiler subset 39410453853 built/loaded the actual TinyCC CPython
+extension, compiled SM89 and compiled SM120 PTX/cubin, then failed its old ELF
+field inspector. It captured ABI 8 flags 0x0600780a (SM120 in bits 8..15), while
+ABI 7 uses bits 0..7. The pinned LLVM header confirms the two masks; new fixtures
+include those actual observed bytes. The corrected full compiler run is pending.
+No GPU driver/context or kernel execution is claimed.
+
+README/capability/traceability text is refreshed to distinguish integrated
+runtime source from missing hardware/install qualification. Earlier foundations
+are no longer inaccurately described as unimplemented adapters/API/Engram paths.

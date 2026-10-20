@@ -1,30 +1,41 @@
 # DeepSeekRPC
 
-Native Windows three-PC inference for DeepSeek-V4.1-Flash-1017 EXL3 2.9 is the
-project goal. This repository is currently an **incomplete engineering
-checkpoint**, not a release candidate or a model-serving application.
+Native Windows three-PC inference for DeepSeek-V4.1-Flash-1017 EXL3 2.9.
+The runtime implementation is **under qualification**. It has not executed a
+complete model or passed the planned independent reviews and is not a release
+candidate. Windows native build/import, CPU reference and actual GPU/full-model
+qualification are separate evidence.
 
-The planned topology is 4090 stage A → resident 4060 laptop stage B → 5070 Ti stage C,
+The topology is 4090 stage A → resident 4060 laptop stage B → 5070 Ti stage C,
 default layers 18/5/17, full eager 1M context, BF16 KV/index and exact SWA replay.
 All three deployment PCs run Windows 11; stage C uses a Ryzen 7 9800X3D.
-The Windows vLLM graph remains the intended foundation. The working Qwen
+The implementation uses the pinned Windows vLLM graph and EXL3 kernels. The working Qwen
 StrataRPC deployment is kept separate.
 
-Implemented foundations include pinned source/model provenance, a complete
-header-derived tensor ownership ledger, bounded typed framing, native TCP with
-mutual TLS, tensor fragmentation, tentative-state rollback, resident-only byte
-storage, a leased RAM cache, bounded original Engram row reads, the official
-October text/tool/vision encoding, and independent CPU operation fixtures.
-The pinned tokenizer and original Engram compressed token map/hash operation
-also run on CPU with bounded transactional validity; learned Engram execution
-remains unfinished.
-Selective local loading verifies publisher file hashes and exposes only owned
-tensor ranges. A boot-only Win32 locked preload closes the laptop disk source;
-full device residency and model execution are still unqualified.
-The vLLM stage adapter, CUDA/BF16 attention integration and complete application
-features remain unfinished. See [requirements](docs/REQUIREMENTS.md),
+Implemented source includes actual owned decoder/vision/draft construction,
+packed dense/routed EXL3 execution, bounded expert tiers and original learned
+Engram operations. BF16 CUDA attention/index/source/shadow/SWA pools use explicit
+generations, causal visibility, undo and full two-pass target replay. A boot-only
+Win32 locked preload verifies all canonical laptop pages and closes its weight
+file source. Physical full-size residency remains unqualified.
+
+Persistent Windows workers use mutual TLS, bounded control/data transfer,
+all-stage commit barriers, cancellation and authenticated mesh replacement.
+The bounded OpenAI JSON/SSE API preserves original text, reasoning, tools and
+images. Exact encoder prefix reuse, all-stage state snapshots and paused
+pending-input continuation have integrated source. The DSpark graph and exact
+sampled verifier remain off by default until the actual loaded cluster passes
+its qualification probe. Local GPU diagnostics, bounded numeric logs,
+diagnostic archives and matched real-API benchmark commands are included;
+their full-model GPU results and throughput remain unmeasured.
+
+See [requirements](docs/REQUIREMENTS.md),
 [compatibility](docs/COMPATIBILITY.md), [memory](docs/MEMORY_PLAN.md),
-[protocol](docs/RPC_PROTOCOL.md), and [handoff](HANDOFF.md).
+[protocol](docs/RPC_PROTOCOL.md), [Windows installation](docs/INSTALL_WINDOWS.md),
+[diagnostics](docs/DIAGNOSTICS.md), [OpenCode](docs/OPENCODE.md), and
+[handoff](HANDOFF.md). The eighth reference, official DeepInfer, is reviewed in
+[DEEPINFER_REVIEW.md](docs/DEEPINFER_REVIEW.md); its bounded replay and biased
+sampling adjustment are not adopted.
 
 ## CPU development
 
