@@ -1,0 +1,53 @@
+name: Preserve qualified whole-source review assets
+
+on:
+  push:
+    branches: [automation/preserve-review-25de683]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  preserve:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUTF8: '1'
+      DSR_RELEASE_ID: '418772774'
+      DSR_CANDIDATE_REPO: ${{ github.workspace }}/candidate
+      DSR_EVIDENCE_ROOT: ${{ github.workspace }}/candidate-assets
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: retention-tools
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 25de683e5ef3a9299267b8e61bafb1d755941c84
+          path: candidate
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Download the exact successful candidate CPU and complete runtime artifacts
+        run: |
+          gh run download 39481164697 --repo Protonburn35/DeepSeekRPC --name cpu-foundation-windows-2025-25de683e5ef3a9299267b8e61bafb1d755941c84 --dir "$env:DSR_EVIDENCE_ROOT/windows-cpu-25de683"
+          if ($LASTEXITCODE -ne 0) { throw 'CPU evidence download failed' }
+          gh run download 39481178727 --repo Protonburn35/DeepSeekRPC --name windows-runtime-25de683e5ef3a9299267b8e61bafb1d755941c84 --dir "$env:DSR_EVIDENCE_ROOT/runtime-25de683"
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime evidence download failed' }
+      - name: Verify every byte and regenerate the exact-source review and native component archives
+        run: python "$env:GITHUB_WORKSPACE/retention-tools/tools/preserve_review_assets.py"
+      - name: Upload the validated archives to the existing draft release
+        run: |
+          $assetRoot = "$env:DSR_EVIDENCE_ROOT/release-25de683"
+          gh release upload whole-source-25de683 --repo Protonburn35/DeepSeekRPC --clobber "$assetRoot/DeepSeekRPC-Astra-review-25de683.zip" "$assetRoot/DeepSeekRPC-Windows-runtime-25de683.zip" "$assetRoot/DeepSeekRPC-native-components-25de683.zip" "$assetRoot/CHECKS.json" "$assetRoot/SHA256SUMS.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release asset upload failed' }
+      - name: Verify the actual uploaded asset identities
+        run: python "$env:GITHUB_WORKSPACE/retention-tools/tools/preserve_review_assets.py" --verify-upload
+      - name: Retain independently recoverable archive and upload evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: persistent-review-25de683
+          path: ${{ env.DSR_EVIDENCE_ROOT }}/release-25de683
+          retention-days: 90
