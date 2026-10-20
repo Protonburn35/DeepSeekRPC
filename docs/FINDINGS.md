@@ -385,3 +385,18 @@ do not emulate a CUDA result. The GPU self-test now contains a real one-slot
 packed-cache probe with finite queued GPU delay, two actual EXL3 calls, exact
 reused-output comparison and stale-lease refusal. That GPU probe remains unrun
 until the later hardware phase.
+
+## DSR-AUDIT-022 — pin the shared small-row EXL3 tuning policy
+
+The pinned EXL3 GEMM source shares its tuning bucket for row counts 1..8 to
+keep normal decode and speculative verification on the same shape/K split.
+Its unset default enables this behavior, but an inherited
+EXL3_GEMM_SMALLM_SHARED_TUNE=0 disables it before a cached first use. Merely
+disabling the INT8/GEMV shortcuts does not constrain this separate selector.
+
+The before-import exact policy now explicitly sets the shared-tuning selector
+to 1 and refuses later mutation. The existing real-process policy regression
+starts with it disabled and exercises mutation refusal for every pinned EXL3
+selector. No native source or build profile changed. This fixes selection of
+the intended upstream policy; actual CUDA row invariance and full-model
+speculative qualification remain separate unrun gates.

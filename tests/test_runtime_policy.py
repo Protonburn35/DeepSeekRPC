@@ -27,20 +27,26 @@ from deepseekrpc.runtime_policy import configure_exact_exl3, assert_exact_exl3
 from deepseekrpc.jsonutil import ValidationError
 assert configure_exact_exl3() == configure_exact_exl3()
 assert_exact_exl3()
-print(json.dumps({k:os.environ[k] for k in ['EXL3_INT8_GEMV','EXL3_GR_INT8','EXL3_GEMV','EXL3_GEMM_LEGACY_TILES']}))
-os.environ['EXL3_INT8_GEMV']='2'
-try:
-    assert_exact_exl3()
-except ValidationError:
-    pass
-else:
-    raise AssertionError('changed fidelity policy was accepted')
+names = ['EXL3_INT8_GEMV','EXL3_GR_INT8','EXL3_GEMV','EXL3_GEMM_LEGACY_TILES','EXL3_GEMM_SMALLM_SHARED_TUNE']
+print(json.dumps({k:os.environ[k] for k in names}))
+for name in names:
+    previous = os.environ[name]
+    os.environ[name] = '0' if previous == '1' else '2'
+    try:
+        assert_exact_exl3()
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError('changed fidelity policy was accepted')
+    os.environ[name] = previous
 '''
-    env = dict(os.environ, EXL3_INT8_GEMV="2", EXL3_GR_INT8="1", EXL3_GEMV="2", EXL3_GEMM_LEGACY_TILES="1")
+    env = dict(os.environ, EXL3_INT8_GEMV="2", EXL3_GR_INT8="1", EXL3_GEMV="2", EXL3_GEMM_LEGACY_TILES="1",
+               EXL3_GEMM_SMALLM_SHARED_TUNE="0")
     env["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
     result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0", "EXL3_GEMV": "0", "EXL3_GEMM_LEGACY_TILES": "0"}
+    assert json.loads(result.stdout) == {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0", "EXL3_GEMV": "0",
+                                       "EXL3_GEMM_LEGACY_TILES": "0", "EXL3_GEMM_SMALLM_SHARED_TUNE": "1"}
 
 
 @pytest.mark.reference

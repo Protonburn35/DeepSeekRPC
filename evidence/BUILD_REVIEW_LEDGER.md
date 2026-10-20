@@ -808,3 +808,16 @@ packed bundles, actual EXL3 calls, exact reused-output comparison and stale
 lease refusal. It is implemented but unrun. Focused suite: 14 passed. Complete
 cloud suite: 382 passed/four actual-Windows-only skips, unchanged tolerances.
 The long native vLLM build is preserved and full installation is still pending.
+
+## 2026-10-20 — Windows expert-wait confirmation and shared small-row tuning
+
+Windows CPU run 39419557963 passed clean f4844a5: 385 passed/one intentional
+skip, wheel/install and actual OpenCode SDK audits. This includes the host-event
+wait/cancel/timeout coverage, not execution of the added CUDA cache probe.
+
+Source review also found EXL3_GEMM_SMALLM_SHARED_TUNE, a separately cached
+selector whose inherited value 0 disables the upstream shared row-1..8 tuning
+bucket. DSR-AUDIT-022 pins it to the intended default 1 before import and checks
+later mutation alongside all existing EXL3 precision selectors. Fourteen focused
+policy/routed/wait tests passed. No native source/profile changed or build was
+restarted. Actual CUDA row invariance remains an independent unrun gate.
