@@ -10,7 +10,8 @@ from .planner import Geometry, StagePlan
 
 def capabilities():
     return {
-        "version": __version__, "status": "runtime implementation under qualification",
+        "version": __version__, "status": "complete source; independent review and hardware qualification pending",
+        "source_implementation": "complete",
         "release_candidate": False,
         "implemented": ["bounded mutual TLS control/data framing and RPC", "streamed CUDA tensor transfer source",
                         "complete physical pack inventory and publisher-verified selective loader",
@@ -36,11 +37,12 @@ def capabilities():
         "native_build_evidence": {"project_ABI_2": "Windows compile/link/import and both SMs passed",
                                   "full_EXLlama": "Windows compile/link/import and both SMs passed",
                                   "private_Triton_compilers": "Windows standalone Python/TinyCC extension build/load and offline SM89/SM120 cubins passed; no GPU execution",
-                                  "full_vLLM": "in progress; full serving dependency bundle pending"},
+                                  "full_vLLM": "Windows build/install, core and MoE imports without SDK, and SM89/SM120 passed",
+                                  "complete_isolated_runtime": "private Windows Python 3.12.14, dependencies, compilers, native imports, Gloo, concrete classes and original parser passed; no GPU execution"},
         "unqualified_or_missing": ["actual EXL3/GPU numerical execution",
                                     "full-model exact CED and every-phase cancellation", "full-size laptop residency",
                                     "actual full-model streaming API and image/GPU execution", "actual distributed DSpark execution",
-                                    "actual GPU prefix/snapshot/continuation qualification", "complete Windows runtime installation qualification"],
+                                    "actual GPU prefix/snapshot/continuation qualification"],
         "hardware_validation": "not run", "independent_astra_review": "pending",
     }
 

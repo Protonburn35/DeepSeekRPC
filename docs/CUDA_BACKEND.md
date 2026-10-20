@@ -5,7 +5,11 @@ wheel install, CPU import and both SM89/SM120 cubins passed in run 39314752138.
 The expanded checks also passed in run 39316435141. ABI 2 compile/link/import,
 both architectures and imports without the compiler SDK passed in 39334269334;
 its report/listing are retained as evidence/native-abi2-*. Actual GPU execution
-remains unrun.
+remains unrun. The current project ABI-2 build passed again in 39410211028.
+The complete vLLM owned profile passed 39428534610, and complete private-runtime
+installation passed 39462821561 at source 30b24d3. Exact baseline reports are in
+evidence/whole-runtime-30b24d3/; the final packet requires matching reports for
+its frozen source revision.
 The CUDA build workflow uses a CPU Windows runner and never executes kernels.
 The intended deployment OS is Windows 11 on all three PCs.
 
@@ -50,7 +54,7 @@ without namespace replacements or a JIT-only wheel. Its helper verifies the
 source archive hash, extracts a separate writable build tree, compiles both
 architectures, imports the installed native extension and Python package, and
 checks dependency consistency. This is separate from the four project kernels
-and from the still-required native vLLM build. The upstream compiler math flags
+and from the separately qualified native vLLM build. The upstream compiler math flags
 are preserved; numerical packed-weight execution must be qualified separately.
 
 The first full upstream EXLlama qualification passed in run 39318861176:
@@ -79,7 +83,13 @@ recorded under `patches/`. This profile omits upstream SM12x FP8/NVFP4 matrix
 and MoE kernels, which are unused by this model and fail MSVC C2719 in the
 unmodified build. It preserves CUDA's descriptor alignment. Native capability
 probes must reject those excluded formats; this wheel is for the selected
-EXL3 application. The new build profile has not yet passed Windows qualification.
+EXL3 application. Run 39428534610 passed the exact five-patch profile, wheel
+build/install, actual core and MoE/router imports with the SDK removed from PATH,
+and SM89/SM120 inspection for both libraries. Its wheel SHA-256 is
+e6fe16765e0f908df5c0c7213e71a90b5e0f506d04e4e1ee474a9ec3af3d80ea.
+Complete installation 39462821561 also passed the exact admitted version,
+dependency/source/native identity, private compiler, Gloo and original parser
+checks under private Python 3.12.14. This does not execute GPU kernels.
 
 `deepseekrpc selftest-cuda` now runs independent small attention, index, Engram
 and scatter comparisons on an actual SM89 or SM120 GPU. It is intentionally

@@ -1,10 +1,10 @@
 # DeepSeekRPC
 
 Native Windows three-PC inference for DeepSeek-V4.1-Flash-1017 EXL3 2.9.
-The runtime implementation is **under qualification**. It has not executed a
-complete model or passed the planned independent reviews and is not a release
-candidate. Windows native build/import, CPU reference and actual GPU/full-model
-qualification are separate evidence.
+The complete application source is implemented for whole-source review.
+Windows CPU checks, native builds/imports and complete private-runtime
+installation qualification pass. GPU/model execution and independent reviews
+remain pending; this is not a release candidate.
 
 The topology is 4090 stage A → resident 4060 laptop stage B → 5070 Ti stage C,
 default layers 18/5/17, full eager 1M context, BF16 KV/index and exact SWA replay.
@@ -38,6 +38,10 @@ See [requirements](docs/REQUIREMENTS.md),
 sampling adjustment are not adopted.
 The [whole-runtime review guide](docs/REVIEW_GUIDE.md) maps the integrated
 source and the remaining qualification questions.
+The first complete Windows installation at `30b24d3` has retained
+[build/install evidence](evidence/whole-runtime-30b24d3/summary.json).
+The final review packet binds its source archive to matching Windows CPU and
+installed-runtime reports for the exact frozen commit.
 
 ## CPU development
 

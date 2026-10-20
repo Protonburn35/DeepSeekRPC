@@ -885,3 +885,70 @@ checks; the actual upstream usage reporter is disabled. The full local suite's
 one failure remains the preserved DSR-AUDIT-011 CPU sqrt issue (381 passes/four
 Windows-only skips). No numerical tolerance was changed. Focused policy/Gloo/
 review-packet checks validate the current repair; actual Windows retry follows.
+
+## 2026-10-20 — exact wheel metadata, current decoder hooks and private model metadata
+
+DSR-AUDIT-025 admits the actual upstream metadata version
+0.31.0+deepseekrpc2.cu132; SDK 13.2 adds that compiler suffix. No wheel is renamed
+or repacked. A fresh supported empty CPU build contains all five current
+patches; actual installed audits now check admitted vLLM source hashes and both
+decoder factory parameters. Target Torch 2.11 CPU integration/parser checks and
+pip check passed. Windows CPU 39434657393 and compiler/external-stack
+39434657502 passed e97591d.
+
+DSR-AUDIT-026 keeps vLLM cache/config metadata under owned worker state before
+upstream imports. The actual CPU model-inspection writer saves its bounded
+JSON there, then reaches the expected CUDA-only Engram validator; that probe
+does not construct a successful complete CUDA model configuration. Seven real
+installed integration checks pass. Windows CPU 39438027561 passed 3457a68 with
+387 tests/one intentional skip; private compiler/external-stack 39438027672
+also passed. Actual GPU/model execution remains unrun.
+
+## 2026-10-20 — retained native notices and immutable Windows source handles
+
+Commit b319948 retains thirteen exact native dependency license/AUTHORS files,
+with parent/submodule revisions, lengths and SHA-256 values. Bundle assembly
+checks them against actual fetched source provenance. Windows CPU 39441370032
+passed 387 tests/one intentional skip. No native profile changed.
+
+DSR-AUDIT-027 at 30b24d3 takes native deny-write/delete read handles before
+weight/Engram validation and holds them until close. Snapshot readers preserve
+their existing policy through the shared helper. Focused cloud checks passed
+47/three Windows-only skips; the complete target Torch 2.11 suite passed
+384/six Windows-only skips. Actual Windows CPU 39461505378 passed 389/one
+intentional skip, including concurrent read/write/delete/replacement, existing
+writer refusal, Unicode paths and failed-constructor cleanup. Both installed
+cloud environments pass seven actual integration checks and pip check. Their
+105-file application identity matches the actual Windows wheel.
+
+Four pass-through observed Torch 2.13 CPU suites at preceding checkpoints did
+not reproduce DSR-AUDIT-011. They do not explain or repair the preserved bad
+sqrt bytes. No oracle, tolerance, vendor library or production math setting was
+changed. The observer binary is external diagnostic tooling and is not shipped.
+
+## 2026-10-20 — complete native vLLM and isolated Windows runtime pass
+
+Native vLLM run 39428534610 at b8d3664 completed successfully after 3h50m.
+The exact five-patch profile passes build/install, actual core and MoE/router
+imports without the SDK, and SM89/SM120 inspection for both libraries. Wheel:
+vllm-0.31.0+deepseekrpc2.cu132-cp312-cp312-win_amd64.whl, 210468623 bytes,
+SHA-256 e6fe16765e0f908df5c0c7213e71a90b5e0f506d04e4e1ee474a9ec3af3d80ea.
+Earlier failed/cancelled runs remain in this ledger; this pass does not erase
+their diagnostics or the separate CPU sqrt finding.
+
+Automatic complete-runtime run 39462821561 passed source 30b24d3 using that
+wheel, qualified EXLlama 39345608258 and project ABI 2 39410211028. It builds the
+actual application and plugin wheels, assembles app-local CRT and all source
+notices, installs the full hash-locked dependencies into private Python 3.12.14,
+then passes all eight required qualification checks. TinyCC extension load,
+offline Triton SM89/SM120 compilation, bare-system-PATH native imports, actual
+Gloo subgroup lifetime, concrete classes and twenty original parser cases pass.
+All 81 retained files (247298333 bytes) match the sealed manifest after download.
+The bounded actual reports are committed in evidence/whole-runtime-30b24d3/.
+
+The final source/status freeze changes no native profile. Delivery still
+requires matching Windows CPU and complete-runtime evidence for that exact
+frozen commit, enforced by tools/build_review_packet.py. GPU/model execution,
+full-size B residency, 1M behavior, distributed recovery, images and performance
+remain unrun/unmeasured. Independent Astra review remains pending and is
+user-mediated; no early hardware trial is requested.

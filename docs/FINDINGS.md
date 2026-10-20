@@ -514,3 +514,24 @@ read sharing and handle release after successful/failed construction. Their
 native Windows run must qualify this repair; no GPU result is claimed.
 The complete target-version Torch 2.11 CPU follow-up passed 384 tests with six
 actual-Windows-only skips, preserving the original numerical tolerances.
+
+### Windows build/install confirmation, 2026-10-20
+
+Windows CPU 39461505378 passed 30b24d3 with 389 tests/one intentional skip,
+including the real file-sharing/Unicode/handle-lifetime regressions for
+DSR-AUDIT-027. The actual installed wheel has the same 105-file source identity
+as the cloud source and installed packages.
+
+Native vLLM 39428534610 passed the exact repaired five-patch profile at b8d3664:
+build/install, real core and MoE/router registration with the SDK removed from
+PATH, and SM89/SM120 inspection for both libraries. This qualifies the native
+build repair in DSR-AUDIT-024. Its actual metadata version is
+0.31.0+deepseekrpc2.cu132, as admitted in DSR-AUDIT-025; no wheel was renamed.
+
+Complete runtime 39462821561 passed source 30b24d3 under private Python 3.12.14:
+all eight required checks, actual TinyCC/Triton operation, dependency/source/
+native identity, Gloo subgroup lifetime, concrete upstream adapters and twenty
+original parser checks. The private cache policy in DSR-AUDIT-026 passed too.
+All 81 distributable files were subsequently checked against their manifest.
+Actual reports are retained in evidence/whole-runtime-30b24d3/. These results do
+not close DSR-AUDIT-011 or establish GPU/model fidelity, residency or throughput.

@@ -1,0 +1,491 @@
+{
+  "format": 1,
+  "kind": "runtime",
+  "source_commit": "30b24d3b78caa538b8b18f927c27056a08c020d6",
+  "files": {
+    "config/A.example.json": {
+      "bytes": 403,
+      "sha256": "2fd5112f9f5569d8d0ef8aa6e0833e8d0a5906b2226aa9e125f4ea1c75397016"
+    },
+    "config/B.example.json": {
+      "bytes": 314,
+      "sha256": "087a9c3e614884c0f9c757f45a5a5345ddec5faf2905922963e33134a0d6c048"
+    },
+    "config/benchmark.example.json": {
+      "bytes": 277,
+      "sha256": "8e1b603dd19e9564557a94a970ee622a7c1817d1cde8d816b30336ade8cf2388"
+    },
+    "config/C.example.json": {
+      "bytes": 323,
+      "sha256": "6e67aee23bf4913fa0560a5f91646c46155584db482d1e43eca4da42e52e89df"
+    },
+    "config/cluster.example.json": {
+      "bytes": 406,
+      "sha256": "3700d9018fa22fdf827cc5b03997770921daefbb38415a5dcb6cc65537eca4cf"
+    },
+    "config/opencode.deepseek.example.json": {
+      "bytes": 932,
+      "sha256": "33f00fde780c8b86a48198b21125741bebd919de8dbcd22cf760c12d25b1d503"
+    },
+    "crt/concrt140.dll": {
+      "bytes": 374200,
+      "sha256": "54716f0738af891f283d213b5c8d11b25896bb8ee3097d301eae718560cf974e"
+    },
+    "crt/msvcp140.dll": {
+      "bytes": 643512,
+      "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca"
+    },
+    "crt/msvcp140_1.dll": {
+      "bytes": 35768,
+      "sha256": "206c931bf90fdad8816de3b5e2ef80b2bcaa9406c89ecc05fe6fddffe251e982"
+    },
+    "crt/msvcp140_2.dll": {
+      "bytes": 274872,
+      "sha256": "d50d7883f20d1dc6191768d3746f52dd9cac89c346ffaed5be1f110c2f34a838"
+    },
+    "crt/msvcp140_atomic_wait.dll": {
+      "bytes": 57792,
+      "sha256": "3d0cbfaa1bf3eecf5a3f4491d2960ee803cb994f30292c6adc4a07c498f60e2b"
+    },
+    "crt/msvcp140_codecvt_ids.dll": {
+      "bytes": 31160,
+      "sha256": "8a65c7596ef2e6938731f5a1058e7e40145b6d97967cc649231a076b9a608d78"
+    },
+    "crt/NOTICE.txt": {
+      "bytes": 332,
+      "sha256": "24dd459d62a26c7de531266d9dceff02c0a50f2f665f22d2715e73fcdc4eea8e"
+    },
+    "crt/vccorlib140.dll": {
+      "bytes": 350648,
+      "sha256": "09f93d5ff96ae09767f3e1af3cdd43a5a58f2598654fc63089429bb6f9f4737f"
+    },
+    "crt/vcruntime140.dll": {
+      "bytes": 178616,
+      "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7"
+    },
+    "crt/vcruntime140_1.dll": {
+      "bytes": 50112,
+      "sha256": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e"
+    },
+    "crt/vcruntime140_threads.dll": {
+      "bytes": 38840,
+      "sha256": "40f39e8cee5f5a531b4010e18b807e8fe265b908dc58f959ecb7ebc6ea6cb11a"
+    },
+    "docs/DEEPINFER_REVIEW.md": {
+      "bytes": 8264,
+      "sha256": "a6833ea7bbbab32c8c158f10f1283306f120fa213763c70ac5bebf57ff48a7cb"
+    },
+    "docs/DIAGNOSTICS.md": {
+      "bytes": 4371,
+      "sha256": "7d96b83b509c670674392c70fd53ba6a3837568aab432eeed1a8a4edc13831f3"
+    },
+    "docs/INSTALL_WINDOWS.md": {
+      "bytes": 6180,
+      "sha256": "7e0209247c347e3fc50cd12baa7342ec56617016d3cccb0a73d196e79725e810"
+    },
+    "docs/OBSERVABILITY.md": {
+      "bytes": 5457,
+      "sha256": "e0974e16710719782928223e156022a386d53566837ea696dc2b471eef0a69af"
+    },
+    "docs/OPENCODE.md": {
+      "bytes": 3320,
+      "sha256": "d4b9717effcca61894fb279c2b7259d8637c0c863e9526c2dc3492d50efa9c92"
+    },
+    "docs/REVIEW_GUIDE.md": {
+      "bytes": 9147,
+      "sha256": "12c7e0e9959e189d0a6895a91f6694706f934a1c8c6dc4349299fcec22f086e7"
+    },
+    "docs/SESSIONS.md": {
+      "bytes": 4517,
+      "sha256": "7d6dc606af1841b1b020e5c424442c9077156388c47a5fc8b63f7a9c11a3ca21"
+    },
+    "evidence/exllama.json": {
+      "bytes": 1537,
+      "sha256": "a9198f9268ba82731916233fc8cbec544fe9836ec1c9db2635ebba83cb708524"
+    },
+    "evidence/native.json": {
+      "bytes": 1033,
+      "sha256": "088b289d01d2606fe43ff454af96b19e480ace5aeb5c3738fa5d5ed85a00ae6b"
+    },
+    "evidence/plugin.json": {
+      "bytes": 360,
+      "sha256": "e94c90ec0f78d32d43fcdc1ecb8014d1e39b5c2cdbd9d1907417b39725a70e06"
+    },
+    "evidence/vllm.json": {
+      "bytes": 8580,
+      "sha256": "a1a269bd42110ef18e2243cd084adf2844f5ed45b355f7665c5216e4c3ae2453"
+    },
+    "Install.ps1": {
+      "bytes": 12554,
+      "sha256": "8d7a39c6c479411f96be7e07b5154e13f9cb40fd03a53b2687d15ee074168180"
+    },
+    "launchers/RUN-HOST.bat": {
+      "bytes": 271,
+      "sha256": "caf5e1907d5ba90a9faf0046129665f186266f83cd7a82473853fb84923d2a5b"
+    },
+    "launchers/RUN-MIDDLE.bat": {
+      "bytes": 271,
+      "sha256": "374cabb5b23e1e9e56ce2e290f96ff34634eef66d8bf3a129b607baecc98719e"
+    },
+    "launchers/RUN-STAGE-C.bat": {
+      "bytes": 271,
+      "sha256": "8bde555865cbd42a2eab9fa37a3b19512c76400f27bf0ee0819e6d7f98505caf"
+    },
+    "launchers/Run-Stage.ps1": {
+      "bytes": 1267,
+      "sha256": "e5bec6b93236e00b643bb930bfa24686919de53a0a81eca3f97e73588711c47d"
+    },
+    "LICENSE": {
+      "bytes": 31719,
+      "sha256": "cf0b6664ce73f379c829d162e2c738dcd867448fbc2ee3962ef2b000297a6083"
+    },
+    "licenses/native/cutlass-LICENSE.txt": {
+      "bytes": 1861,
+      "sha256": "ad1513ca983da737a6843364ad19e8424a56d860736c2da773b8c5be527e1475"
+    },
+    "licenses/native/deepselect-cutlass-LICENSE.txt": {
+      "bytes": 1861,
+      "sha256": "ad1513ca983da737a6843364ad19e8424a56d860736c2da773b8c5be527e1475"
+    },
+    "licenses/native/deepselect-LICENSE.txt": {
+      "bytes": 1064,
+      "sha256": "0cea1d13524d5fef8bf4e4ca656b48e5db4276a12b4993f84d24456d70d43ef4"
+    },
+    "licenses/native/flashmla-cutlass-LICENSE.txt": {
+      "bytes": 1854,
+      "sha256": "7bc733829f16663593865344541c6dcc433beb6b6b555c8f86a43e9b399993cf"
+    },
+    "licenses/native/flashmla-LICENSE.txt": {
+      "bytes": 1065,
+      "sha256": "6c73a30c14a2938abaa6afe98ebb19e6d81dac5bd4ace0cb05c61c20afa37b85"
+    },
+    "licenses/native/fmha_sm100-cutlass-LICENSE.txt": {
+      "bytes": 1854,
+      "sha256": "80a7a18b73d41f64dd9ca881af35938f8de88b18c728703251f4c94d1299884d"
+    },
+    "licenses/native/fmha_sm100-LICENSE.txt": {
+      "bytes": 1064,
+      "sha256": "eed4ccce37c2d24822da3bd9d5bee7bc12d494741de56ada513d0b97f537fcd0"
+    },
+    "licenses/native/tml_fa4-AUTHORS.txt": {
+      "bytes": 29,
+      "sha256": "f3bf4144826a62841b7f9aebc5057f75da2d32a652a573edc67250ec94a377a7"
+    },
+    "licenses/native/tml_fa4-LICENSE.txt": {
+      "bytes": 1558,
+      "sha256": "8c9ccb96c065e706135b6cbad279b721da6156e51f3a5f27c6b3329af9416d73"
+    },
+    "licenses/native/triton_kernels-LICENSE.txt": {
+      "bytes": 1132,
+      "sha256": "92640fb97222fd0a698ff28ce0c3782c172623f8d6c609b557636a80f28fb946"
+    },
+    "licenses/native/vllm-flash-attn-AUTHORS.txt": {
+      "bytes": 29,
+      "sha256": "f3bf4144826a62841b7f9aebc5057f75da2d32a652a573edc67250ec94a377a7"
+    },
+    "licenses/native/vllm-flash-attn-cutlass-LICENSE.txt": {
+      "bytes": 1547,
+      "sha256": "42fec630f410aa308f70a51a89fadcd19586fa620f9831a32bee528a9a10000e"
+    },
+    "licenses/native/vllm-flash-attn-LICENSE.txt": {
+      "bytes": 1558,
+      "sha256": "8c9ccb96c065e706135b6cbad279b721da6156e51f3a5f27c6b3329af9416d73"
+    },
+    "patches/vllm-windows-exl3-build.lock.json": {
+      "bytes": 980,
+      "sha256": "c8167fb6a8cbafa8c26c2be572bcee9f113101150588dc54d0bebe2d4b314748"
+    },
+    "patches/vllm-windows-exl3-build.patch": {
+      "bytes": 4227,
+      "sha256": "8ba0cd5efe7f2cca93f1715d8b2fae85d800f9308f8eea100bb838634b0307cc"
+    },
+    "patches/vllm-windows-float-infinity.lock.json": {
+      "bytes": 676,
+      "sha256": "26fd6b96179f0def3d25d87870abe440f4eda2e947e6b9486d71298ed9bc113d"
+    },
+    "patches/vllm-windows-float-infinity.patch": {
+      "bytes": 495,
+      "sha256": "7ad21c030ea60d250013e538cebce7bb77ad63dee20acfad4010bc17a05a71b1"
+    },
+    "patches/vllm-windows-mhc.lock.json": {
+      "bytes": 874,
+      "sha256": "01762ae178a459b56300977b9bb308dae6b72523bc30302aeb2075b293af1d85"
+    },
+    "patches/vllm-windows-mhc.patch": {
+      "bytes": 2333,
+      "sha256": "4b2cb539e75bfce3c509be9a322f5196b7fcc85242ffd0c5fa4b51c2a4996ef2"
+    },
+    "patches/vllm-windows-owned-runtime.lock.json": {
+      "bytes": 1086,
+      "sha256": "72014951523f007c3930aec3e435c2780601e0f4830dde7ec5a4a607a0650b76"
+    },
+    "patches/vllm-windows-owned-runtime.patch": {
+      "bytes": 3491,
+      "sha256": "974afb34134cedc3bdccda2153b0722c94c4982cbadd82d51835b5cfa22d7ce1"
+    },
+    "patches/vllm-windows-stage-hooks.lock.json": {
+      "bytes": 979,
+      "sha256": "34515b0e23bc1c152ce4c58a9e1eb7d6428715f0f9cb09da9f0b73ff6461c131"
+    },
+    "patches/vllm-windows-stage-hooks.patch": {
+      "bytes": 1673,
+      "sha256": "68126e58cce39e4c730e43c1b4838b99fd6270a1ee5f880913295df5d346153d"
+    },
+    "provenance/compiler-elf-reference.lock.json": {
+      "bytes": 673,
+      "sha256": "5077af8cc2c298d3fb30ba054c55c5db0e8016436fd8070ebc07527355dfe41e"
+    },
+    "provenance/deepinfer-review.lock.json": {
+      "bytes": 7429,
+      "sha256": "1068407cd928f65d7f50997d403a233cd41c660995dde31cf80ada573aafac28"
+    },
+    "provenance/native-notices.lock.json": {
+      "bytes": 7551,
+      "sha256": "387328f3aadd2bde125e50fc7394795c28bed9156a18199b23c8d5bb1e7635a2"
+    },
+    "provenance/opencode-client.lock.json": {
+      "bytes": 1620,
+      "sha256": "bcfc51a1fe8ad49fc5094ea03d979bc486ce08b8e7a3cb2cea508661f7f2d45d"
+    },
+    "provenance/python-windows-download.json": {
+      "bytes": 538,
+      "sha256": "f95cd67271123393172ebc8e94df3e0649018c5be4360bd1fca4afb25bb8ae24"
+    },
+    "provenance/sources.lock.json": {
+      "bytes": 5577,
+      "sha256": "3557c28c8311ad5f5efb6fda871bb813d377f2980d026071ae420a66df2a1bb1"
+    },
+    "provenance/token-map.lock.json": {
+      "bytes": 619,
+      "sha256": "42332809e346a1e50a76027846241b7733f5f6778de6f188fa2a413b888af13b"
+    },
+    "provenance/torch-store-reference.lock.json": {
+      "bytes": 683,
+      "sha256": "2d961e0aaf5561cc61e6cf766ecec0b5c12cbc5cf8547fd6989cf137f1daf505"
+    },
+    "provenance/vllm-native-deps.lock.json": {
+      "bytes": 1882,
+      "sha256": "a0a5955a22c20d80f8594031b15eb6d7160df080d9d22df3229bcea88a26da1c"
+    },
+    "provenance/windows-bootstrap.lock.json": {
+      "bytes": 624,
+      "sha256": "356058c40e2d8554a68e17e971313d9b0cced4b229dcca772a8ea5cf669826f0"
+    },
+    "requirements-runtime-windows.lock": {
+      "bytes": 372470,
+      "sha256": "880ce3502e7028233d0f9181ba567622eab238780db5eafa87abe36ff8cde7c7"
+    },
+    "SOURCE.md": {
+      "bytes": 739,
+      "sha256": "298207204077e5cbd4761fdeca21147fc9c9f06b8f920ddf61d44c08a6dd8ceb"
+    },
+    "tests/fixtures/tokenizer.json.gz": {
+      "bytes": 1868514,
+      "sha256": "d0a53c1a5e7f998a5f42b4f428888da70ed47ad33eb2a8afe32294f39f17ef5a"
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "bytes": 5627,
+      "sha256": "d1c94a0427a6a016fd8e9fd6ea87c2a7684f2615e9c2ae4c72f901977d495778"
+    },
+    "tools/audit_parser_integration.py": {
+      "bytes": 4939,
+      "sha256": "a8eab47ee4db4f256ba7c216fc7083aa59802749fdb4016127c21be46b1847f9"
+    },
+    "tools/qualify_runtime.py": {
+      "bytes": 12292,
+      "sha256": "2731dc59eba0b89fb67565127771be9cd886455e312531c89683e55f43ca1c78"
+    },
+    "wheels/deepseekrpc-0.0.1.dev2-py3-none-any.whl": {
+      "bytes": 312083,
+      "sha256": "e9f0e476c7f4d4218c7e14e50bd014869d9f05799cea1c609ad35ae6cb02a16e"
+    },
+    "wheels/deepseekrpc_cuda-0.0.1.dev1-cp312-cp312-win_amd64.whl": {
+      "bytes": 154348,
+      "sha256": "f8cd302f9527f76edcd8c47aaa2cf0730eaa9eb0e37d32fc7779b3e2bf6c7f25"
+    },
+    "wheels/exllamav3-1.6.1.post1-cp312-cp312-win_amd64.whl": {
+      "bytes": 31770322,
+      "sha256": "980945a64b84da802ebae5529244d50b887861391e251d3a2fc65347a7226bf1"
+    },
+    "wheels/vllm-0.31.0+deepseekrpc2.cu132-cp312-cp312-win_amd64.whl": {
+      "bytes": 210468623,
+      "sha256": "e6fe16765e0f908df5c0c7213e71a90b5e0f506d04e4e1ee474a9ec3af3d80ea"
+    },
+    "wheels/vllm_exl3-0.5.0-py3-none-any.whl": {
+      "bytes": 121837,
+      "sha256": "7f965e5edd7e54daede4ae9dbdc2b8e26c4e2c857b97e06a4027969065fa2e67"
+    },
+    "wheels.lock": {
+      "bytes": 677,
+      "sha256": "d9c3abc26a46023a323aed5d90818e97f0b376332c39390ec7880c18a6d1e6aa"
+    },
+    "evidence/installed-runtime/parser.json": {
+      "bytes": 1919,
+      "sha256": "6f32f53eab7a4acf040ecc9979e8ef718a0cab4913a9adad647146787bfe9cd4"
+    },
+    "evidence/installed-runtime/runtime.json": {
+      "bytes": 5831,
+      "sha256": "e89e50d635d8c5d2caf6ede403369d21011731f636573f7c846db1fa9d959028"
+    }
+  },
+  "application_source_identity": {
+    "sha256": "93f1f2b7f4ded70f2596f41357b2cd1232241dd908fb40029d13f1014b8e3054",
+    "files": 105
+  },
+  "native_files": [
+    {
+      "distribution": "vllm",
+      "path": "vllm/_C_stable_libtorch.pyd",
+      "sha256": "382a948c62e4fc6ac6b6ebebe6141940b9d31dc0f041d4fa47983b0749b536d6"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/_moe_C_stable_libtorch.pyd",
+      "sha256": "63d26c2f54bffb8d941008414570b1f2e0a51f8aaabc0e399936a32fbf2116f2"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/_rust_tool_parser.pyd",
+      "sha256": "1a4b93cb6f39084ed6deb452a0555ef6bd947524396a65a125c2d29c8162a98b"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/cumem_allocator.pyd",
+      "sha256": "83ea100c53521c6dcc70aaf10a17c01effaebe04a87353857f6240f3cd8dc37d"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/fs_io_C.pyd",
+      "sha256": "40fc09ea172971655ea87c11c9374bc450a00809da8f734897b24a7c1bb22646"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/spinloop.pyd",
+      "sha256": "799a351c1f7b2fb8016674989bfd50706e9607338c745c102748916ac9e8885d"
+    },
+    {
+      "distribution": "vllm",
+      "path": "vllm/vllm_flash_attn/_vllm_fa2_C.pyd",
+      "sha256": "91d330bdfb100c8710322078526940832de6eb14fc38efe6dd9873d2d2b11cff"
+    },
+    {
+      "distribution": "exllamav3",
+      "path": "exllamav3_ext.cp312-win_amd64.pyd",
+      "sha256": "2fe4ce84e67f1ce2e93e3bfb7cf9d97c1ec847f2890babc542d6f310233f2c29"
+    },
+    {
+      "distribution": "deepseekrpc-cuda",
+      "path": "deepseekrpc_cuda.cp312-win_amd64.pyd",
+      "sha256": "6fd640086193f6fe51e37ae2006499ffbd4502a6c78e0b1d7e0a3b7d3bf17ba0"
+    }
+  ],
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "protocol_abi": 1,
+  "snapshot_abi": 1,
+  "native_abi": 2,
+  "app_local_crt": [
+    "crt/concrt140.dll",
+    "crt/msvcp140.dll",
+    "crt/msvcp140_1.dll",
+    "crt/msvcp140_2.dll",
+    "crt/msvcp140_atomic_wait.dll",
+    "crt/msvcp140_codecvt_ids.dll",
+    "crt/vccorlib140.dll",
+    "crt/vcruntime140.dll",
+    "crt/vcruntime140_1.dll",
+    "crt/vcruntime140_threads.dll"
+  ],
+  "native_source_notices": [
+    {
+      "file": "licenses/native/cutlass-LICENSE.txt",
+      "sha256": "ad1513ca983da737a6843364ad19e8424a56d860736c2da773b8c5be527e1475",
+      "dependency": "cutlass",
+      "source_commit": "cb4247394dd82148787aed73e5dc7cef33cbf862"
+    },
+    {
+      "file": "licenses/native/triton_kernels-LICENSE.txt",
+      "sha256": "92640fb97222fd0a698ff28ce0c3782c172623f8d6c609b557636a80f28fb946",
+      "dependency": "triton_kernels",
+      "source_commit": "963e615e544faf20b14bb34753291a0fe755f8ae"
+    },
+    {
+      "file": "licenses/native/deepselect-LICENSE.txt",
+      "sha256": "0cea1d13524d5fef8bf4e4ca656b48e5db4276a12b4993f84d24456d70d43ef4",
+      "dependency": "deepselect",
+      "source_commit": "d96d33afe1fab0d6066da49cdc91e64c2bee65ea"
+    },
+    {
+      "file": "licenses/native/fmha_sm100-LICENSE.txt",
+      "sha256": "eed4ccce37c2d24822da3bd9d5bee7bc12d494741de56ada513d0b97f537fcd0",
+      "dependency": "fmha_sm100",
+      "source_commit": "f355c37eb4e1413f21ee2ad8bbad25079e6bef9d"
+    },
+    {
+      "file": "licenses/native/flashmla-LICENSE.txt",
+      "sha256": "6c73a30c14a2938abaa6afe98ebb19e6d81dac5bd4ace0cb05c61c20afa37b85",
+      "dependency": "flashmla",
+      "source_commit": "0eee43b12f034b657133cf2afca6a72ebb6efccf"
+    },
+    {
+      "file": "licenses/native/tml_fa4-LICENSE.txt",
+      "sha256": "8c9ccb96c065e706135b6cbad279b721da6156e51f3a5f27c6b3329af9416d73",
+      "dependency": "tml_fa4",
+      "source_commit": "75765e76a9c2c012c1f6ecd64577eb646eb4d303"
+    },
+    {
+      "file": "licenses/native/vllm-flash-attn-LICENSE.txt",
+      "sha256": "8c9ccb96c065e706135b6cbad279b721da6156e51f3a5f27c6b3329af9416d73",
+      "dependency": "vllm-flash-attn",
+      "source_commit": "9cd61de38763d712bb6ce56e2a02cc2bf718c89f"
+    },
+    {
+      "file": "licenses/native/deepselect-cutlass-LICENSE.txt",
+      "sha256": "ad1513ca983da737a6843364ad19e8424a56d860736c2da773b8c5be527e1475",
+      "dependency": "deepselect",
+      "source_commit": "ae6bccf341fb4410241f696ba06873023d5ce4ed"
+    },
+    {
+      "file": "licenses/native/fmha_sm100-cutlass-LICENSE.txt",
+      "sha256": "80a7a18b73d41f64dd9ca881af35938f8de88b18c728703251f4c94d1299884d",
+      "dependency": "fmha_sm100",
+      "source_commit": "eb61c911471867a5fd2466bfd8f29306cea6ebf8"
+    },
+    {
+      "file": "licenses/native/flashmla-cutlass-LICENSE.txt",
+      "sha256": "7bc733829f16663593865344541c6dcc433beb6b6b555c8f86a43e9b399993cf",
+      "dependency": "flashmla",
+      "source_commit": "147f5673d0c1c3dcf66f78d677fd647e4a020219"
+    },
+    {
+      "file": "licenses/native/vllm-flash-attn-cutlass-LICENSE.txt",
+      "sha256": "42fec630f410aa308f70a51a89fadcd19586fa620f9831a32bee528a9a10000e",
+      "dependency": "vllm-flash-attn",
+      "source_commit": "62750a2b75c802660e4894434dc55e839f322277"
+    },
+    {
+      "file": "licenses/native/tml_fa4-AUTHORS.txt",
+      "sha256": "f3bf4144826a62841b7f9aebc5057f75da2d32a652a573edc67250ec94a377a7",
+      "dependency": "tml_fa4",
+      "source_commit": "75765e76a9c2c012c1f6ecd64577eb646eb4d303"
+    },
+    {
+      "file": "licenses/native/vllm-flash-attn-AUTHORS.txt",
+      "sha256": "f3bf4144826a62841b7f9aebc5057f75da2d32a652a573edc67250ec94a377a7",
+      "dependency": "vllm-flash-attn",
+      "source_commit": "9cd61de38763d712bb6ce56e2a02cc2bf718c89f"
+    }
+  ],
+  "scope": "Complete application/native wheel bundle; installed Python/DLL qualification must run before install completion",
+  "GPU_execution": "not run",
+  "full_model_validation": "not run",
+  "installed_qualification": {
+    "status": "passed",
+    "report": "evidence/installed-runtime/runtime.json",
+    "scope": "actual private Windows Python 3.12.14, TinyCC extension build/load, offline SM89/SM120 compilation, bare-system-PATH native imports, concrete owned classes and parser",
+    "GPU_execution": "not run",
+    "full_model_validation": "not run"
+  }
+}

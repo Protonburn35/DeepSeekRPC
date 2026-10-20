@@ -1,6 +1,8 @@
 # Compatibility audit
 
-Status: M0/M1 engineering checkpoint, not a release candidate. The user authorized
+Status: complete application source with native Windows build/install
+qualification; independent review and GPU/model execution remain pending.
+This is not a release candidate. The user authorized
 implementation on 2026-10-19 and selected the existing Protonburn35/DeepSeekRPC
 checkout. The historical draft-only language in IMPLEMENTATION_SPEC.md records
 the earlier authorization state; it does not cancel that subsequent instruction.
@@ -28,20 +30,22 @@ bounded safetensors headers are sufficient for inventory.
 ## Source evidence
 
 Paths in this table are relative to the pinned reference indicated.
+The table records upstream constraints; the owned integrations and their
+current qualification are described below and in REVIEW_GUIDE.md.
 
 | Surface | Evidence | Consequence |
 | --- | --- | --- |
 | Plugin ABI source surface | vllm-exl3 `tools/check_vllm_compat.py`, executed against Windows vLLM `vllm/`; exact output in `evidence/vllm-compat.log` | Exit 0: imports, plugin group and required abstract methods resolve. One guarded fallback NOTICE and four documentation-only BAD lines are preserved. This is not installed import or GPU qualification. |
 | Actual geometry | Model `config.json:text_config` and vllm-exl3 `src/vllm_exl3/deepseek_v41.py:DEEPSEEK_V41_HIDDEN`, `DEEPSEEK_V41_INTERMEDIATE`, `native_p2b_geometry_supported` | 40 layers, 5120 hidden, 2304 expert intermediate, 384 routed experts, top-6, one shared expert. |
 | Cross-rank state | Windows vLLM `vllm/models/deepseek_v41/attention.py:DeepseekV4Attention.__init__` | Compressed consumers select the latest preceding KV/index sources. Missing local index K source raises NotImplementedError. Default boundaries require source-14 and source-20 replicas, top-k and candidate state. Removing guards alone is incorrect. |
-| Historical FP16 requirement, superseded by user | `attention.py:_resolve_dsv4_kv_cache_dtype`; `nvidia/flashinfer_sparse.py:DeepseekV4FlashInferMLASparseBackend`, `DeepseekV4FlashInferSM120Attention` | Packed paths accept FP8/FP4 formats; plain fallback returns BF16. Backend lists BF16 compute, not a qualified FP16 path. The user now requires BF16-only, unquantized KV/index storage. Existing BF16 plain paths are relevant; index selection, full-context state and replica adapters still need integration. No quantized fallback is allowed. |
+| Historical FP16 requirement, superseded by user | `attention.py:_resolve_dsv4_kv_cache_dtype`; `nvidia/flashinfer_sparse.py:DeepseekV4FlashInferMLASparseBackend`, `DeepseekV4FlashInferSM120Attention` | The user requires BF16-only unquantized KV/index/draft storage. Owned CUDA attention/index/state and exact replica adapters implement that policy; their GPU numerical execution remains unrun. No quantized fallback is allowed. |
 | Replay default | Windows vLLM `vllm/config/cache.py:CacheConfig.swa_bounded_replay` | Upstream defaults true. DeepSeekRPC exact mode must set false and verify the resulting backend setting. |
-| Engram allocation | Windows vLLM `vllm/config/engram.py:EngramConfig`; `nvidia/engram.py:DeepseekV41EngramEmbedding` allocation paths | Pinned whole-table CPU/UVA storage is incompatible with the 32 GiB hosts. Implement bounded exact row lookup on A. |
+| Engram allocation | Windows vLLM `vllm/config/engram.py:EngramConfig`; `nvidia/engram.py:DeepseekV41EngramEmbedding` allocation paths | Pinned whole-table CPU/UVA storage is incompatible with the 32 GiB hosts. Owned DiskEngram implements bounded original encoded-row lookup on A and retains learned projections/gating. |
 | Disk-row reference | Zanooda `patches/README.md`, v41 patches 0009, 0010 and 0013 | Source/shadow transfer and exact disk gather are relevant references. Linux preadv/pthread/runtime GCC details require Windows equivalents. Packed reference row sizes are not FP16 sizes. |
 | Expert offload | vllm-exl3 `docs/CPU_OFFLOAD.md`, `src/vllm_exl3/uva_offload.py` | UVA placement is distinct from CPU computation and does not implement bounded SSD/RAM/VRAM tiers. |
 | Quantization diversity | Selected `exl3_k_map.json` and `quantization_config.json:tensor_storage` | Routed K2 on 18–22, K3 otherwise; shared K4/K5 including mixed layer 29, attention K5, indexer K8, head K6, draft K4. Test all actual layouts, not K2/K3 alone. |
 | Quant metadata completeness | Metadata flattening: 187106 stored tensor descriptors vs 192495 index entries | 5389 tensors lack tensor_storage entries; metadata-only byte totals undercount. Use shard headers for complete inventory; do not treat absent descriptors as zero bytes. |
-| DSpark ownership | Windows vLLM `nvidia/dspark.py:DeepseekV41DSparkModel`, `combine_hidden_states`; model `dspark_target_layer_ids` | Targets 37/38/39 belong to C. Full graph/loader and transactional acceptance audit remains required; leave speculation off until verified. |
+| DSpark ownership | Windows vLLM `nvidia/dspark.py:DeepseekV41DSparkModel`, `combine_hidden_states`; model `dspark_target_layer_ids` | Targets 37/38/39 belong to C. Owned three-block loading, Markov proposals and exact transactional rejection are implemented. Speculation stays off until the real loaded cluster passes its current component/mesh gate. |
 | Routing and expert math oracle | Original `inference/model.py:Gate.forward`, `Expert.forward` | sqrt-softplus scores; bias affects selection only; separate image bias; unbiased weights normalize then scale 1.5; gate clamps above, up branch both sides before SwiGLU. |
 | Vision and mHC oracle | Original `inference/model.py:Transformer.forward`, `merge_image_embeddings`, `Block.hc_pre`, `Block.hc_post` | Image/token positions and four-stream pre_mix are semantic state. Target draft features are attention inputs, not final outputs. |
 | Lifecycle reference | StrataRPC `include/strata/core/layer_stage_rpc.hpp:LayerStageExecutor`, `LayerStageCancelMode`; `docs/LAYER_STAGE_RPC.md` | Persistent ownership and finish-window cancellation are reference patterns, not a transferable Qwen model implementation. |
@@ -50,7 +54,8 @@ Paths in this table are relative to the pinned reference indicated.
 
 Current host: Linux x64, Python 3.12.14, GCC/G++ 14.2, four-core CPU quota,
 32 GiB memory limit, approximately 29.8 GiB workspace free at initial audit.
-No CUDA toolkit/GPU, MSVC, PowerShell or native Windows runner is present.
+No CUDA toolkit/GPU, MSVC or PowerShell is present in the cloud workspace.
+Authorized CPU-only Windows Actions runners provide separate native evidence.
 Initial bootstrap packages are pinned separately from the application stack.
 
 Windows vLLM `requirements/cuda.txt` selects Torch 2.11.0+cu130 and torchvision
@@ -59,13 +64,15 @@ requirements also name Torch 2.13.0. The README specifies a preinstalled Windows
 Torch and `--no-build-isolation`. Resolve that exact Windows build rather than
 allowing isolated build requirements to select a different ABI. ExLlamaV3
 `setup.py` has explicit Windows compiler handling; its `pyproject.toml` includes
-triton-windows. CUDA 13.0–13.2 alignment concerns are documented upstream and
-remain unqualified; do not patch an installed global SDK blindly.
+triton-windows. The pinned CUDA 13.2 compiler/Torch 2.11.0+cu130 combination now
+passes Windows build/install and SDK-free native imports; actual device
+execution and target driver behavior remain unrun. No global SDK is patched.
 
 Required CUDA architecture targets are SM89 and SM120. Neither is established
 by SM121 Spark results. Both must be explicitly compiled on a CPU-only Windows
 builder and subsequently executed on the user's hardware. No Linux pass is a
-Windows build pass. No package version combination is called qualified yet.
+Windows build pass. The admitted package combination is build/install/import
+qualified; this does not establish GPU numerical or full-model correctness.
 
 ## Licensing
 
@@ -91,17 +98,27 @@ The CPU build is a source-integration audit, not a native Windows runtime build.
 An additional isolated Linux CPU audit uses the deployed Torch 2.11 release
 family. The verified direct +cpu wheel replaces only the Torch block in derived
 copies of the reference/audit locks; the repository locks stay unchanged.
-All 382 available unit checks pass, with four Windows-only skips. A fresh empty
-vLLM build contains all five current patches. Six installed integration checks
+The latest full suite passes 384 tests, with six Windows-only skips. A fresh empty
+vLLM build contains all five current patches. Seven installed integration checks
 verify actual imports, disabled usage reporting, current source hashes and both
 decoder factories; all 20 original parser checks and pip check pass. Exact
-wheel hashes and build settings are in
-evidence/installed-integration-audit-torch211-provenance.json. These results do
+wheel hashes and build settings for the earlier refresh are in
+evidence/installed-integration-audit-torch211-provenance.json; current installed
+source identity and checks are in evidence/whole-runtime-30b24d3/cloud-cpu.json.
+These results do
 not close the separate Torch 2.13 CPU sqrt finding DSR-AUDIT-011.
 
-Complete Windows runtime installation, real CUDA kernel execution,
-BF16 attention/index execution, physical laptop residency, exact CED scheduling,
-vision, distributed full-model behavior and throughput remain unverified.
-These are implementation/build gates, not waived requirements. Ongoing remote
+Windows CPU run 39461505378 passed source 30b24d3: 389 tests/one intentional
+skip, wheel build/install, actual file sharing, local Gloo and pinned SDK checks.
+Native vLLM 39428534610 passed actual core/MoE build/import and SM89/SM120
+inspection. Complete Windows runtime 39462821561 passed all eight installation
+checks under private Python 3.12.14, including actual compiler/native/class and
+original parser operation without the compiler SDK. Exact baseline reports are
+retained in evidence/whole-runtime-30b24d3/. A delivered review packet must also
+contain successful matching reports for its final frozen source revision.
+
+Real CUDA kernel execution, BF16 attention/index execution, physical laptop
+residency, exact full-model CED scheduling, vision, distributed behavior and
+throughput remain unverified. These hardware gates are not waived. Ongoing remote
 pushes and CPU CI are authorized by the user. Future builds target Windows only.
 Astra review is user-mediated and has not happened.

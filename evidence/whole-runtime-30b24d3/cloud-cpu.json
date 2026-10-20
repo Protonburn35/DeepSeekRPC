@@ -1,0 +1,41 @@
+{
+  "source_commit": "30b24d3b78caa538b8b18f927c27056a08c020d6",
+  "worktree_clean": true,
+  "application_source_identity": {
+    "sha256": "93f1f2b7f4ded70f2596f41357b2cd1232241dd908fb40029d13f1014b8e3054",
+    "files": 105
+  },
+  "wheel": {
+    "name": "deepseekrpc-0.0.1.dev2-py3-none-any.whl",
+    "bytes": 312077,
+    "sha256": "c020fb9bfc3cf75efd57e2a9be13fe2dde061f6de41903e703ffc6037305f3b2"
+  },
+  "installed": {
+    "primary": {
+      "installed_checks": 7,
+      "pip_check": "passed"
+    },
+    "target": {
+      "installed_checks": 7,
+      "pip_check": "passed"
+    }
+  },
+  "target_Torch_2_11_suite": {
+    "passed": 384,
+    "skipped": 6,
+    "scope": "all skips require actual Windows"
+  },
+  "Windows_file_sharing": {
+    "run": 39461505378,
+    "passed": 389,
+    "skipped": 1,
+    "checks": {
+      "test_windows_snapshot_handle_prevents_write_and_delete_during_validation": "passed",
+      "test_active_verified_shard_allows_readers_but_denies_writes_and_replacement": "passed",
+      "test_tensor_admission_refuses_an_existing_writer_and_releases_failed_handles": "passed"
+    },
+    "installed_wheel_matches_source_identity": true
+  },
+  "GPU_execution": "not run",
+  "full_model_validation": "not run"
+}

@@ -1,0 +1,67 @@
+{
+  "run": 39428534610,
+  "source_commit": "b8d36645f60d3d4d2f83d2b57cf465306476430b",
+  "worktree_clean": true,
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "binary_architectures_verified": true,
+  "checks": [
+    {
+      "name": "torch",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "import-native",
+      "exit_code": 0
+    },
+    {
+      "name": "fatbin",
+      "exit_code": 0
+    },
+    {
+      "name": "fatbin-moe",
+      "exit_code": 0
+    },
+    {
+      "name": "import-native-without-sdk",
+      "exit_code": 0
+    }
+  ],
+  "wheel": {
+    "name": "vllm-0.31.0+deepseekrpc2.cu132-cp312-cp312-win_amd64.whl",
+    "sha256": "e6fe16765e0f908df5c0c7213e71a90b5e0f506d04e4e1ee474a9ec3af3d80ea"
+  },
+  "version": "0.31.0+deepseekrpc2.cu132",
+  "bytes": 210468623,
+  "native_files": [
+    "vllm/_C_stable_libtorch.pyd",
+    "vllm/_moe_C_stable_libtorch.pyd",
+    "vllm/_rust_tool_parser.pyd",
+    "vllm/cumem_allocator.pyd",
+    "vllm/fs_io_C.pyd",
+    "vllm/spinloop.pyd",
+    "vllm/vllm_flash_attn/_vllm_fa2_C.pyd"
+  ],
+  "dependencies": [
+    "cutlass",
+    "triton_kernels",
+    "deepselect",
+    "fmha_sm100",
+    "flashmla",
+    "tml_fa4",
+    "vllm-flash-attn"
+  ],
+  "CPU_assembly_admission": "passed",
+  "GPU_execution": "not run",
+  "full_model_validation": "not run"
+}

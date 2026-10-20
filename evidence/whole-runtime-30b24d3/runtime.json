@@ -1,0 +1,137 @@
+{
+  "scope": "installed native Windows Python/DLL/API/parser qualification; no visible GPU or compiler SDK",
+  "source_commit": "30b24d3b78caa538b8b18f927c27056a08c020d6",
+  "python": "3.12.14",
+  "CUDA_execution": "not run",
+  "full_model_validation": "not run",
+  "checks": [
+    {
+      "name": "private_vllm_cache",
+      "status": "passed",
+      "result": {
+        "private_metadata_cache": true,
+        "private_configuration": true
+      }
+    },
+    {
+      "name": "versions",
+      "status": "passed",
+      "result": {
+        "vllm": "0.31.0+deepseekrpc2.cu132",
+        "vllm-exl3": "0.5.0",
+        "exllamav3": "1.6.1.post1",
+        "torch": "2.11.0+cu130",
+        "deepseekrpc-cuda": "0.0.1.dev1",
+        "numpy": "2.3.5",
+        "tokenizers": "0.23.3",
+        "safetensors": "0.8.0",
+        "huggingface-hub": "1.33.0",
+        "pillow": "13.0.0",
+        "triton-windows": "3.6.0.post26"
+      }
+    },
+    {
+      "name": "application_source_identity",
+      "status": "passed",
+      "result": {
+        "sha256": "93f1f2b7f4ded70f2596f41357b2cd1232241dd908fb40029d13f1014b8e3054",
+        "files": 105
+      }
+    },
+    {
+      "name": "private_compilers_without_sdk",
+      "status": "passed",
+      "result": {
+        "scope": "actual Windows TinyCC extension build/load and explicit-target offline Triton compilation",
+        "python_headers": {
+          "include/Python.h": "729ef157f6026e6e1b3104593f87dddc597c3b83b60c7c2965878c62a56c6f7d",
+          "include/pyconfig.h": "0d0cfe802715933db0b8a889a99788906b82d75201e462a941705d2ea81395cd",
+          "libs/python312.lib": "07a569389d37b48e51fccc401d13c6d804a43c0b89973eff64bc50e485b6ae0e"
+        },
+        "compiler_policy": {
+          "version": "3.6.0.post26",
+          "verified_files": {
+            "triton/runtime/build.py": "8e1d02742d887b110638ae73cf13bcebec1f76ea75c138acc022182eb3abd9dd",
+            "triton/windows_utils.py": "bd4ad8f25a3c88795276e52500ca8b7969d340b0b681a09399ea61b1ca146bd4",
+            "triton/knobs.py": "53776bdbeb3c06da277b4fac1ae6ffacdc3ddea5a9eefc2a4987ca7ad426dac8",
+            "triton/backends/nvidia/driver.py": "e7e76aa1ec22f8974ae1f518819cb12787d4ed42bf6907772fd6e87c2e4d15cd",
+            "triton/backends/nvidia/compiler.py": "f0754e1c22109e9fe774d6fd99d602341946c90385aba5e9cd4376e933140c06",
+            "triton/runtime/tcc/tcc.exe": "78dc86cfd8dfb47251a6f7c905a74d61547505c522edbb429c953665d4acb447",
+            "triton/runtime/tcc/libtcc.dll": "1e990d684011ae24060ec758eb1b963637f8ca65e1630346b7d5a9979dfd85eb",
+            "triton/runtime/tcc/lib/python312.def": "c88c1b7970dc1a73df0234e8f3da04a23ae542dad6e9a54fbc69bb18c5f544db",
+            "triton/backends/nvidia/bin/ptxas.exe": "7f6f04d25e5a7ab2c07c15e4ef26a07cec08104ebfebf364331fafa8f3c443d6",
+            "triton/backends/nvidia/lib/libdevice.10.bc": "5c2fae37c86e68c3a38605a95f512d7d12d5f3db986310be47f57304aa72a5ee",
+            "triton/backends/nvidia/include/cuda.h": "167e383a3791226c5e809dfd6a9614b29b1e11f4d6346c29a921943a71e3e566",
+            "triton/backends/nvidia/lib/x64/cuda.lib": "2390d97d1f1a43dc28758a37b6bb2449b26925df651ef657b27119dcd577d0b4"
+          },
+          "host_compiler": "bundled TinyCC",
+          "device_compiler": "bundled CUDA ptxas",
+          "kernel_override": false,
+          "interpreter": false,
+          "fp32_dot_default": "ieee",
+          "compiler_execution": "not established by policy configuration"
+        },
+        "host_extension_sha256": "f59d5eadbbf84f0be210d01cb4379131e6c5045c23dddedc118c09c71c3e2951",
+        "targets": [
+          {
+            "architecture": "sm_89",
+            "cubin_bytes": 2856,
+            "elf_abi": 7,
+            "elf_flags": 5834073,
+            "cubin_sha256": "c965e053e5292d192e2c117895b3a7be3a2d845e101bc80aba84218192912abd",
+            "ptx_sha256": "98ed217c0c4686ad7260ca508b000f76e14c5de6248a03560d15b5e5bc4bc337",
+            "status": "compiled; not GPU-executed"
+          },
+          {
+            "architecture": "sm_120",
+            "cubin_bytes": 5328,
+            "elf_abi": 8,
+            "elf_flags": 100694026,
+            "cubin_sha256": "3f54cded957bdc75e2f5d9a68624fc916a21c76ef83209b53f8ae274f9ae1adf",
+            "ptx_sha256": "d07f1650129723fb08fbaf94d94323b5d5325ed40894c64102e06e848bf6d292",
+            "status": "compiled; not GPU-executed"
+          }
+        ],
+        "mutation_guards": "passed",
+        "GPU_execution": "not run"
+      }
+    },
+    {
+      "name": "native_without_sdk",
+      "status": "passed",
+      "result": "actual native exports/registration imported with a bare Windows system PATH"
+    },
+    {
+      "name": "actual_local_gloo",
+      "status": "passed",
+      "result": "actual local bounded Torch Store/Gloo group and CPU metadata collective; no inter-PC/GPU collective"
+    },
+    {
+      "name": "complete_python_integration",
+      "status": "passed",
+      "result": "actual installed classes/API, without model construction or GPU qualification"
+    },
+    {
+      "name": "actual_original_parser",
+      "status": "passed"
+    }
+  ],
+  "native": [
+    {
+      "file": "deepseekrpc_cuda.cp312-win_amd64.pyd",
+      "sha256": "6fd640086193f6fe51e37ae2006499ffbd4502a6c78e0b1d7e0a3b7d3bf17ba0"
+    },
+    {
+      "file": "exllamav3_ext.cp312-win_amd64.pyd",
+      "sha256": "2fe4ce84e67f1ce2e93e3bfb7cf9d97c1ec847f2890babc542d6f310233f2c29"
+    },
+    {
+      "file": "_C_stable_libtorch.pyd",
+      "sha256": "382a948c62e4fc6ac6b6ebebe6141940b9d31dc0f041d4fa47983b0749b536d6"
+    },
+    {
+      "file": "_moe_C_stable_libtorch.pyd",
+      "sha256": "63d26c2f54bffb8d941008414570b1f2e0a51f8aaabc0e399936a32fbf2116f2"
+    }
+  ]
+}

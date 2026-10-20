@@ -1,0 +1,70 @@
+{
+  "source_commit": "30b24d3b78caa538b8b18f927c27056a08c020d6",
+  "worktree_clean": true,
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "checks": [
+    {
+      "name": "workflow-syntax",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "D:\\a\\DeepSeekRPC\\DeepSeekRPC\\tools\\check_workflows.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "pytest",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "--junitxml=D:\\a\\_temp\\deepseekrpc-check\\pytest.xml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "wheel",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--no-build-isolation",
+        "--wheel-dir",
+        "D:\\a\\_temp\\deepseekrpc-check\\wheels",
+        "D:\\a\\DeepSeekRPC\\DeepSeekRPC"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "install-wheel",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-deps",
+        "D:\\a\\_temp\\deepseekrpc-check\\wheels\\deepseekrpc-0.0.1.dev2-py3-none-any.whl"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "installed-cli",
+      "command": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Scripts\\deepseekrpc.exe",
+        "capabilities"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "CUDA_execution": "not run",
+  "full_model_validation": "not run",
+  "release_candidate": false,
+  "wheel": {
+    "name": "deepseekrpc-0.0.1.dev2-py3-none-any.whl",
+    "sha256": "64f9888bf9ead7a2b43b2ee04a17b29369103d933bc0ec6613e3f3071449bb48"
+  }
+}

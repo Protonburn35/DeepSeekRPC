@@ -1,0 +1,60 @@
+{
+  "run": 39462821561,
+  "source_commit": "30b24d3b78caa538b8b18f927c27056a08c020d6",
+  "files_verified": 81,
+  "bytes_verified": 247298333,
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "application_source_identity": {
+    "sha256": "93f1f2b7f4ded70f2596f41357b2cd1232241dd908fb40029d13f1014b8e3054",
+    "files": 105
+  },
+  "installed_qualification": {
+    "status": "passed",
+    "report": "evidence/installed-runtime/runtime.json",
+    "scope": "actual private Windows Python 3.12.14, TinyCC extension build/load, offline SM89/SM120 compilation, bare-system-PATH native imports, concrete owned classes and parser",
+    "GPU_execution": "not run",
+    "full_model_validation": "not run"
+  },
+  "python": "3.12.14",
+  "checks": [
+    {
+      "name": "private_vllm_cache",
+      "status": "passed"
+    },
+    {
+      "name": "versions",
+      "status": "passed"
+    },
+    {
+      "name": "application_source_identity",
+      "status": "passed"
+    },
+    {
+      "name": "private_compilers_without_sdk",
+      "status": "passed"
+    },
+    {
+      "name": "native_without_sdk",
+      "status": "passed"
+    },
+    {
+      "name": "actual_local_gloo",
+      "status": "passed"
+    },
+    {
+      "name": "complete_python_integration",
+      "status": "passed"
+    },
+    {
+      "name": "actual_original_parser",
+      "status": "passed"
+    }
+  ],
+  "parser_checks": 20,
+  "native_source_notices": 13,
+  "GPU_execution": "not run",
+  "full_model_validation": "not run"
+}

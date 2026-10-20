@@ -1,237 +1,144 @@
-# DeepSeekRPC implementation checkpoint
+# DeepSeekRPC whole-source implementation handoff
 
-The goal is the complete native Windows three-PC October 1017 EXL3 2.9
-application described by docs/IMPLEMENTATION_SPEC.md, including CUDA. This is
-an incomplete engineering checkpoint, not an Astra review candidate or a
-hardware-test release. Continue implementing; the user wants the first whole
-Astra handoff after all mandatory application features are present.
+The complete native Windows/CUDA application source is implemented. Native
+Windows builds/imports and the complete private-runtime installation passed
+at source 30b24d3. The final review packet must bind matching CPU/install
+reports to its exact frozen source. Independent review and GPU/model execution
+remain pending. The user wants whole-source Astra review/fix cycles before
+testing on the three PCs; this is not a hardware-test release.
 
-All three deployment PCs run Windows 11: A RTX 4090, B RTX 4060 laptop, C RTX
-5070 Ti + Ryzen 7 9800X3D. Current user instructions require unquantized BF16
-KV/index storage and FP32 stage activation/pre_mix wire. FP16 inside existing
-EXL3 weight kernels is separate. Optional FP16 cache mode is excluded.
+## Requirements and authorization
 
 Reuse Protonburn35/DeepSeekRPC on main. Pushes, Windows-only CI, direct commits
-and merges are authorized. Use the neutral automation author and keep personal
-identity out of source, artifacts and logs. Do not modify working StrataRPC,
-create another project repository, download full model/Engram payloads into
-cloud, rent GPUs or rely on access to the user's personal cloud VM.
+and merges are authorized. Use only the neutral DeepSeekRPC Automation author
+and keep the user's personal identity out of source, artifacts and logs.
 
-## Source and environment
+All deployment PCs run Windows 11: A RTX 4090, B RTX 4060 laptop, C RTX 5070 Ti
+and Ryzen 7 9800X3D. Preserve BF16-only unquantized KV/index/draft storage,
+FP32 hidden/pre_mix stage wire, exact full target/SWA replay and the complete
+three-PC graph. Optional FP16 cache mode is excluded. Intrinsic FP16 operands
+inside the selected EXL3 weight kernels are separate.
 
-Checkout: /workspace/DeepSeekRPC. Read-only upstream references, bounded model
-metadata/headers and source archives: /workspace/deepseekrpc-references.
-Writable build copies: /workspace/deepseekrpc-build. Python tools:
-/workspace/deepseekrpc-tools/.venv. Logs/artifacts:
-/workspace/deepseekrpc-evidence. All admitted revisions/hashes are under
-provenance/. Source precedence and later user overrides are in docs/DECISIONS.md.
+Do not modify working Qwen StrataRPC, create another project repository,
+download model/Engram payloads into cloud, rent GPUs or depend on the user's
+personal cloud VM. Current user instructions override the historical attachment
+authorization language; see docs/DECISIONS.md and the full implementation spec.
 
-The complete original Astra prompt is retained unchanged in
-IMPLEMENTATION_SPEC.md; the older handoff is background research. User
-instructions supersede both, including current push/CI authorization, all-Windows
-hardware, BF16-only caches, FP32 wire and complete implementation before review.
+## Source and development environment
 
-The user added official deepseek-ai/DeepInfer as an eighth source-only reference.
-It is pinned at 8b16149741a4935e1dec8cea27853f273b374c5b. Read
-docs/DEEPINFER_REVIEW.md: preserve full target replay, exact rejection correction
-and confidence-independent fixed proposal verification. Do not run upstream
-examples/tests that acquire model payloads. Independent tiny joint-law fixtures
-pass; no upstream model/GPU execution has occurred.
+- Checkout: /workspace/DeepSeekRPC; obtain its exact revision with
+  `git rev-parse HEAD`. The generated review manifest records the final commit.
+- Read-only references: /workspace/deepseekrpc-references. Writable build copies:
+  /workspace/deepseekrpc-build. External logs: /workspace/deepseekrpc-evidence.
+- Primary Python: /workspace/deepseekrpc-tools/.venv/bin/python, Python 3.12
+  with Torch 2.13 CPU. Independent target-version CPU environment:
+  /workspace/deepseekrpc-tools/target-cpu-2.11/bin/python.
+- Current primary installed audit uses the actual patched empty vLLM build and
+  official no-CUDA EXL3 plugin wheel. These contain no surrogate GPU results.
+- The cloud has no GPU, MSVC, nvcc or PowerShell. Native Windows CI is separate.
+- The reusable cloud configuration is saved as a draft. Saving is not publishing;
+  a missing publication tool is not a reason to stop repository implementation.
 
-## Implemented components
+All source pins, archive hashes, model metadata and exact patch hashes are
+under provenance/ and patches/. DeepInfer is the eighth source-only reference,
+pinned at 8b16149741a4935e1dec8cea27853f273b374c5b. Read
+docs/DEEPINFER_REVIEW.md; do not run examples that acquire model payloads or
+adopt its FP8 draft keys, bounded replay, biased rejection epsilon or confidence
+pruning.
 
-- Complete physical pack inventory and selective publisher-verified local reads;
-  B boot-only VirtualLocked canonical weights with all-page residency checks,
-  permanently closed file source and one shared MiB pinned transfer tile.
-- Actual EXL3 plugin linears, all owned non-routed bindings, bounded expert arenas
-  and leases, all routed choices, official pre-w2 weighting and shared experts.
-- Native CUDA BF16 sparse attention/index/scatter and original Engram decode;
-  eager independent source/shadow/SWA pools, undo, exact visibility, FP32 pair
-  compression, actual learned Engram operations and delayed mHC backend.
-- Actual owned vLLM decoder/vision/draft construction and complete native loading;
-  C input embedding replica; original target feature/Markov/confidence heads.
-- Native Windows bootstrap and whole-stage budget admission. LOADED is distinct
-  from distributed READY. Peer identities bind model, tokenizer, precision,
-  installed source/components and native binaries.
-- Exact sampled rejection correction, independent transactional RNG domains,
-  bounded Stage C Markov sampling and separate processed/pending token decisions.
-- Original token/image history identities and generated-token counts; phase
-  ledger and actual CUDA execution boundary with dependencies, full CED traversal,
-  unanimous commit receipts, reset and faulted-session invalidation.
-- Mutual TLS, bounded lossless fragments and CUDA transfer tiles; one-owner
-  control socket pumps, correlated RPC, cancellation/heartbeat during queued work,
-  deadline invalidation and certificate-derived mesh connection acceptance.
-- Persistent bounded stage actors/services, locally derived dependency mesh,
-  full-prompt data transfer, full two-pass CED and speculative coordinator source.
-  Output publication waits for all actual GPU receipts, all-stage history commits
-  and Stage C RNG finalization. The new GPU/service integration remains unrun.
-- Unchanged original image processing, exact token-span expansion, bounded
-  original/feature storage and A's actual tower/aligner window resolver source.
-  Exact incremental ByteLevel/UTF-8 and transactional stops trim speculative
-  accepted prefixes before GPU finish and retain partial stop text for streaming.
+## Implemented scope
 
-These components have not executed a complete model. OpenAI JSON/SSE request
-ownership, the original streaming parser, persistent Windows startup and
-authenticated interrupted-mesh replacement now have integrated source. Early
-control/API diagnostics run before model loading; Ctrl+C cancels a request and
-Ctrl+Break explicitly shuts down. Native worker/model execution is unrun.
-Exact prefix checkpoints, bounded all-stage state save/restore, administrative
-pause and exact pending-input/RNG continuation now have integrated source and
-HTTP/CLI entry points. Their actual GPU/distributed execution remains unrun.
-The complete Windows dependency/install bundle and broader GPU diagnostics are
-being qualified. Optional grammar/response-format and named tool constraints
-are explicitly rejected; the specification allows clear unsupported controls.
-They are not required features being silently deferred.
-Bounded numeric logs, machine-readable cache/I/O/transfer/request metrics, live
-and offline diagnostic archives and matched real-API benchmark modes now have
-integrated source. The separate OpenCode profile and its actual pinned SDK wire
-adapter have CPU protocol evidence. Full Docker/GPU performance is unrun.
+- Selective publisher-verified pack loading, actual EXL3 dense/routed execution,
+  shared experts, bounded desktop caches and B's all-page VirtualLocked canonical
+  preload, closed source files and one bounded pinned transfer tile. Active Windows
+  weight/Engram readers deny write/delete/replacement access until close.
+- Actual owned vLLM decoder/vision/three-block draft graph and native weights;
+  BF16 CUDA attention/index/source/shadow/SWA, exact undo, FP32 compressor pairs,
+  learned Engram, delayed mHC and whole-stage memory admission.
+- Full two-pass CED, image-safe encoder prefix checkpoints and full target
+  replay; exact Markov proposal/rejection/stop handling, three transactional RNG
+  domains and separate processed/pending token identities.
+- Persistent Windows workers, mutual TLS, bounded data/control RPC, independent
+  cancellation/heartbeat, incarnation-bound recovery and all-stage GPU/history
+  commits plus Stage C RNG finalization before output publication.
+- Bounded original OpenAI JSON/SSE text/image/reasoning/tool handling, early
+  LOADING diagnostics, request cancellation without unloading, private PKI and
+  isolated Windows launch/configuration paths.
+- All-stage bounded state snapshots, prevalidated restore, administrative pause
+  and exact pending-input/history/image/RNG/stop continuation.
+- Content-free observability, local GPU/cluster diagnostics, real API benchmark
+  commands and the separate OpenCode provider with actual pinned SDK audits.
+- Five-wheel private Python installer, exact native/source admission, app-local
+  CRT, private Triton/metadata caches and retained exact native dependency notices.
 
-## Verification
+docs/REVIEW_GUIDE.md maps the source and review hazards. Optional grammar,
+response-format and named-tool constraints fail explicitly as permitted by the
+specification. They are not mandatory implementation omissions. Speculation
+stays disabled until the actual loaded components and current mesh pass their
+in-memory cluster qualification gate; a report file cannot enable it.
 
-Project native ABI 2 passed Windows compile/link/install/import, SM89/SM120
-inspection and SDK-free import again in run 39340258236. Full pinned EXLlama
-passed run 39336142655, including both architectures, SDK-free native import,
-Python package import and dependency consistency. Full vLLM native run
-39336142640 reached 107/203 compile steps, then failed in optional FlashKDA and
-Qutlass extensions outside the selected EXL3 path. A fifth exact-source profile
-patch omits those extensions and preserves core/MoE targets. The next native
-build must qualify it. Build reports distinguish native-only qualification
-from complete Python serving dependencies. No GPU kernel/model has executed.
+## Actual checks and current build gates
 
-Windows CPU run 39344050108 and project native run 39344050177 passed fdf1247. The expanded local suite
-passed 265 tests with four actual-Win32-only skips after image and stop additions.
-The preceding stop suite reproduced the open CPU issue; the real ATen observer
-narrows it to sqrt (up to 3e-4), while matrix multiply/softplus stay near FP32 error.
-The next passing suite does not resolve it. Focused tests include actual thread invalidation/queue bounds,
-history/RNG publication and a real TLS million-token prompt transfer. The full follow-up
-caught the intermittent CPU Torch router discrepancy again: the FP64 diagnostic
-puts NumPy error below 7e-8 and Torch up to 4.6e-5 on the first four rows. Keep
-tolerance unchanged; diagnose the real CPU operation path. A passing rerun is
-not a repair. Tests use frozen source methods and independently pinned CPU math
-packages; CPU/reference, native builds and hardware qualification remain distinct.
+At 30b24d3b78caa538b8b18f927c27056a08c020d6, Windows CPU run 39461505378
+passed 389 tests/one intentional non-Windows-refusal skip, wheel build/install,
+CLI and actual OpenCode SDK checks. External runtime/compiler run 39438027672
+at 3457a686c3aeee5b4306ad5cfb025fa284712846 passed the private Python 3.12.14,
+TinyCC load, offline SM89/SM120 Triton compilation, full external dependencies,
+pip check, CUDA-Torch imports, Gloo subgroup lifetime and unloaded API checks.
+Both refreshed installed cloud environments pass seven integration checks and
+pip check. The Windows wheel and current installed/source package share identity
+93f1f2b7f4ded70f2596f41357b2cd1232241dd908fb40029d13f1014b8e3054
+(105 files). The original parser passes twenty cases in the complete Windows
+runtime. These results do not execute the model.
 
-The application wheel builds and packaged deployment metadata/history/source
-identity were exercised after installation outside the checkout. See
-BUILD_REVIEW_LEDGER.md for precise per-checkpoint scope and docs/FINDINGS.md for
-open source fidelity findings. Update evidence when builds finish.
+Use qualified EXLlama run 39345608258 and project native ABI 2 run 39410211028.
+Native vLLM run 39428534610 passed source
+b8d36645f60d3d4d2f83d2b57cf465306476430b with the exact five-patch profile,
+actual core/MoE imports without SDK and both SM89/SM120 inspections. It excludes unused FlashKDA/Qutlass/DeepGEMM targets,
+not the owned BF16/EXL3/mHC graph. The fifth patch hash is
+974afb34134cedc3bdccda2153b0722c94c4982cbadd82d51835b5cfa22d7ce1.
+The admitted wheel metadata version is 0.31.0+deepseekrpc2.cu132.
 
-Actual SM89/SM120 execution, full model/vision/1M context behavior, complete B
-residency and performance remain unrun/unmeasured. Independent Astra review
-remains pending and user-mediated. Do not ask for an intermediate review or an
-early hardware trial.
+Automatic complete-runtime run 39462821561 passed all eight checks at 30b24d3:
+private_vllm_cache, versions, application_source_identity,
+private_compilers_without_sdk, native_without_sdk, actual_local_gloo,
+complete_python_integration and actual_original_parser. It uses private Python
+3.12.14 and retains thirteen exact native source notices. All 81 downloaded
+files match the sealed manifest. Actual bounded baseline reports are committed
+in evidence/whole-runtime-30b24d3/; full original artifacts/logs remain external.
+DSR-AUDIT-027 file-sharing/Unicode/concurrent-reader and constructor-lifetime
+checks passed on actual Windows. DSR-024/025/026 build/version/private-cache
+checks passed in the native/full runtime. No native profile is pending here.
 
-## Development checks
+DSR-AUDIT-011 remains open: intermittent Linux Torch 2.13/MKL sqrt bytes match
+an approximate AVX2 path despite the ATen high-accuracy wrapper. Preserved
+synthetic captures and instruction probes are in evidence/cpu-sqrt-diagnostic/.
+Four observed suites passed 384 tests/four Windows-only skips, but none captured
+the failing call. No oracle, tolerance, vendor library or runtime math was
+changed. A later pass is not a repair. Other findings and historical build
+failures remain recorded in docs/FINDINGS.md and the append-only build ledger.
+GitHub API's temporary 401 recovered; do not request a token or reconnect.
 
-Use the existing Python environment, PYTHONUTF8=1, OMP_NUM_THREADS=2 and
-OPENBLAS_NUM_THREADS=2. Run appropriate focused tests and the complete suite
-before a tested checkpoint. tools/ci_check.py builds/installs the application
-wheel outside the checkout. tools/audit_installed_integration.py exercises the
-real CPU-only empty vLLM package and plugin; it does not qualify CUDA constructors.
-The reusable cloud configuration is saved as a draft; publishing is a separate
-UI action and is not a reason to stop implementation.
+## Finish the candidate
 
-The 2026-10-20 API/worker suite passed 304 tests with four Win32-only skips and
-one failure in the still-open Linux CPU sqrt finding. Immediate captured sqrt
-bytes reproduce the error, have no later mutation, and three repeated calls on
-the identical captured input are accurate. This is evidence for a transient
-real CPU library path, not a resolved defect. Keep all tolerances unchanged.
+The final capability/docs freeze and append-only evidence ledger record the
+actual 30b24d3 baseline. Before delivering the first review packet, obtain
+matching Windows CPU and complete-runtime reports for the frozen HEAD, then
+run tools/build_review_packet.py outside the source checkout. Its REVIEW.json
+binds the archive and reports to that exact commit; do not infer a final result
+from an earlier baseline. Reuse unchanged qualified native wheels; do not
+rebuild CUDA merely for documentation changes. Verify every downloaded bundle
+file against its manifest and preserve source/evidence externally.
 
-The later prefix/archive suite passed 323 tests/four skips; the integrated
-snapshot/session suite passed 332/four skips. Neither pass repairs the prior
-CPU failure. The latest private API/archive/inventory/prefix focused checks
-passed 36 tests. Windows CPU run 39350431569 and project native run 39350431617
-passed checkpoint 8100979. Full vLLM/EXLlama runs 39345608248/39345608258 remain
-in progress. See docs/SESSIONS.md for implemented source semantics and limits.
+For a complete-runtime rerun after a Python/source fix:
+`gh workflow run windows-runtime.yml --ref main -f vllm_run=39428534610
+-f exllama_run=39345608258 -f native_run=39410211028` (one shell command).
+Use native source/profile admission to decide whether those components remain
+valid. Consult the exact matching review packet and current Actions status for
+final run IDs, rather than treating this earlier baseline as current evidence.
 
-## Latest 2026-10-20 Windows/source checkpoint
-
-The eighth DeepInfer review and exact conditional sampling fixtures are complete
-source work. Preserve BF16 draft-context/proposal keys too: DeepInfer explicitly
-quantizes those to FP8, which does not supersede the user's requirement. Its
-metadata confirms 128 prior target keys plus five bidirectional draft keys.
-No DeepInfer import/build/example/test or model download has run here.
-
-Windows CPU 39411095812 passed 27e7de91c857e482d53b79bc1b21f06ff717475f:
-374 passed/one intentional non-Windows refusal skip. Actual private standalone
-Python/TinyCC and offline Triton SM89/SM120 compilation passed 39411095629.
-Blackwell ELF ABI 8's shifted SM field is fixed using actual captured bytes and
-a pinned auxiliary LLVM header. A neutral annotated remote rollback tag is
-checkpoint-27e7de9-windows-cpu-compiler. It is not GPU/model/review qualified.
-Native ABI 2 run 39410211028 at 6f0f086 passed compile/link/import/SM inspection
-and the actual Windows Torch 2.11+cu130 CPU suite (366 passes/one skip).
-
-Long full vLLM run 39408672207 at 441b344 remains in progress with the unchanged
-five-patch profile. The earlier 39400420994 was accidentally cancelled by the
-DeepInfer source-lock trigger at 133/189, without a compiler error. Native vLLM
-concurrency now preserves running builds; duplicate pending run 39410149104 was
-cancelled. EXLlama duplicate 39408672326 was cancelled; use successful complete
-39345608258. GitHub API's temporary HTTP 401 recovered without user action.
-Do not ask the user to reconnect or provide a token.
-
-The complete runtime workflow's YAML error is fixed and all workflows are
-parsed in CPU CI. It now automatically follows successful native vLLM builds,
-validates exact pins/profile/native source, installs the five-wheel private
-runtime and performs actual dependency/native/compiler/API/parser qualification.
-It can also be manually dispatched with those three successful run IDs. Fix any
-actual failure, then preserve/download the successful artifact. The source
-packet builder requires matching clean-commit Windows CPU and sealed complete
-runtime evidence; it does not label pending work or hardware as passed.
-
-New docs/REVIEW_GUIDE.md navigates all integrated features and fidelity hazards.
-Do not ask for an intermediate Astra review. Next work is complete runtime
-installation qualification, whole-candidate self-review and the exact-source
-review packet. No optional grammar expansion or platform/model substitution is
-required. All actual CUDA/model/hardware tests remain unrun, speculation remains
-gated off until actual cluster qualification, and DSR-AUDIT-011 remains open.
-
-Windows CPU 39415738104 exposed FileStore's non-ASCII Windows filename failure
-(379 tests passed, one failed, one intentional skip). DSR-AUDIT-020 replaces
-the single local rank's rendezvous with actual Torch HashStore/Gloo, shared by
-startup and runtime qualification. No filesystem rendezvous or TCP rendezvous
-listener is needed. Local full suite: 378 passed/four actual-Windows-only skips.
-The next Windows CPU run must confirm this fix; preserve long vLLM 39408672207.
-
-The HashStore follow-up failed Windows run 39416751099: that native binding is
-intentionally omitted on Windows. Current source uses LocalRendezvousStore,
-a real bounded Python subclass of Torch Store through its supported C++
-trampoline (auxiliary Torch 2.11 source contract is pinned separately). It
-retains the Python owner until actual vLLM model/world teardown; otherwise a
-real later subgroup lost its Python callback methods. Qualification now forces
-GC, creates a real additional Gloo group, performs its collective and repeats
-cleanup. Check the subsequent Windows run, not either preceding failed attempt.
-
-Windows CPU 39418074217 passed be25537: 382 passes/one intentional skip, actual
-Gloo additional-group/lifetime checks, wheel build/install and real OpenCode
-SDK audits. Preserved neutral rollback tag checkpoint-be25537-windows-cpu and
-external source archive. The complete private runtime is still pending.
-
-DSR-AUDIT-021 adds bounded cancellable backpressure for an unleased expert slot
-whose CUDA event remains pending. The old cache entry stays owned until actual
-completion. Three real host-event control tests pass; a real GPU one-slot EXL3
-reuse/stale-lease diagnostic is implemented but unrun. Full local suite after
-this change: 382 passed/four actual-Windows-only skips. Preserve long native
-vLLM 39408672207; the following Windows CPU run must qualify current source.
-
-Long vLLM 39408672207 completed with failure at 187/189: DeepGEMM's nested
-deep_jit uuid.hpp includes unistd.h. Core and MoE DLLs linked at 185/186, but
-there is no qualified wheel. DSR-AUDIT-024 updates the fifth owned EXL3 profile
-to omit the unselected DeepGEMM target in CMake/setup, and disables its runtime
-selector. All required owned BF16 CUDA attention/EXL3/mHC paths are preserved.
-New fifth patch SHA: 974afb34134cedc3bdccda2153b0722c94c4982cbadd82d51835b5cfa22d7ce1.
-Its CMake/setup outputs are aecd47f36d82d49bfd26acf8ddcf4cff3f36a18fea666a3bd16f626eb686ea7f
-and 930a7b5dd4c00687a1e51cf705d09ac3bf0d54da161cf54534550802ca82fd13.
-The next fresh native build is required. The build tool now emits live bounded
-progress and additionally qualifies actual MoE/router import and both SMs.
-Cancel redundant EXLlama builds after verifying unchanged EXL source/profile;
-that wheel and project native ABI 2 remain valid. Complete runtime still follows
-the next successful vLLM run automatically; do not produce a finished packet yet.
-
-The restored cloud development instance passed pip check, nine readiness
-checks, five real installed CPU vLLM/plugin checks and twenty original parser
-cases at e298050. Windows CPU 39420558211 and full external dependency/compiler
-gate 39420558237 passed e298050. Current early-offline/privacy policy (DSR-023)
-also passed all five real installed upstream checks. Full local follow-up:
-381 passed/four Windows-only skips plus the recaptured known DSR-AUDIT-011
-sqrt failure. Preserve that finding and unchanged tolerances. Source changes
-since e298050 need their matching new Windows run and complete runtime evidence.
+The packet builder refuses mismatched or incomplete reports. Independent Astra
+review remains pending and user-mediated. Every GPU/model execution result,
+full-size B residency, 1M context, distributed recovery, vision, actual Docker
+coexistence and throughput remain unrun/unmeasured. Do not ask for early hardware
+testing or mark this production-proven.
