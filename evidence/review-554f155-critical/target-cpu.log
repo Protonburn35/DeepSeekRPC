@@ -1,0 +1,149 @@
+........................................................................ [ 17%]
+........................................................sss............. [ 35%]
+........................................................................ [ 53%]
+.........F.............................................................. [ 71%]
+.........................................................sss............ [ 89%]
+............................................                             [100%]
+=================================== FAILURES ===================================
+____________ test_reference_router_unbiased_weights_and_image_bias _____________
+
+oracle = <module 'official_methods' from '/workspace/DeepSeekRPC/tests/oracles/official_methods.py'>
+
+    @pytest.mark.reference
+    def test_reference_router_unbiased_weights_and_image_bias(oracle):
+        torch = oracle.torch
+        from torch.utils._python_dispatch import TorchDispatchMode
+        class Observe(TorchDispatchMode):
+            """Observe real ATen results without changing the frozen math method."""
+            def __init__(self):
+                super().__init__()
+                self.values = {}
+                self.sqrt_input = self.sqrt_output = None
+    
+            def __torch_dispatch__(self, function, types, args=(), kwargs=None):
+                result = function(*args, **(kwargs or {}))
+                if str(function) in {"aten.mm.default", "aten.softplus.default", "aten.sqrt.default"}:
+                    self.values[str(function)] = result
+                if str(function) == "aten.sqrt.default":
+                    # Retain the real operation's bytes at dispatch time. This
+                    # distinguishes a bad sqrt from later aliasing/mutation.
+                    self.sqrt_input = args[0].numpy().copy()
+                    self.sqrt_output = result.numpy().copy()
+                return result
+        rng = np.random.default_rng(41017)
+        x = rng.normal(size=(7, 5120)).astype(np.float32) / 10
+        weight = rng.normal(size=(384, 5120)).astype(np.float32) / 10
+        bias = rng.normal(size=384).astype(np.float32) / 4
+        image_bias = rng.normal(size=384).astype(np.float32) / 4
+        mask = np.array([False, True, False, True, True, False, False])
+        model = SimpleNamespace(weight=torch.from_numpy(weight), bias=torch.from_numpy(bias),
+                                bias_vl=torch.from_numpy(image_bias), gate_temp=1.0,
+                                score_func="sqrtsoftplus", topk=6, norm_topk_prob=True, route_scale=1.5)
+        observed = Observe()
+        with observed:
+            expected_weights, expected_ids = oracle.Gate.forward(model, torch.from_numpy(x), torch.from_numpy(mask))
+        weights, ids = route(x, weight, bias, image_mask=mask, image_bias=image_bias)
+        np.testing.assert_array_equal(ids, expected_ids.numpy())
+        try:
+>           np.testing.assert_allclose(weights, expected_weights.numpy(), rtol=2e-6, atol=1e-6)
+E           AssertionError: 
+E           Not equal to tolerance rtol=2e-06, atol=1e-06
+E           
+E           Mismatched elements: 22 / 42 (52.4%)
+E           Max absolute difference among violations: 4.5597553e-05
+E           Max relative difference among violations: 0.00021678
+E            ACTUAL: array([[0.210382, 0.217046, 0.250476, 0.314227, 0.22293 , 0.28494 ],
+E                  [0.215777, 0.308707, 0.228967, 0.245528, 0.252259, 0.248762],
+E                  [0.280515, 0.234544, 0.192216, 0.237513, 0.253987, 0.301224],...
+E            DESIRED: array([[0.210336, 0.217063, 0.250484, 0.314259, 0.222926, 0.284932],
+E                  [0.215786, 0.308665, 0.228996, 0.24556 , 0.252237, 0.248757],
+E                  [0.280524, 0.234582, 0.19223 , 0.237471, 0.253971, 0.301222],...
+
+tests/test_reference_math.py:62: AssertionError
+
+The above exception was the direct cause of the following exception:
+
+oracle = <module 'official_methods' from '/workspace/DeepSeekRPC/tests/oracles/official_methods.py'>
+
+    @pytest.mark.reference
+    def test_reference_router_unbiased_weights_and_image_bias(oracle):
+        torch = oracle.torch
+        from torch.utils._python_dispatch import TorchDispatchMode
+        class Observe(TorchDispatchMode):
+            """Observe real ATen results without changing the frozen math method."""
+            def __init__(self):
+                super().__init__()
+                self.values = {}
+                self.sqrt_input = self.sqrt_output = None
+    
+            def __torch_dispatch__(self, function, types, args=(), kwargs=None):
+                result = function(*args, **(kwargs or {}))
+                if str(function) in {"aten.mm.default", "aten.softplus.default", "aten.sqrt.default"}:
+                    self.values[str(function)] = result
+                if str(function) == "aten.sqrt.default":
+                    # Retain the real operation's bytes at dispatch time. This
+                    # distinguishes a bad sqrt from later aliasing/mutation.
+                    self.sqrt_input = args[0].numpy().copy()
+                    self.sqrt_output = result.numpy().copy()
+                return result
+        rng = np.random.default_rng(41017)
+        x = rng.normal(size=(7, 5120)).astype(np.float32) / 10
+        weight = rng.normal(size=(384, 5120)).astype(np.float32) / 10
+        bias = rng.normal(size=384).astype(np.float32) / 4
+        image_bias = rng.normal(size=384).astype(np.float32) / 4
+        mask = np.array([False, True, False, True, True, False, False])
+        model = SimpleNamespace(weight=torch.from_numpy(weight), bias=torch.from_numpy(bias),
+                                bias_vl=torch.from_numpy(image_bias), gate_temp=1.0,
+                                score_func="sqrtsoftplus", topk=6, norm_topk_prob=True, route_scale=1.5)
+        observed = Observe()
+        with observed:
+            expected_weights, expected_ids = oracle.Gate.forward(model, torch.from_numpy(x), torch.from_numpy(mask))
+        weights, ids = route(x, weight, bias, image_mask=mask, image_bias=image_bias)
+        np.testing.assert_array_equal(ids, expected_ids.numpy())
+        try:
+            np.testing.assert_allclose(weights, expected_weights.numpy(), rtol=2e-6, atol=1e-6)
+        except AssertionError as failure:
+            # Diagnose an intermittent host numerical-library discrepancy without
+            # weakening the comparison or changing the frozen source method.
+            logits64 = x.astype(np.float64) @ weight.astype(np.float64).T
+            scores64 = np.sqrt(np.logaddexp(0., logits64))
+            chosen64 = np.take_along_axis(scores64, ids, axis=-1)
+            chosen64 = chosen64 / chosen64.sum(-1, keepdims=True) * 1.5
+            intermediates = {}
+            for key, reference in (("aten.mm.default", logits64), ("aten.softplus.default", np.logaddexp(0., logits64)),
+                                   ("aten.sqrt.default", scores64)):
+                if key in observed.values:
+                    intermediates[key] = np.max(abs(observed.values[key].numpy() - reference), axis=1).tolist()
+            sqrt_probe = {}
+            if observed.sqrt_input is not None:
+                reference = np.sqrt(observed.sqrt_input.astype(np.float64))
+                sqrt_probe["immediate_output_error"] = np.max(abs(observed.sqrt_output - reference), axis=1).tolist()
+                sqrt_probe["later_output_mutation"] = float(np.max(abs(observed.sqrt_output - observed.values["aten.sqrt.default"].numpy())))
+                source = torch.from_numpy(observed.sqrt_input)
+                sqrt_probe["repeat_same_input_error"] = [float(np.max(abs(torch.sqrt(source).numpy() - reference))) for _ in range(3)]
+                from pathlib import Path
+                import os
+                if directory := os.environ.get("DEEPSEEKRPC_MATH_DIAGNOSTICS"):
+                    destination = Path(directory)
+                    destination.mkdir(parents=True, exist_ok=True)
+                    np.savez_compressed(destination / "router-sqrt-failure.npz", input=observed.sqrt_input,
+                                        output=observed.sqrt_output, reference=reference)
+>           raise AssertionError(
+                f"router error vs FP64 by row: numpy={np.max(abs(weights - chosen64), axis=1)}; "
+                f"torch={np.max(abs(expected_weights.numpy() - chosen64), axis=1)}; "
+                f"actual ATen intermediate errors={intermediates}; sqrt probe={sqrt_probe}"
+            ) from failure
+E           AssertionError: router error vs FP64 by row: numpy=[4.62433731e-08 2.43699513e-08 6.33830230e-08 7.07938677e-08
+E            3.36377365e-08 4.12853963e-08 6.71232425e-08]; torch=[4.55998154e-05 4.25779100e-05 4.26669119e-05 2.55592034e-05
+E            9.39453321e-09 3.21839186e-08 4.39449465e-08]; actual ATen intermediate errors={'aten.mm.default': [9.366599745264104e-07, 7.339860614852256e-07, 8.018164845413622e-07, 7.497024604175007e-07, 9.915392393533562e-07, 1.0318585773605449e-06, 7.400967828585792e-07], 'aten.softplus.default': [5.882822857739001e-07, 5.121117465645142e-07, 5.369374336261501e-07, 4.639661155270147e-07, 5.737617823076135e-07, 4.700979459038024e-07, 5.097299951017931e-07], 'aten.sqrt.default': [0.00025692591398351894, 0.0002954022083978547, 0.0003490855231553791, 0.0002688366452943125, 2.510422859591799e-07, 2.5311397688909665e-07, 2.643841199301278e-07]}; sqrt probe={'immediate_output_error': [0.0002568981758419575, 0.0002952675444323205, 0.00034910570973334387, 0.0002688743810193017, 6.003844088553478e-08, 5.994940410758431e-08, 5.95884626086729e-08], 'later_output_mutation': 0.0, 'repeat_same_input_error': [6.093809967744335e-08, 6.093809967744335e-08, 6.093809967744335e-08]}
+
+tests/test_reference_math.py:89: AssertionError
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_native_windows.py:9: requires the real Win32 VirtualAlloc/VirtualLock APIs
+SKIPPED [1] tests/test_native_windows.py:28: requires real Win32 working-set/locking APIs
+SKIPPED [1] tests/test_native_windows.py:46: requires the actual Windows physical-memory status API
+SKIPPED [1] tests/test_weights.py:124: requires actual Windows file-sharing enforcement
+SKIPPED [1] tests/test_weights.py:147: requires actual Windows file-sharing enforcement
+SKIPPED [1] tests/test_weights.py:165: requires real Win32 locked pages
+FAILED tests/test_reference_math.py::test_reference_router_unbiased_weights_and_image_bias
+1 failed, 397 passed, 6 skipped in 103.77s (0:01:43)

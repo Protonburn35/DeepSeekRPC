@@ -30,6 +30,7 @@ def main():
             raise RuntimeError(f"{name} failed; see {output / (name + '.log')}")
     try:
         run("workflow-syntax", [sys.executable, str(root / "tools/check_workflows.py")])
+        run("undefined-names", [sys.executable, str(root / "tools/check_undefined_names.py")])
         import torch
         if torch.version.cuda is not None:
             raise RuntimeError("CPU reference job must use the explicit CPU-only Torch wheel")

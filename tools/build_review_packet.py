@@ -31,7 +31,7 @@ def validated_evidence(bundle, cpu_path, commit):
     if (cpu.get("source_commit") != commit or cpu.get("worktree_clean") is not True or
             not str(cpu.get("platform", "")).startswith("Windows-") or not cpu.get("checks") or
             any(item.get("exit_code") != 0 for item in cpu["checks"]) or
-            not {"pytest", "workflow-syntax", "wheel", "install-wheel", "installed-cli"}
+            not {"pytest", "workflow-syntax", "undefined-names", "wheel", "install-wheel", "installed-cli"}
                 <= {item["name"] for item in cpu["checks"]}):
         raise ValueError("the exact clean source needs successful actual native Windows CPU evidence")
     if (manifest.get("kind") != "runtime" or manifest.get("source_commit") != commit or

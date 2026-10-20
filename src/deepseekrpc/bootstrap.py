@@ -108,6 +108,10 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, state_root: Path,
     progress = progress if progress is not None else lambda _area: None
     if not callable(progress):
         raise ValidationError("loading progress must be a bounded internal callback")
+    if not isinstance(role, Role):
+        raise ValidationError("stage loading needs an explicit A/B/C role")
+    hex_id(run_id, 64, "worker run")
+    integer(device, "CUDA device index", 0, 31)
     progress("CUDA")
     from .runtime_identity import require_windows_runtime
     # Establish exact EXL3/math policy before any model/backend import.
@@ -131,10 +135,6 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, state_root: Path,
     from .tokenizer import TokenizerAdapter
     from .vllm_experts import OwnedExl3Config
 
-    if not isinstance(role, Role):
-        raise ValidationError("stage loading needs an explicit A/B/C role")
-    hex_id(run_id, 32, "worker run")
-    integer(device, "CUDA device index", 0, 31)
     progress("WEIGHTS")
     manifest, config, plan, identity = local_deployment(model_root, split=split)
     identity = fingerprint({"deployment": identity, "runtime": runtime["component_identity"]})

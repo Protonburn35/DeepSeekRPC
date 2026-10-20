@@ -19,7 +19,6 @@ class ImageWindowResolver:
         for span in history.images:
             if span.start < end:
                 if not self.assets.has_features(span.key):
-                    first = time.perf_counter_ns()
                     return False
                 self.assets.read_rows(span.key, 0, 1)
         return True
@@ -43,6 +42,7 @@ class ImageWindowResolver:
                 if span.length != info.span_tokens:
                     raise ValidationError("original image span changed its exact processor/grid length")
                 if not self.assets.has_features(span.key):
+                    first = time.perf_counter_ns()
                     original = self.assets.original(span.key)
                     patches, types = process_image(original, info)
                     features = self.stage.graph.run_image(patches.to(self.stage.attention.device), types.to(self.stage.attention.device),
@@ -51,9 +51,10 @@ class ImageWindowResolver:
                     # whole prompt's image features remain on bounded storage.
                     data = features.view(torch.uint16).cpu().numpy().astype("<u2", copy=False).tobytes()
                     self.assets.store_features(span.key, data)
+                    elapsed = time.perf_counter_ns() - first
                     metrics.current.add("image_encodes")
-                    metrics.current.observe("image_encode", time.perf_counter_ns() - first)
-                    metrics.current.event("image_encoded", rows=info.span_tokens, elapsed_ns=time.perf_counter_ns() - first)
+                    metrics.current.observe("image_encode", elapsed)
+                    metrics.current.event("image_encoded", rows=info.span_tokens, elapsed_ns=elapsed)
                     del features, data, patches, types, original
                 left, right = max(start, span.start), min(end, span.start + span.length)
                 data = bytearray(self.assets.read_rows(span.key, left - span.start, right - left))

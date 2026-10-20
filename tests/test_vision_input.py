@@ -1,8 +1,12 @@
 """Original processor goldens and real bounded image storage; no model fixture."""
 from dataclasses import replace
+from contextlib import nullcontext
 import hashlib
 import io
+import json
 from pathlib import Path
+import threading
+from types import SimpleNamespace
 
 import numpy as np
 from PIL import Image
@@ -112,5 +116,60 @@ def test_image_feature_ram_is_bounded_and_rejects_nonfinite_cache_bytes(tmp_path
         assets.store_features(info.key, bytes(size))
         assert assets.read_rows(info.key, 0, 2) == bytes(20480)
         assert assets._ram_used == size <= assets.ram_bytes
+    finally:
+        assets.close()
+
+
+@pytest.mark.parametrize("ram_bytes", [0, 3 * 1024 ** 2])
+def test_actual_resolver_delivers_first_and_cached_image_rows_with_timing(tmp_path, monkeypatch, ram_bytes):
+    from deepseekrpc import metrics
+    from deepseekrpc.bootstrap import LoadedStage
+    from deepseekrpc.planner import Role
+    from deepseekrpc.vision_runtime import ImageWindowResolver
+
+    identity = "a" * 64
+    assets = ImageAssets(tmp_path / "images", identity=identity, ram_bytes=ram_bytes)
+    counters = metrics.Metrics(root=tmp_path / "metrics", log_level="debug", traces=("vision",))
+    monkeypatch.setattr(metrics, "current", counters)
+    monkeypatch.setattr(torch.cuda, "device", lambda *a: nullcontext())
+    monkeypatch.setattr(torch.cuda, "stream", lambda *a: nullcontext())
+    try:
+        info = assets.ingest(original_image(13, 17))
+        history = expand_images([0, 4, 129264, 7], [info], identity=identity)
+        features = (torch.arange(info.span_tokens * 5120).reshape(-1, 5120) % 127).to(torch.bfloat16)
+        encodes, guards = [], []
+
+        def encode(patches, types, **kwargs):
+            encodes.append((patches.shape, types.shape))
+            assert kwargs["vit_h"] == info.vit_h and kwargs["vit_w"] == info.vit_w
+            return features
+
+        # Use the actual resolver, processor, history, BF16 rows and asset
+        # storage. Only the vision graph and CUDA context boundary are fixtures.
+        stage = object.__new__(LoadedStage)
+        stage.role, stage.closed, stage.identity = Role.HOST, False, identity
+        stage.attention = SimpleNamespace(device=torch.device("cpu"))
+        stage.stream, stage.cancellation = None, threading.Event()
+        stage.graph = SimpleNamespace(run_image=encode)
+        stage.guard = SimpleNamespace(check=lambda: guards.append(True))
+        resolver = ImageWindowResolver(stage, assets)
+        assert not resolver.can_reuse_prefix(history, 64)
+        window = SimpleNamespace(history_digest=history.digest, operation=SimpleNamespace(start=1, rows=64))
+        first = resolver(history, window)
+        assert first.dtype == torch.bfloat16 and first.shape == (64, 5120)
+        torch.testing.assert_close(first[0], torch.zeros(5120, dtype=torch.bfloat16), rtol=0, atol=0)
+        torch.testing.assert_close(first[1:], features[:63], rtol=0, atol=0)
+        assert resolver.can_reuse_prefix(history, 64)
+        window.operation = SimpleNamespace(start=64, rows=64)
+        cached = resolver(history, window)
+        torch.testing.assert_close(cached, features[62:126], rtol=0, atol=0)
+        assert len(encodes) == 1 and guards == [True, True]
+        report = counters.snapshot()
+        assert report["counters"]["boot.image_encodes"] == 1
+        timing = report["timings"]["boot.image_encode"]
+        assert timing["count"] == 1 and 0 <= timing["sum_ns"] == timing["max_ns"]
+        event, = [json.loads(line) for line in (counters.root / "events.jsonl").read_text().splitlines()]
+        assert event["event"] == "image_encoded" and event["rows"] == info.span_tokens
+        assert event["elapsed_ns"] == timing["sum_ns"]
     finally:
         assets.close()

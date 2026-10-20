@@ -1,0 +1,21 @@
+{
+  "reviewed_commit": "554f155dc88376c962074167149a77c8486fcc66",
+  "scope": "Linux CPU development worktree during Python review repairs; not a clean frozen candidate or GPU result",
+  "torch": "2.11.0+cpu",
+  "numpy": "2.3.5",
+  "counts": {
+    "tests": 404,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 6
+  },
+  "passed": 397,
+  "failure": "test_reference_router_unbiased_weights_and_image_bias: DSR-AUDIT-011 sqrt discrepancy also observed on target Torch 2.11.0+cpu",
+  "sqrt_max_absolute_error": 0.00034910570973334387,
+  "sqrt_later_output_mutation": 0.0,
+  "tolerances_changed": false,
+  "log_sha256": "21c7ec86b56311bf5fc2c516a4c9a56d7b9af0878cee92b995ae9a712cdd77e3",
+  "native_source_changed": false,
+  "GPU_execution": "not run",
+  "full_model_validation": "not run"
+}

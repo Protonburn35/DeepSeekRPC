@@ -1,0 +1,25 @@
+{
+  "source_commit": "554f155dc88376c962074167149a77c8486fcc66",
+  "scope": "CPU control-flow reproductions; no GPU or model execution",
+  "results": [
+    {
+      "finding": "R1",
+      "reproduced": true,
+      "configuration_run_characters": 64,
+      "error": "invalid worker run identity"
+    },
+    {
+      "finding": "R2",
+      "reproduced": true,
+      "explicit_root": "/tmp/deepseek-review-repro-2gkmyxc8/worker-state/kernels/vllm",
+      "implicit_root": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/.deepseekrpc-vllm",
+      "error": "vLLM cache ownership cannot change within a worker process"
+    },
+    {
+      "finding": "R3",
+      "reproduced": true,
+      "error": "name 'first' is not defined",
+      "image_features_stored_before_failure": true
+    }
+  ]
+}

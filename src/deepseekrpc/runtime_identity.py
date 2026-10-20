@@ -53,7 +53,7 @@ def _distribution_identity(name):
 def require_windows_runtime(device=0, *, cache_root=None):
     if sys.platform != "win32":
         raise RuntimeError("the model runtime requires native Windows; CPU source diagnostics are separate")
-    metadata_root = Path(cache_root).absolute().parent / "vllm" if cache_root is not None else Path(sys.prefix) / ".deepseekrpc-vllm"
+    metadata_root = Path(cache_root).absolute().parent / "vllm" if cache_root is not None else None
     configure_owned_vllm_cache(metadata_root)
     from .triton_policy import configure_windows_triton
     compiler_policy = configure_windows_triton(cache_root)

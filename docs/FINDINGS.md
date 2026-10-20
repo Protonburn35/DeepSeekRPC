@@ -535,3 +535,54 @@ original parser checks. The private cache policy in DSR-AUDIT-026 passed too.
 All 81 distributable files were subsequently checked against their manifest.
 Actual reports are retained in evidence/whole-runtime-30b24d3/. These results do
 not close DSR-AUDIT-011 or establish GPU/model fidelity, residency or throughput.
+
+## DSR-AUDIT-028 — returned review: startup admission and first-image control flow
+
+Independent review of 554f155 reported three P1 failures. All three reproduced
+locally at their Python control-flow boundaries before repair. The unchanged
+report, reproduction script and supplied result are retained under
+evidence/review-554f155-critical/. Earlier compilation/import and installation
+passes did not exercise these complete startup and uncached-image sequences.
+
+- R1: DeploymentConfig produces the full 64-character SHA-256 run identity,
+  matching the mesh/protocol, but load_stage required 32 characters. The actual
+  loader now validates 64 characters, role and device before runtime imports or
+  expensive initialization. It never truncates or changes the protocol identity.
+- R2: a nested run_cuda_checks identity call omitted the explicit worker cache
+  root and attempted to select an interpreter cache after worker ownership was
+  locked. An omitted root now rechecks the current owner under the same lock;
+  a fresh standalone check still selects the private interpreter default.
+  Explicit owner changes, mutated selectors and late selection remain refused.
+  The Triton policy already has the corresponding implicit-reuse behavior.
+- R3: the uncached-image resolver used an undefined timing variable after storing
+  features. Its timer now starts before original-image processing in that branch;
+  the stray prefix-check timer is removed. Timing and event share one elapsed
+  value. Cached rows and stored BF16 bytes keep their existing behavior.
+
+Permanent tests pass real example configurations for all three roles through
+the actual loader gate, reject malformed/32-character runs before initialization,
+and exercise the real startup/configured-self-test sequences through nested
+runtime identity and actual cache ownership. Only hardware/compiler observers
+and optional adapter imports are isolated. Image tests use the actual resolver,
+processor, immutable history, disk/RAM asset stores and BF16 row copying, with
+only the vision graph and CUDA context boundaries isolated. The twelve original
+startup/image regression cases failed before repair and passed afterward;
+standalone cache, selector mutation and evidence-gate coverage were added too.
+
+CPU CI now runs a hash-pinned Pyflakes undefined-name/local/export check over
+source, tools and tests without importing CUDA/model code. Its own regression
+catches missing and wrong-scope timers. The review packet requires this check
+in the matching Windows CPU report. No numerical oracle/tolerance, native CUDA
+source/profile, cache precision, FP32 wire or replay/sampling policy changes.
+Matching Windows qualification and further independent review remain required;
+these CPU control-flow results do not establish GPU or full-model execution.
+
+The development-worktree full Linux suite on Torch 2.11.0+cpu reported 397
+passes, six Windows-only skips and one failure in the unchanged router oracle.
+Its captured immediate sqrt error is 0.0003491057 with no later mutation,
+matching the previously preserved DSR-AUDIT-011 pattern. This extends the
+observation to the target CPU Torch version; it does not establish a root cause
+or a Windows/CUDA failure. The original tolerance remains enforced. The actual
+log and bounded summary are retained beside the returned review; later focused
+tests also cover the additional evidence-gate regression. No all-green Linux
+suite is claimed for this repair.

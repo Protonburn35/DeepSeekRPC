@@ -16,7 +16,7 @@ def evidence_fixture(tmp_path):
     commit = "a" * 40
     cpu_path = tmp_path / "cpu.json"
     cpu_path.write_text(json.dumps({"source_commit": commit, "worktree_clean": True, "platform": "Windows-metadata-fixture",
-        "checks": [{"name": name, "exit_code": 0} for name in ("pytest", "workflow-syntax", "wheel", "install-wheel", "installed-cli")]}))
+        "checks": [{"name": name, "exit_code": 0} for name in ("pytest", "workflow-syntax", "undefined-names", "wheel", "install-wheel", "installed-cli")]}))
     bundle = tmp_path / "bundle"
     bundle.mkdir()
     reports = {name: {"scope": "synthetic report metadata fixture"} for name in
@@ -66,4 +66,13 @@ def test_review_gate_refuses_report_tampering_before_copying_any_artifact(tmp_pa
     path = bundle / "evidence/installed-runtime/runtime.json"
     path.write_bytes(path.read_bytes().replace(b'"passed"', b'"failed"', 1))
     with pytest.raises(ValueError, match="sealed bundle manifest"):
+        review.validated_evidence(bundle, cpu, commit)
+
+
+def test_review_gate_requires_the_undefined_name_check(tmp_path):
+    bundle, cpu, commit = evidence_fixture(tmp_path)
+    record = json.loads(cpu.read_text())
+    record["checks"] = [check for check in record["checks"] if check["name"] != "undefined-names"]
+    cpu.write_text(json.dumps(record))
+    with pytest.raises(ValueError, match="Windows CPU evidence"):
         review.validated_evidence(bundle, cpu, commit)

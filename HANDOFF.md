@@ -1,11 +1,13 @@
 # DeepSeekRPC whole-source implementation handoff
 
-The complete native Windows/CUDA application source is implemented. Native
-Windows builds/imports and the complete private-runtime installation passed
-at source 30b24d3. The final review packet must bind matching CPU/install
-reports to its exact frozen source. Independent review and GPU/model execution
-remain pending. The user wants whole-source Astra review/fix cycles before
-testing on the three PCs; this is not a hardware-test release.
+The native Windows/CUDA application is in whole-source review/fix cycles.
+The first candidate, 554f155, passed Windows build/install qualification but
+independent review found three startup/vision control-flow failures. All three
+were reproduced and repaired in the next revision; see DSR-AUDIT-028 and the
+unchanged returned report in evidence/review-554f155-critical/. Matching CPU
+and installed Windows reports must qualify each new frozen revision. GPU/model
+execution remains unrun. The user wants repeated whole-source Astra reviews
+before testing on the three PCs; this is not a hardware-test release.
 
 ## Requirements and authorization
 
@@ -119,10 +121,20 @@ changed. A later pass is not a repair. Other findings and historical build
 failures remain recorded in docs/FINDINGS.md and the append-only build ledger.
 GitHub API's temporary 401 recovered; do not request a token or reconnect.
 
-## Finish the candidate
+## Current review round and next candidate
 
-The final capability/docs freeze and append-only evidence ledger record the
-actual 30b24d3 baseline. Before delivering the first review packet, obtain
+The returned critical review covers 554f155. R1 repairs the loader's 32/64 run
+fingerprint mismatch and validates it before runtime imports. R2 reuses the
+already selected vLLM cache owner on implicit nested checks, preserving explicit
+owner-change and environment-mutation refusal plus standalone private defaults.
+R3 starts image timing inside the uncached branch and shares the measured value
+between metrics and its event. New interface regressions failed before repair
+and pass afterward. CI now rejects undefined Python names/locals/exports using
+hash-pinned Pyflakes 3.4.0; review packet admission requires that check too.
+These are Python-only changes; reuse the unchanged qualified native components.
+
+The historical capability/docs freeze and append-only evidence ledger record the
+actual earlier baselines. Before delivering the next review packet, obtain
 matching Windows CPU and complete-runtime reports for the frozen HEAD, then
 run tools/build_review_packet.py outside the source checkout. Its REVIEW.json
 binds the archive and reports to that exact commit; do not infer a final result
@@ -137,7 +149,7 @@ Use native source/profile admission to decide whether those components remain
 valid. Consult the exact matching review packet and current Actions status for
 final run IDs, rather than treating this earlier baseline as current evidence.
 
-The packet builder refuses mismatched or incomplete reports. Independent Astra
+The packet builder refuses mismatched or incomplete reports. Further Astra
 review remains pending and user-mediated. Every GPU/model execution result,
 full-size B residency, 1M context, distributed recovery, vision, actual Docker
 coexistence and throughput remain unrun/unmeasured. Do not ask for early hardware

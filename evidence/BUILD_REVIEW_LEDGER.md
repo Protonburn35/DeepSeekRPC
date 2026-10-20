@@ -952,3 +952,31 @@ frozen commit, enforced by tools/build_review_packet.py. GPU/model execution,
 full-size B residency, 1M behavior, distributed recovery, images and performance
 remain unrun/unmeasured. Independent Astra review remains pending and is
 user-mediated; no early hardware trial is requested.
+
+## 2026-10-20 — first independent whole-source critical review of 554f155
+
+The first frozen candidate passed matching Windows CPU 39464418533 (389 tests,
+one intentional skip) and complete private runtime 39464451765 (eight checks,
+twenty original parser cases). Its exact source/native/runtime archives were
+retained in a draft GitHub release; passing these gates did not prove startup,
+GPU/model behavior or production readiness.
+
+The user returned three independently reproduced P1 control-flow failures.
+R1 mismatched the configuration's 64-character run fingerprint and loader's
+32-character gate; R2 changed the locked worker cache owner in a nested runtime
+check; R3 used an undefined timer after first-image feature storage. All three
+reproduced locally before edits. Twelve new interface cases failed against the
+original source and passed after the narrow Python repairs. Further standalone
+cache/default/mutation checks and a mandatory undefined-name CI/evidence gate
+were added. The returned report is retained unchanged under
+evidence/review-554f155-critical/; see DSR-AUDIT-028 for scope and test boundaries.
+This revision changes no native source/profile and requests no hardware trial.
+Matching Windows CPU/install qualification must accompany the next exact source
+packet. DSR-AUDIT-011 remains open; no numerical tolerance was changed.
+
+Development-worktree Linux Torch 2.11.0+cpu reported 397 passes/six Windows-only
+skips and one unchanged router-reference failure. Immediate sqrt error
+0.0003491057 and zero later mutation match DSR-AUDIT-011, extending that
+observation to Torch 2.11 CPU. Preserve the actual target-cpu.log and summary
+under evidence/review-554f155-critical/. The new focused startup/cache/image
+checks pass; the unchanged numerical tolerance still fails on this host.

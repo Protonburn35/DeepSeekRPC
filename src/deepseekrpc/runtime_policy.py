@@ -20,11 +20,12 @@ _EXACT_ENV = {"EXL3_INT8_GEMV": "0", "EXL3_GR_INT8": "0",
               "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1", "HF_HUB_DISABLE_TELEMETRY": "1"}
 
 
-def configure_owned_vllm_cache(root):
-    """Select private metadata/config directories before vLLM caches its paths."""
+def configure_owned_vllm_cache(root=None):
+    """Select private paths once; an omitted root rechecks the current owner."""
     global _vllm_cache_root, _vllm_cache_environment
-    root = Path(root).absolute()
     with _mutex:
+        root = (Path(root).absolute() if root is not None else
+                _vllm_cache_root if _vllm_cache_root is not None else Path(sys.prefix) / ".deepseekrpc-vllm")
         if _vllm_cache_root is not None:
             if root != _vllm_cache_root:
                 raise ValidationError("vLLM cache ownership cannot change within a worker process")
