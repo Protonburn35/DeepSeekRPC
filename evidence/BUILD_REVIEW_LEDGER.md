@@ -726,3 +726,21 @@ no GPU/model backend or result is simulated. Fifteen focused checks pass.
 Windows CPU 39412586993 passed preceding f264367. Complete vLLM build and
 installed-runtime qualification remain in progress/pending; no GPU result or
 independent review is claimed.
+
+## 2026-10-20 — reference path signature and actual local group qualification
+
+DSR-AUDIT-011 now has a precise instruction signature: AVX2 input * hardware
+rsqrt approximation reproduces all 1344 bad captured values bit for bit. MKL
+AVX2 enhanced-performance mode also matches; high accuracy does not. The ATen
+wrapper explicitly requests high accuracy. Selection cause remains open; no
+oracle/tolerance/runtime override was changed. Tiny synthetic arrays, numeric
+reports and project-owned probe source are preserved in cpu-sqrt-diagnostic/.
+
+The installer now additionally checks actual local FileStore/Gloo startup and
+one-rank CPU metadata collective, with spaced/non-ASCII temporary paths,
+repeat initialization and complete group/file cleanup. It does not use Gloo
+for inter-PC or GPU tensors. The exact function repeats successfully on the
+Linux development CPU; its Windows check is newly added to CPU CI and the
+complete private-runtime gate. The full cloud suite passes 377 tests/four real
+Win32 skips (77.93 s); the real installed empty-vLLM source audit passes again,
+including the concrete routed MoE class check. These are not GPU results.

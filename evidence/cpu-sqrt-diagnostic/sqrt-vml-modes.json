@@ -1,0 +1,49 @@
+{
+  "torch_version": "2.13.0+cpu",
+  "status": "diagnostic only; no runtime/oracle/tolerance change",
+  "functions": {
+    "vmlGetMode": true,
+    "vmlSetMode": true,
+    "vmsSqrt": true,
+    "vsSqrt": true
+  },
+  "current_mode": "0x1a02",
+  "modes": [
+    {
+      "mode": "0x1",
+      "max_error_vs_fp64": 8.586899280516036e-08,
+      "first_partition_bit_matches": 0,
+      "second_partition_bit_matches": 1175
+    },
+    {
+      "mode": "0x2",
+      "max_error_vs_fp64": 6.093809967744335e-08,
+      "first_partition_bit_matches": 0,
+      "second_partition_bit_matches": 1344
+    },
+    {
+      "mode": "0x3",
+      "max_error_vs_fp64": 6.640834025328779e-05,
+      "first_partition_bit_matches": 37,
+      "second_partition_bit_matches": 1
+    },
+    {
+      "mode": "0x1a01",
+      "max_error_vs_fp64": 8.586899280516036e-08,
+      "first_partition_bit_matches": 0,
+      "second_partition_bit_matches": 1175
+    },
+    {
+      "mode": "0x1a02",
+      "max_error_vs_fp64": 6.093809967744335e-08,
+      "first_partition_bit_matches": 0,
+      "second_partition_bit_matches": 1344
+    },
+    {
+      "mode": "0x1a03",
+      "max_error_vs_fp64": 6.640834025328779e-05,
+      "first_partition_bit_matches": 37,
+      "second_partition_bit_matches": 1
+    }
+  ]
+}

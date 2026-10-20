@@ -326,3 +326,13 @@ An already loaded owner excludes a concurrent self-test. Regression fixtures
 exercise real file locks/directories and interrupted lifetime, with an explicit
 I/O observer instead of a fabricated GPU result. Fifteen focused state, config
 and precision-policy checks pass. Actual GPU diagnostics remain unrun.
+
+The latest DSR-AUDIT-011 instruction probe reproduces every one of the 1344
+captured bad values with AVX2 input * approximate rsqrt, bit for bit. An isolated
+MKL enhanced-performance call with AVX2 forced matches those same values;
+explicit high-accuracy calls do not. Normal AVX512 high accuracy matches the
+accurate second partition. The installed ATen wrapper header explicitly asks
+for high accuracy. This identifies the reduced-accuracy path signature, but
+why it was selected intermittently remains unresolved. Actual captured arrays,
+source probe and scoped numeric reports are preserved under
+evidence/cpu-sqrt-diagnostic/. No oracle, tolerance or production setting changed.

@@ -65,7 +65,8 @@ def main():
         from vllm.models.deepseek_v41.attention import DeepseekV4Attention
         from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
         from vllm.models.deepseek_v41.common.engram import Engram
-        if not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or DiskEngram.__bases__ != (Engram,):
+        if (not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or BoundedMoEMethod.__abstractmethods__ or
+                DiskEngram.__bases__ != (Engram,)):
             raise RuntimeError("owned adapters do not bind the real upstream model classes")
         if not issubclass(OwnedBF16Attention, DeepseekV4Attention) or OwnedBF16Attention.__abstractmethods__:
             raise RuntimeError("owned BF16 attention is not a concrete real upstream subclass")

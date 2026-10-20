@@ -50,7 +50,7 @@ def validated_evidence(bundle, cpu_path, commit):
         selected[name] = read_json(path)
     runtime = selected["evidence/installed-runtime/runtime.json"]
     required = {"versions", "application_source_identity", "private_compilers_without_sdk", "native_without_sdk",
-        "complete_python_integration", "actual_original_parser"}
+        "actual_local_gloo", "complete_python_integration", "actual_original_parser"}
     if ("failure" in runtime or runtime.get("source_commit") != commit or runtime.get("python") != "3.12.14" or
             runtime.get("CUDA_execution") != "not run" or runtime.get("full_model_validation") != "not run" or
             not required <= {item["name"] for item in runtime["checks"]} or

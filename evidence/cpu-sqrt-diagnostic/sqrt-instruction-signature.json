@@ -1,0 +1,30 @@
+[
+  {
+    "variant": 0,
+    "first_partition_bit_matches": 1344,
+    "second_partition_bit_matches": 0,
+    "max_error_vs_fp64": 0.00034910570973334387,
+    "max_error_vs_captured": 0.0002994537353515625
+  },
+  {
+    "variant": 1,
+    "first_partition_bit_matches": 0,
+    "second_partition_bit_matches": 0,
+    "max_error_vs_fp64": 0.0003492223084551327,
+    "max_error_vs_captured": 0.0006983280181884766
+  },
+  {
+    "variant": 2,
+    "first_partition_bit_matches": 1,
+    "second_partition_bit_matches": 0,
+    "max_error_vs_fp64": 0.0006150103759430259,
+    "max_error_vs_captured": 0.0007671117782592773
+  },
+  {
+    "variant": 3,
+    "first_partition_bit_matches": 0,
+    "second_partition_bit_matches": 1335,
+    "max_error_vs_fp64": 5.95884626086729e-08,
+    "max_error_vs_captured": 0.0003491640090942383
+  }
+]

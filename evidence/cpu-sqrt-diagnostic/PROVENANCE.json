@@ -1,0 +1,52 @@
+{
+  "finding": "DSR-AUDIT-011",
+  "status": "open; reduced-accuracy path signature identified, intermittent selection cause unresolved",
+  "scope": "synthetic CPU router diagnostics only; no model payloads, GPU or Windows runtime result",
+  "tensor_shape": [
+    7,
+    384
+  ],
+  "captured_bad_partition": [
+    0,
+    1344
+  ],
+  "accurate_partition": [
+    1344,
+    2688
+  ],
+  "observations": [
+    "All 1344 captured bad results equal AVX2 input * hardware rsqrt approximation bit for bit.",
+    "Explicit MKL high-accuracy mode matches the accurate second partition.",
+    "Explicit MKL enhanced-performance mode with AVX2 forced in a separate diagnostic process matches the bad first partition.",
+    "The installed ATen VML wrapper source passes high accuracy explicitly; these signatures do not explain its intermittent wrong path.",
+    "Frozen oracle, tolerances and production runtime settings are unchanged."
+  ],
+  "installed_header": {
+    "distribution": "torch",
+    "version": "2.13.0+cpu",
+    "path": "torch/include/ATen/cpu/vml.h",
+    "sha256": "fdb8944b3720b693b1f9ab63d0c4bc40e085950c4764353686b83b1905a04f4c"
+  },
+  "files": {
+    "instruction-probe.c": {
+      "bytes": 532,
+      "sha256": "450ee769833ea2e9479d8aae2c084b08b50a88651870b747f372bbd01f0d74e5"
+    },
+    "sqrt-vml-modes.json": {
+      "bytes": 1265,
+      "sha256": "421f453e1785474217c5f3fa227825f1596801b08942fa6d87356000b7221e37"
+    },
+    "captured-failure.npz": {
+      "bytes": 39539,
+      "sha256": "5b6dd82d8de8dc7d56a134d884fb5808455106ea0a4fa2316a9835f704e053d4"
+    },
+    "sqrt-instruction-signature.json": {
+      "bytes": 821,
+      "sha256": "7ae783df5870e36b028f1efdcd739d5cbfe0bed9496de78b20095a9d883af62c"
+    },
+    "sqrt-vml-avx2.json": {
+      "bytes": 1271,
+      "sha256": "af1e96c281a026431f7332997dd9fcb585604fdcf863542e26954730feb6dcb4"
+    }
+  }
+}

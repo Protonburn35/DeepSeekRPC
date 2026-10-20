@@ -15,6 +15,33 @@ import subprocess
 import sys
 
 
+def qualify_local_gloo(output):
+    """Exercise real local stage-group dependencies without CUDA collectives."""
+    from datetime import timedelta
+    import tempfile
+    import torch
+    distributed = torch.distributed
+    if distributed.is_initialized() or not distributed.is_gloo_available():
+        raise RuntimeError("the actual private Torch runtime requires a fresh available Gloo backend")
+    # Stage groups are local TP=PP=1; the three-PC protocol does not use
+    # Gloo for inter-PC CUDA tensors. Exercise Windows FileStore semantics,
+    # including a path with spaces/non-ASCII characters.
+    with tempfile.TemporaryDirectory(prefix="local Gloo \u0394 ", dir=output) as temporary:
+        store = distributed.FileStore(str(Path(temporary) / "rendezvous"), 1)
+        try:
+            distributed.init_process_group(backend="gloo", store=store, rank=0, world_size=1,
+                                           timeout=timedelta(seconds=30))
+            value = torch.tensor([41017], dtype=torch.int64)
+            distributed.all_reduce(value)
+            if value.item() != 41017 or distributed.get_world_size() != 1 or distributed.get_rank() != 0:
+                raise RuntimeError("actual local Gloo collective returned an invalid rank/value")
+        finally:
+            if distributed.is_initialized():
+                distributed.destroy_process_group()
+            del store
+    return "actual local FileStore/Gloo group and CPU metadata collective; no inter-PC/GPU collective"
+
+
 def main():
     options = argparse.ArgumentParser(description=__doc__)
     options.add_argument("--bundle", type=Path, required=True)
@@ -126,7 +153,7 @@ def main():
         from deepseekrpc.vllm_engram import DiskEngram
         from deepseekrpc.vllm_experts import BoundedMoEMethod
         from vllm.model_executor.layers.fused_moe.fused_moe_method_base import FusedMoEMethodBase
-        if (not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or OwnedBF16Attention.__abstractmethods__ or
+        if (not issubclass(BoundedMoEMethod, FusedMoEMethodBase) or BoundedMoEMethod.__abstractmethods__ or OwnedBF16Attention.__abstractmethods__ or
                 OwnedDSparkAttention.__abstractmethods__ or DiskEngram.__bases__[0].__name__ != "Engram"):
             raise RuntimeError("owned adapters do not bind their actual concrete upstream classes")
         from deepseekrpc.api import create_app
@@ -142,6 +169,7 @@ def main():
         record("application_source_identity", source_identity)
         record("private_compilers_without_sdk", compiler_checks)
         record("native_without_sdk", native_imports)
+        record("actual_local_gloo", lambda: qualify_local_gloo(output))
         record("complete_python_integration", python_integration)
         subprocess.run([sys.executable, "-m", "pip", "check"], check=True)
         subprocess.run([sys.executable, str(root / "tools/audit_parser_integration.py"),
