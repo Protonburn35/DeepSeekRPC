@@ -42,14 +42,18 @@ class AdminClient:
                 raise ValidationError("administrative API redirects are not permitted")
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
-    def open(self, method, suffix):
+    def open(self, method, suffix, *, body=None):
         if not isinstance(suffix, str) or not suffix.startswith("/") or ".." in suffix or "?" in suffix or "#" in suffix:
             raise ValidationError("invalid administrative API operation path")
         headers = {"Content-Type": "application/json"}
         if self.key is not None:
             headers["Authorization"] = "Bearer " + self.key
-        request = urllib.request.Request(self.base + suffix, method=method, headers=headers,
-                                        data=canonical({}) if method == "POST" else None)
+        data = canonical({} if body is None else body) if method == "POST" else None
+        if body is not None and (method != "POST" or not isinstance(body, dict)):
+            raise ValidationError("administrative request body must be an explicit POST JSON object")
+        if data is not None and len(data) > 64 * 1024 ** 2:
+            raise ValidationError("private API request exceeds the bounded chat body")
+        request = urllib.request.Request(self.base + suffix, method=method, headers=headers, data=data)
         try:
             return self.opener.open(request, timeout=3600)
         except urllib.error.HTTPError as error:

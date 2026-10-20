@@ -111,6 +111,9 @@ class BoundedRoutedExperts:
         if not bool(torch.isfinite(inputs).all()) or not bool(torch.isfinite(topk_weights).all()) or bool((topk_weights < 0).any()):
             raise ValidationError("routed activations or probabilities are invalid")
         groups = partition_routes(topk_ids.tolist(), experts=len(catalog.keys), topk=self.topk)
+        from . import metrics
+        metrics.current.add("routed_token_assignments", len(inputs) * self.topk)
+        metrics.current.add("routed_unique_bundles", len(groups))
         output = torch.zeros(inputs.shape, dtype=torch.float32, device=inputs.device)
         for expert, positions in groups:
             if self.cancelled is not None and self.cancelled():

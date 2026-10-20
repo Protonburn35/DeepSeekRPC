@@ -23,13 +23,13 @@ retained. All full-model and GPU checks are NOT RUN; performance is NOT MEASURED
 | R15 Cancel | API request ownership, scoped cancellation, per-layer/expert/fragment observers, persistent mesh recovery and real TLS interruption checks | Every-phase full-model cancellation and hardware recovery |
 | R16 Prefix reuse | Exact token/image/component negotiation, sealed encoder SWA/pair checkpoint, retained source generations and required full target replay | Actual GPU fresh-versus-reused differential qualification |
 | R17 Snapshots | Bounded state-only archives, all-stage save/seal, two-pass prevalidated restore, exact RNG/stop state, administrative pause/continuation and HTTP/CLI integration source | Actual GPU/distributed save/restore/fault/continuation qualification |
-| R18 OpenCode | Original encoding/tokenizer, real preserving parser audit, bounded OpenAI JSON/SSE and tool/reasoning streams | Actual Docker client/tool/image/context qualification |
+| R18 OpenCode | Original encoding/tokenizer, real preserving parser audit, bounded OpenAI JSON/SSE, separate profile and actual pinned SDK text/image/tool/reasoning/cancel audits | Actual Docker client/tool/image/context qualification |
 | R19 Windows/SM89/SM120 | Windows CPU CI, project ABI 2 and full EXLlama native builds pass; vLLM build in progress | Full runtime dependency bundle, complete vLLM build and actual GPU execution |
 | R20 ISA/no INT8 | Before-import EXL3 policy, exact CUDA auxiliary math and actual packed adapter with shortcuts disabled | Packed GPU differential/dispatch qualification; optional ISA work later |
 | R21 Auth/bounds | Mutual TLS SAN/run/plane, bounded data/control queues/RPC, deadlines, errors, mesh arrival-order tests | Complete production dispatch/admission and certificate/port setup |
 | R22 Preserve Qwen | Existing repo, independent paths and no changes to working installation | Windows launcher/package isolation and port-conflict qualification |
-| R23 Honest provenance | Locks, native reports, component identities and explicit incomplete/unrun status | Complete candidate archive, diagnostics and repeated independent Astra cycles |
-| R24 Speed goals | Header admission arithmetic and bounded execution source | Matched measured full-model workloads, no throughput promise |
+| R23 Honest provenance | Locks, native reports, component identities, bounded content-free logs/archives and live public diagnostics | Complete candidate archive, full runtime installation and repeated independent Astra cycles |
+| R24 Speed goals | Actual tier/I/O/transfer/window/request counters and timings plus matched real-API benchmark mode | Matched measured full-model workloads, no throughput promise |
 ## Oracle provenance and tolerances
 
 The official October encoding file is vendored unchanged, with SHA-256 and MIT

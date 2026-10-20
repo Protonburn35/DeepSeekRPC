@@ -15,6 +15,14 @@ from .mesh import MeshNetwork
 from .planner import Role
 
 _OWNER = b"DeepSeekRPC runtime state v1\n"
+_ACTIONS = {
+    "WEIGHTS": "Check pinned model/Engram files, local paths and integrity.",
+    "MEMORY": "Free RAM/VRAM and check the allocation and locked-residency report.",
+    "TLS": "Check the role certificates, CA, clock and configured peer identities.",
+    "RPC": "Check private worker addresses, listeners and network connectivity.",
+    "CUDA": "Check the GPU driver/runtime and the failed local CUDA diagnostic.",
+    "INTERNAL": "Inspect the diagnostic bundle for the failed internal invariant.",
+}
 
 
 @contextmanager
@@ -127,7 +135,7 @@ def preflight(config: DeploymentConfig, *, device_checks=True):
 
 
 class PersistentWorker:
-    def __init__(self, config: DeploymentConfig):
+    def __init__(self, config: DeploymentConfig, *, log_level="info", traces=()):
         if not isinstance(config, DeploymentConfig):
             raise ValidationError("worker requires a validated local deployment configuration")
         self.config, self.stop = config, threading.Event()
@@ -135,10 +143,31 @@ class PersistentWorker:
         self.stage = self.service = self.coordinator = self.assets = self.http = self.runtime = self.network = None
         self._bound, self.failure = None, None
         self.snapshots = None
+        self.log_level, self.traces = log_level, tuple(traces)
+        self._peer_diagnostics, self._peer_sample_ns = [], None
+        self._failure_area = "INTERNAL"
+
+    def _load_progress(self, area):
+        if area not in _ACTIONS:
+            raise ValidationError("unknown bounded loading diagnostic area")
+        self._failure_area = area
 
     def status(self):
         with self._lock:
             return {"stage": int(self.config.role), "run": self.config.run, "status": self._state, "code": self._code}
+
+    def diagnostics(self):
+        report = self.stage.report if self.stage is not None else None
+        loaded = None if report is None else {key: report[key] for key in
+            ("runtime", "memory", "small_CUDA_checks", "current_budgets")}
+        if loaded is not None:
+            loaded["last_window_budgets"] = report.get("last_budgets")
+        return {"state": self.status(), "configuration": self.config.effective(), "loaded": loaded,
+                "failure_type": type(self.failure).__name__ if self.failure is not None else None,
+                "peer_heartbeat_sample_age_ns": None if self._peer_sample_ns is None else time.monotonic_ns() - self._peer_sample_ns,
+                "peer_diagnostics": self._peer_diagnostics,
+                "failure_area": self._failure_area if self.failure is not None else None,
+                "action": _ACTIONS[self._failure_area] if self.failure is not None else None}
 
     def _state_is(self, state, code=None):
         with self._lock:
@@ -192,6 +221,8 @@ class PersistentWorker:
             if self._bound is not None:
                 self._bound.close()
             self.service.rebind(mesh).result(timeout=300)
+            from . import metrics
+            metrics.current.event("mesh_rebound")
         self._bound = mesh
         if self.config.role == Role.HOST and self.coordinator is None:
             from .coordinator import ClusterCoordinator
@@ -238,7 +269,10 @@ class PersistentWorker:
                 self._state_is("READY")
             if time.monotonic() - last_heartbeat >= 5:
                 try:
-                    self.network.heartbeat(mesh, timeout=3)
+                    observed = self.network.heartbeat(mesh, timeout=3)
+                    self._peer_diagnostics = [{key: peer.get(key) for key in
+                        ("stage", "status", "code", "phase", "processed", "metrics_summary")} for peer in observed.values()]
+                    self._peer_sample_ns = time.monotonic_ns()
                 except (ConnectionError, TimeoutError, RemoteError):
                     mesh.failed.set()
                     continue
@@ -248,34 +282,46 @@ class PersistentWorker:
         if os.name != "nt":
             raise RuntimeError("actual persistent inference requires native Windows 11 and a supported CUDA GPU")
         with own_state(self.config.state_root) as state, self._signals():
+            from . import metrics
+            telemetry = metrics.configure(state / "diagnostics", stage="ABC"[int(self.config.role)],
+                log_level=self.log_level, traces=self.traces).start()
             try:
+                self._load_progress("WEIGHTS")
                 preflight(self.config, device_checks=False)
                 # Bind and report diagnostics before any model payload is
                 # loaded. Port conflicts fail before constructing the graph.
                 if self.config.role == Role.HOST:
+                    self._load_progress("RPC")
                     from .api_runtime import APIRuntime
-                    self.runtime = APIRuntime(api_key=self.config.api_key(), default_output=self.config.default_output)
+                    self.runtime = APIRuntime(api_key=self.config.api_key(), default_output=self.config.default_output,
+                        diagnostic_provider=self.diagnostics)
                     self.http = APIServer(self.runtime, self.config.api_endpoint).start()
+                self._load_progress("TLS")
                 self.network = MeshNetwork(role=self.config.role, run=self.config.run, tls=self.config.tls,
                     endpoints=self.config.endpoints, status=self.status).start()
                 self._state_is("LOADING")
                 rendezvous = state / f"collective-{uuid.uuid4().hex}"
-                self.stage = load_stage(self.config.model_root, role=self.config.role, run_id=self.config.run,
-                    rendezvous=rendezvous, engram_root=self.config.engram_root, split=tuple(self.config.shared["split"]),
-                    device=self.config.device, requested_ram_tier_bytes=self.config.ram_tier_bytes)
+                with telemetry.measure("load"):
+                    self.stage = load_stage(self.config.model_root, role=self.config.role, run_id=self.config.run,
+                        rendezvous=rendezvous, engram_root=self.config.engram_root, split=tuple(self.config.shared["split"]),
+                        device=self.config.device, requested_ram_tier_bytes=self.config.ram_tier_bytes, progress=self._load_progress)
+                telemetry.event("loaded")
+                telemetry.set_phase("inference")
                 if self.config.role == Role.HOST:
                     from .image_assets import ImageAssets
                     from .snapshot_archive import SnapshotStore
                     self.assets = ImageAssets(state / "images", identity=self.stage.identity)
                     self.snapshots = SnapshotStore(state / "snapshots", identity=self.stage.identity)
                 self._state_is("LOADED")
+                self._load_progress("RPC")
                 self._serve()
             except BaseException as exc:
                 self.failure = exc
-                self._state_is("FAILED", "INTERNAL")
+                telemetry.event("runtime_failed", failure_code=1)
+                self._state_is("FAILED", self._failure_area)
                 import sys
-                print(f"DeepSeekRPC stage {'ABC'[int(self.config.role)]}: FAILED / INTERNAL ({type(exc).__name__}). "
-                      "Diagnostics remain available; Ctrl+Break shuts down.", file=sys.stderr, flush=True)
+                print(f"DeepSeekRPC stage {'ABC'[int(self.config.role)]}: FAILED / {self._failure_area} ({type(exc).__name__}). "
+                      f"{_ACTIONS[self._failure_area]} Diagnostics remain available; Ctrl+Break shuts down.", file=sys.stderr, flush=True)
                 if self.http is None and self.network is None:
                     raise
                 mesh = self.network.current if self.network is not None else None
@@ -304,4 +350,5 @@ class PersistentWorker:
                     self.stage.close()
                 if self.assets is not None:
                     self.assets.close()
+                telemetry.close()
         return 1 if self.failure is not None else 0

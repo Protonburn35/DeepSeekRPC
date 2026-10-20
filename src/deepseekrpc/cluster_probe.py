@@ -216,7 +216,8 @@ class ClusterProbe:
                 with prepare_chat(body, model=self.model, tokenizer=self.tokenizer, assets=self.assets) as request:
                     baseline, _, _ = self._case(request, speculative=False, temperature=0)
                     repeated, _, _ = self._case(request, speculative=False, temperature=0)
-                    if repeated != baseline:
+                    if (repeated != baseline or coordinator.last_prefill["reused_encoder_tokens"] <= 0 or
+                            coordinator.last_prefill["target_replay_tokens"] != request.history.length):
                         raise ValidationError("exact repeated/prefix-reused target decoding changed deterministic tokens")
                     speculative, stats, _ = self._case(request, speculative=True, temperature=0)
                     if speculative != baseline or not any(item["proposed_tokens"] for item in stats):

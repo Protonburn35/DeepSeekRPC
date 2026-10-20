@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import hashlib
 import threading
 import time
+from . import metrics
 from typing import Callable
 
 from .jsonutil import ValidationError, integer
@@ -114,6 +115,7 @@ class RAMCache:
         integer(nbytes, "expert bytes", 1, min(self.budget, self.staging_budget))
         if not 0 < timeout <= 300:
             raise ValidationError("invalid cache wait timeout")
+        metrics.current.add("ram_bundle_requests")
         deadline = time.monotonic() + timeout
         with self._condition:
             while key in self._loading:
@@ -126,6 +128,7 @@ class RAMCache:
                 if len(entry.data) != nbytes:
                     raise ValidationError("expert cache identity has conflicting byte lengths")
                 self.hits += 1
+                metrics.current.add("ram_bundle_hits")
                 self._entries.move_to_end(key)
             else:
                 if len(self._loading) >= self.max_inflight:
@@ -139,6 +142,7 @@ class RAMCache:
                         raise ValidationError("all cache slots are leased; backpressure required")
                     self.used -= len(self._entries.pop(victim).data)
                     self.evictions += 1
+                    metrics.current.add("ram_evictions")
                 # Reservation counts against cache capacity even before publication.
                 self.used += nbytes
                 self.staging_used += nbytes
@@ -155,6 +159,7 @@ class RAMCache:
                     entry = _Entry(data, self._generation, 1)
                     self._entries[key] = entry
                     self.reads += 1
+                    metrics.current.add("ram_bundle_loads")
             except BaseException:
                 with self._condition:
                     self.used -= nbytes

@@ -51,7 +51,8 @@ def run_graph_checks(device):
         expected_bf16 = torch.tensor(expansion, dtype=torch.bfloat16).float().numpy()
         # A cancellation close to zero has an FP32 absolute-error allowance;
         # BF16 output spacing accounts for its explicit final rounding.
-        tolerance = np.maximum(abs(expected_bf16) / 128, 2e-7)
+        exponent = np.frexp(abs(expected_bf16).astype(np.float64))[1]
+        tolerance = np.maximum(np.ldexp(np.ones_like(expansion), exponent - 8), 2e-7)
         if np.any(abs(actual.astype(np.float64) - expansion) > tolerance + abs(expected_bf16 - expansion)):
             raise AssertionError("actual four-stream mHC expansion exceeds FP32/BF16 rounding envelope")
         results.append({"name": "actual mHC width 5120, " + ("broadcast" if broadcast else "four-stream") + " coefficients and expansion",

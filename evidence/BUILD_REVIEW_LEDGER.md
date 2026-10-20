@@ -585,3 +585,44 @@ now integrated source (DSR-AUDIT-015). The probe invokes real stages and the rea
 snapshot coordinator; CPU receipt fixtures do not emulate a GPU model. Its
 full-model parity/residency/image/restore checks remain unrun. The complete
 candidate and independent Astra review remain pending.
+
+## 2026-10-20 — operational measurements and actual client-adapter audit
+
+Windows CPU run 39402801421 and isolated bootstrap run 39402801517 passed
+9a3bb7a. Full vLLM native run 39400420994 remains in progress. Added fixed-name
+numeric counters, monotonic histograms, bounded rotated logs, atomic periodic
+metrics, stage CUDA-event spans and typed loading-area diagnostics. Cache hit
+denominators, new/reused encoder work and full target replay remain separate.
+RPC bytes exclude TLS framing; application file reads do not masquerade as
+physical SSD misses. Unavailable hard-fault/pagefile/thermal sensors stay null.
+
+Live host and offline per-role diagnostic archives read explicit public files,
+not credentials or model/image/snapshot trees. The benchmark uses actual HTTP
+SSE and authoritative usage, distinguishes headers from first visible output,
+and refuses to attribute server counters across another observed operation.
+No model throughput has been measured. The client benchmark test uses an
+explicit synthetic HTTP protocol fixture, not an emulated model engine.
+
+The operational full CPU suite passed 358 tests with four real-Win32 skips.
+That pass does not repair the earlier captured Linux sqrt discrepancy. Focused
+metrics/I/O/cache/transport/lifecycle checks passed 51/one skip, then 13; client/
+diagnostic/benchmark checks passed 23, and final lifecycle/configuration checks
+passed 27. Packed rotation bounds were reviewed before GPU execution: seven
+butterfly sums, normalization multiplication and the rounded constant receive
+a fixed gamma_9 bound. The mHC expansion bound now uses actual BF16 exponent
+spacing. No GPU observation has been used to fit a tolerance.
+
+Read-only OpenCode v1.19.3 source at e3c4eb242585dcd77be1a867391b7c25fd47ce52
+identifies @ai-sdk/openai-compatible 2.0.41. Its actual integrity-locked adapter
+passed three synthetic-wire checks for text/reasoning whitespace, split literal
+tool arguments, image/tool-result/reasoning input and abort propagation. Both
+captured actual request bodies pass the original Python tokenizer/template/image
+preparation: 33 and 275 prompt tokens, 1M capacity and requested output 8192.
+The clean npm-ci installation repeats this audit. No OpenCode process, user
+Docker version, complete agent session or GPU model is claimed qualified.
+
+The next installation check also examines actual Windows Triton compiler
+requirements, not only DLL imports. Bounded inspection of the hash-pinned
+Triton wheel finds bundled TinyCC, ptxas and CUDA headers/import library; the
+pinned Python standalone archive contains Python.h, pyconfig.h and python312.lib.
+Actual compiler/standalone-interpreter qualification is being added.

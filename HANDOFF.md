@@ -75,6 +75,10 @@ The complete Windows dependency/install bundle and broader GPU diagnostics are
 being qualified. Optional grammar/response-format and named tool constraints
 are explicitly rejected; the specification allows clear unsupported controls.
 They are not required features being silently deferred.
+Bounded numeric logs, machine-readable cache/I/O/transfer/request metrics, live
+and offline diagnostic archives and matched real-API benchmark modes now have
+integrated source. The separate OpenCode profile and its actual pinned SDK wire
+adapter have CPU protocol evidence. Full Docker/GPU performance is unrun.
 
 ## Verification
 

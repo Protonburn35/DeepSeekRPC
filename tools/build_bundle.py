@@ -177,7 +177,8 @@ def main():
             "provenance/windows-bootstrap.lock.json", "provenance/python-windows-download.json",
             "provenance/token-map.lock.json", "tools/qualify_runtime.py", "tools/audit_parser_integration.py",
             "provenance/sources.lock.json", "provenance/vllm-native-deps.lock.json",
-            "tests/fixtures/tokenizer.json.gz", "docs/SESSIONS.md", "docs/INSTALL_WINDOWS.md", "docs/DIAGNOSTICS.md"]:
+            "provenance/opencode-client.lock.json", "tests/fixtures/tokenizer.json.gz", "docs/SESSIONS.md",
+            "docs/INSTALL_WINDOWS.md", "docs/DIAGNOSTICS.md", "docs/OBSERVABILITY.md", "docs/OPENCODE.md"]:
         destination = output / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / relative, destination)
@@ -192,7 +193,8 @@ def main():
         "The application and EXL3 plugin are AGPL-3.0-only. Make this exact corresponding source available "
         "to users of the network service under that license. Other incorporated source retains its "
         "Apache-2.0/MIT notices. Model files and Microsoft's app-local CRT have their own terms.\n", encoding="utf-8")
-    for directory, names in {"config": ["cluster.example.json", "A.example.json", "B.example.json", "C.example.json"],
+    for directory, names in {"config": ["cluster.example.json", "A.example.json", "B.example.json", "C.example.json",
+            "benchmark.example.json", "opencode.deepseek.example.json"],
             "launchers": ["RUN-HOST.bat", "RUN-MIDDLE.bat", "RUN-STAGE-C.bat", "Run-Stage.ps1"]}.items():
         (output / directory).mkdir()
         for name in names:

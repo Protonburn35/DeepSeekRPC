@@ -48,11 +48,25 @@ def main(argv=None):
     cluster = commands.add_parser("selftest-cluster", help="probe the already loaded cluster and qualify DSpark on its current mesh")
     cluster.add_argument("--base-url", default="http://127.0.0.1:8081/v1")
     cluster.add_argument("--api-key-file", type=Path)
+    diagnostics = commands.add_parser("diagnostics", help="write a bounded content-free diagnostic archive from live API or saved local metrics")
+    source = diagnostics.add_mutually_exclusive_group()
+    source.add_argument("--config", type=Path, help="collect saved local A/B/C metrics without loading a model")
+    source.add_argument("--base-url", default="http://127.0.0.1:8081/v1")
+    diagnostics.add_argument("--api-key-file", type=Path)
+    diagnostics.add_argument("--output", type=Path, required=True)
+    benchmark = commands.add_parser("benchmark", help="measure matched requests on the already loaded actual private API")
+    benchmark.add_argument("--request-file", type=Path, required=True)
+    benchmark.add_argument("--repeat", type=int, default=3)
+    benchmark.add_argument("--base-url", default="http://127.0.0.1:8081/v1")
+    benchmark.add_argument("--api-key-file", type=Path)
+    benchmark.add_argument("--output", type=Path, required=True)
     credentials = commands.add_parser("init-credentials", help="generate a new private deployment CA and role/API keys locally")
     credentials.add_argument("--output", type=Path, required=True)
     worker = commands.add_parser("serve", help="load the real owned Windows CUDA stage once and keep it resident")
     worker.add_argument("--config", type=Path, required=True)
     worker.add_argument("--stage", choices=["A", "B", "C"], help="refuse a role configuration passed to the wrong launcher")
+    worker.add_argument("--log-level", choices=["error", "warn", "info", "debug", "trace"], default="info")
+    worker.add_argument("--trace", choices=["rpc", "experts", "cache", "io", "kv", "cuda", "vision", "spec"], action="append", default=[])
     mode = worker.add_mutually_exclusive_group()
     mode.add_argument("--print-effective-config", action="store_true")
     mode.add_argument("--preflight", action="store_true", help="check local metadata/TLS without opening listeners or constructing a model")
@@ -81,6 +95,28 @@ def main(argv=None):
         elif args.command == "selftest-cluster":
             from .admin_client import AdminClient
             result = AdminClient(args.base_url, api_key_file=args.api_key_file).request("POST", "/diagnostics/cluster")
+        elif args.command == "diagnostics":
+            from .diagnostics import offline_report, write_bundle
+            if args.config is not None:
+                from .deployment_config import DeploymentConfig
+                config = DeploymentConfig.read(args.config)
+                report, logs = offline_report(config), config.state_root / "diagnostics"
+            else:
+                from .admin_client import AdminClient
+                report = AdminClient(args.base_url, api_key_file=args.api_key_file).request("GET", "/diagnostics")
+                logs = None
+            result = write_bundle(report, args.output, logs=logs)
+        elif args.command == "benchmark":
+            from .admin_client import AdminClient
+            from .benchmark import run_benchmark
+            from .jsonutil import canonical
+            if args.output.exists() or args.output.is_symlink():
+                raise ValidationError("benchmark output must be a new file")
+            with args.request_file.open("rb") as stream:
+                body = loads(stream.read(64 * 1024 ** 2 + 1), limit=64 * 1024 ** 2)
+            result = run_benchmark(AdminClient(args.base_url, api_key_file=args.api_key_file), body, repeat=args.repeat)
+            with args.output.open("xb") as stream:
+                stream.write(canonical(result) + b"\n")
         elif args.command == "init-credentials":
             from .pki import initialize_credentials
             result = initialize_credentials(args.output)
@@ -114,7 +150,7 @@ def main(argv=None):
             elif args.preflight or args.self_test:
                 result = preflight(config, device_checks=args.self_test)
             else:
-                return PersistentWorker(config).run()
+                return PersistentWorker(config, log_level=args.log_level, traces=args.trace).run()
         else:
             config = loads(args.model_config.read_bytes(), limit=128 * 1024)
             split = tuple(int(value) for value in args.split.split(","))

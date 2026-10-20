@@ -104,7 +104,11 @@ class LoadedStage:
 
 def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
                engram_root: Path | None = None, split=(18, 5, 17), device=0,
-               requested_ram_tier_bytes=8 * 1024 ** 3):
+               requested_ram_tier_bytes=8 * 1024 ** 3, progress=None):
+    progress = progress if progress is not None else lambda _area: None
+    if not callable(progress):
+        raise ValidationError("loading progress must be a bounded internal callback")
+    progress("CUDA")
     from .runtime_identity import require_windows_runtime
     # Establish exact EXL3/math policy before any model/backend import.
     runtime = require_windows_runtime(device)
@@ -131,6 +135,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
         raise ValidationError("stage loading needs an explicit A/B/C role")
     hex_id(run_id, 32, "worker run")
     integer(device, "CUDA device index", 0, 31)
+    progress("WEIGHTS")
     manifest, config, plan, identity = local_deployment(model_root, split=split)
     identity = fingerprint({"deployment": identity, "runtime": runtime["component_identity"]})
     root = model_root.resolve(strict=True)
@@ -139,10 +144,16 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
     # Synthetic CPU goldens, full vision shapes and temporary packed matrices
     # must not overlap the loaded weights and eager 1M cache lifetime. Qualify
     # first, release the test allocator cache, then measure/admit model memory.
-    with torch.cuda.device(device), torch.inference_mode():
-        checks = run_cuda_checks()
-        torch.cuda.synchronize(device)
-        torch.cuda.empty_cache()
+    from . import metrics
+    metrics.current.set_phase("diagnostic")
+    progress("CUDA")
+    try:
+        with torch.cuda.device(device), torch.inference_mode():
+            checks = run_cuda_checks()
+            torch.cuda.synchronize(device)
+            torch.cuda.empty_cache()
+    finally:
+        metrics.current.set_phase("boot")
     vllm_config = make_vllm_config(root)
     initialize_local_groups(vllm_config, rendezvous)
     cancellation = threading.Event()
@@ -150,6 +161,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
         cleanup.callback(torch.distributed.destroy_process_group)
         pins = ShardPin.from_lock(manifest["shards"])
         index = manifest["pack"]["metadata"]["model.safetensors.index.json"]
+        progress("WEIGHTS")
         source = SelectiveWeights(root, root / index["name"], index_sha256=index["sha256"],
                                   pins=pins, plan=plan, role=role,
                                   replicate_draft_embedding=role == Role.TERMINAL)
@@ -157,6 +169,7 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
         # info() validates each physical shard and its complete publisher SHA
         # with bounded reads. No model allocation occurs before admission.
         entries = {name: source.info(name) for name in sorted(source.names)}
+        progress("MEMORY")
         baseline, host = query_device_budget(device), physical_host_memory()
         memory = plan_runtime_memory(entries, plan, role, available_gpu_bytes=baseline.available,
                                      available_host_bytes=host["available_bytes"],
@@ -233,12 +246,15 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, rendezvous: Path,
                     cleanup.callback(stores[layer].close)
                 history = EngramHistory(config, tokenizer,
                                          expected_map_sha256=manifest["token_map"]["canonical_lookup_sha256"])
+            progress("CUDA")
             graph = OwnedStageGraph(vllm_config, attention, row_stores=stores)
+            progress("WEIGHTS")
             native = graph.load_owned_native(source, admitted_bytes=memory.gpu["permanent_native_weights"] +
                                             MAX_READ + memory.host["pinned_and_boot_weight_staging"])
             if sum(record["target_bytes"] for record in native) != memory.gpu["permanent_native_weights"]:
                 raise ValidationError("actual native parameters disagree with complete destination-dtype admission")
             stream.synchronize()
+        progress("MEMORY")
         guard = RuntimeBudgetGuard(memory, baseline=baseline, device=device)
         report = {"status": "LOADED", "stage": "ABC"[int(role)], "identity": identity,
                   "runtime": runtime, "memory": memory.as_dict(), "native_parameters": native,

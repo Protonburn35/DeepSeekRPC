@@ -20,12 +20,15 @@ class RequestBusy(RuntimeError):
 
 class APIRuntime:
     """The HTTP listener can exist while the actual stage graph is loading."""
-    def __init__(self, *, model="deepseek-v4.1-flash-1017-exl3", api_key=None, default_output=8192):
+    def __init__(self, *, model="deepseek-v4.1-flash-1017-exl3", api_key=None, default_output=8192, diagnostic_provider=None):
         if not isinstance(model, str) or not 1 <= len(model) <= 128:
             raise ValidationError("served model ID must be bounded text")
         if api_key is not None and (not isinstance(api_key, str) or not 32 <= len(api_key) <= 256 or not api_key.isascii()):
             raise ValidationError("API key must contain 32..256 ASCII characters")
         self.model, self.api_key = model, api_key
+        if diagnostic_provider is not None and not callable(diagnostic_provider):
+            raise ValidationError("runtime diagnostics require an actual bounded provider callback")
+        self._diagnostic_provider = diagnostic_provider
         self.default_output = integer(default_output, "default output token limit", 1, 1048576)
         self._lock, self._reservation = threading.RLock(), threading.Lock()
         self._state, self._code, self._resources = "starting", None, None
@@ -51,6 +54,20 @@ class APIRuntime:
         with self._lock:
             self._state, self._code = state, code
             self._condition.notify_all()
+
+    def diagnostics(self):
+        from . import metrics
+        with self._lock:
+            coordinator = self._resources[0] if self._resources is not None else None
+            report = coordinator.last_qualification if coordinator is not None else None
+            peers = coordinator.last_admission if coordinator is not None else []
+            qualification = None if report is None else {"status": report.get("status", "in_progress"),
+                "checks_completed": len(report["checks"]), "failure": report.get("failure")}
+            return {"format": 1, "runtime": self.status(), "metrics": metrics.current.snapshot(),
+                "worker": self._diagnostic_provider() if self._diagnostic_provider is not None else None,
+                "cluster_qualification": qualification,
+                "last_peer_admission": [{key: peer.get(key) for key in ("stage", "status", "code", "phase", "processed")}
+                                        for peer in peers]}
 
     def attach(self, coordinator: ClusterCoordinator, assets: ImageAssets, *, snapshots=None):
         if (not isinstance(coordinator, ClusterCoordinator) or not isinstance(assets, ImageAssets) or

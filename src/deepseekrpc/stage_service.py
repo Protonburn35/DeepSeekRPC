@@ -139,6 +139,8 @@ class StageService:
         transport_ready = (len(controls) == 2 and not any(c.closed for c in self.data.connections.values()) and
                            not any(rpc.pump.connection.closed for rpc in controls.values()))
         status["transport_ready"] = transport_ready
+        from . import metrics
+        status["metrics_summary"] = metrics.current.compact()
         if not transport_ready and status["status"] == "READY":
             status["status"] = "RECOVERING"
         return status
@@ -222,6 +224,9 @@ class StageService:
         return self.actor.submit(None, body, prompt=prompt)
 
     def _fault(self):
+        from . import metrics
+        metrics.current.add("session_faults")
+        metrics.current.event("session_fault")
         if self._sampling is not None and not self._sampling.closed:
             self._sampling.abort()
         self._sampling = None

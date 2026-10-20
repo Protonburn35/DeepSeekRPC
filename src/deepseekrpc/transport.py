@@ -8,6 +8,7 @@ import socket
 import ssl
 import threading
 import time
+from . import metrics
 
 from .jsonutil import ValidationError, canonical, loads
 from .planner import Role
@@ -108,6 +109,7 @@ class Connection:
             if not part:
                 raise EOFError("peer disconnected during RPC frame")
             data.extend(part)
+            metrics.current.add("rpc_receive_bytes", len(part))
         self.bytes_received += len(data)
         return bytes(data)
 
@@ -118,20 +120,28 @@ class Connection:
             raise ValidationError("outgoing frame identity differs from authenticated channel")
         if (frame.kind in DATA_KINDS) != (self.plane == "data") and frame.kind != Kind.HELLO:
             raise ValidationError("message is on the wrong channel plane")
+        started = time.monotonic_ns()
         try:
-            chunks = frame.encode()
+            with metrics.current.measure("rpc_encode"):
+                chunks = frame.encode()
             with self._io_lock:
                 deadline = time.monotonic() + self.timeout
                 for chunk in chunks:
                     self._remaining(deadline)
                     self.socket.sendall(chunk)
                     self.bytes_sent += len(chunk)
+                    metrics.current.add("rpc_send_bytes", len(chunk))
+            metrics.current.add("rpc_send_frames")
+            metrics.current.event("frame", peer=int(self.peer), kind=int(frame.kind), rows=frame.rows,
+                bytes=sum(len(chunk) for chunk in chunks), elapsed_ns=time.monotonic_ns() - started)
         except BaseException:
             self.close()
             raise
+        finally:
+            metrics.current.observe("rpc_send", time.monotonic_ns() - started)
 
     def receive(self) -> Frame:
-        with self._io_lock:
+        with metrics.current.measure("rpc_receive"), self._io_lock:
             return self._receive_locked()
 
     def _receive_locked(self) -> Frame:
@@ -140,11 +150,14 @@ class Connection:
         deadline = time.monotonic() + self.timeout
         try:
             kind, header_bytes, payload_bytes = parse_prefix(self._read(PREFIX.size, deadline))
-            frame = decode(kind, self._read(header_bytes, deadline), self._read(payload_bytes, deadline))
+            header, payload = self._read(header_bytes, deadline), self._read(payload_bytes, deadline)
+            with metrics.current.measure("rpc_decode"):
+                frame = decode(kind, header, payload)
             if (frame.run, frame.sender, frame.receiver) != (self.run, self.peer, self.local):
                 raise ValidationError("incoming frame identity differs from authenticated channel")
             if (frame.kind in DATA_KINDS) != (self.plane == "data") and frame.kind != Kind.HELLO:
                 raise ValidationError("message is on the wrong channel plane")
+            metrics.current.add("rpc_receive_frames")
             return frame
         except BaseException:
             self.close()

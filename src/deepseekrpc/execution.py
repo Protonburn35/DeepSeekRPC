@@ -230,12 +230,17 @@ class StageExecution:
 
     def forward(self, *, incoming=None, image_rows=None):
         import torch
+        import time
+        from . import metrics
+        first = time.monotonic_ns()
         with self._compute():
             window = self._current()
             if self._forwarded:
                 raise ValidationError("the current CUDA graph window was already executed")
             try:
                 self._require_dependencies()
+                start_event, end_event = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+                start_event.record(self.stage.stream)
                 if window.phase == "draft":
                     if self.stage.role == Role.TERMINAL:
                         self._result = self.stage.graph.run_draft(self.ledger.pending_token)
@@ -248,12 +253,20 @@ class StageExecution:
                         self._last_logits = self._result.logits.clone()
                 elif incoming is not None or image_rows is not None:
                     raise ValidationError("a stage beyond source 20 receives only encoder source deltas")
+                end_event.record(self.stage.stream)
+                end_event.synchronize()
+                elapsed = int(start_event.elapsed_time(end_event) * 1_000_000)
+                metrics.current.observe("stage_cuda_forward", elapsed)
+                metrics.current.event("window", rows=window.operation.rows, operation=window.operation.number,
+                    phase_code={"encoder": 0, "target": 1, "decode": 2, "draft": 3}[window.phase], elapsed_ns=elapsed)
                 self._forwarded = True
-                self.stage.guard.check()
+                self.stage.report["last_budgets"] = self.stage.guard.check()
                 return self._result
             except BaseException:
                 self.stage.attention.fail()
                 raise
+            finally:
+                metrics.current.observe("stage_host_forward", time.monotonic_ns() - first)
 
     def export_source(self, source):
         import torch

@@ -1,0 +1,7 @@
+{
+  "name": "deepseekrpc-client-audit",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Pinned AI SDK protocol audit, without OpenCode process or model execution",
+  "dependencies": {"@ai-sdk/openai-compatible": "2.0.41"}
+}

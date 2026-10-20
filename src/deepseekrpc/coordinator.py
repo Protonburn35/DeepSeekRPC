@@ -2,6 +2,8 @@
 from dataclasses import dataclass, replace
 import threading
 import uuid
+import time
+from . import metrics
 
 from .execution import StepInput
 from .history import TokenHistory
@@ -54,6 +56,7 @@ class ClusterCoordinator:
         self._speculation_proof = None
         self._qualification_thread = None
         self.last_qualification = None
+        self.last_admission = []
 
     def speculation_status(self):
         key = self.host.execution.stage.identity, self.host.mesh_nonce
@@ -117,6 +120,7 @@ class ClusterCoordinator:
             if peer.get("stage") != int(role):
                 raise ValidationError("loaded peer status differs from its authenticated control role")
             peers.append(peer)
+        self.last_admission = peers
         if any(peer.get("status") not in {"LOADED", "READY", "RECOVERING"} or "identity" not in peer for peer in peers):
             raise ClusterNotReady("all three actual owned stage graphs must finish loading before admission")
         if any(peer.get("transport_ready") is not True for peer in peers):
@@ -252,6 +256,10 @@ class ClusterCoordinator:
         self.last_decode = {"mode": mode, "proposed_tokens": len(proposals),
             "verified_target_inputs": len(inputs.tokens), "accepted_drafts": accepted - 1,
             "rolled_back_inputs": len(inputs.tokens) - accepted, "output_tokens": len(batch.output_ids)}
+        for name, count in (("draft_proposed_tokens", len(proposals)), ("draft_accepted_tokens", accepted - 1),
+                ("target_verified_inputs", len(inputs.tokens)), ("rollback_inputs", len(inputs.tokens) - accepted), ("target_passes", 1)):
+            metrics.current.add(name, count)
+        metrics.current.event("rollback", proposed=len(proposals), accepted=accepted - 1, rolled_back=len(inputs.tokens) - accepted)
         return batch
 
     def _pause_batch(self, batch):
@@ -277,7 +285,8 @@ class ClusterCoordinator:
             self._cancelled.clear()
             self._external_cancelled = cancelled
             self._external_paused = paused
-        complete = False
+        complete, failed = False, False
+        measurement = metrics.RequestMeasurement()
         try:
             self._window, self._number, self.last_decode = None, 1, None
             self._check_cancel()
@@ -297,7 +306,9 @@ class ClusterCoordinator:
             if any((value.get("history_digest"), value.get("epoch"), value.get("settings_digest"), value.get("reused_encoder_tokens"),
                     value.get("prefix")) != (prompt.digest, epoch, settings.digest, reused, prefix) for value in resets.values()):
                 raise ValidationError("stage reset did not admit the same original history and request controls")
+            prefill_started = time.monotonic_ns()
             self._prefill()
+            measurement.prefilled(prefill_started, self.last_prefill)
             decision = self._terminal("sample_seed")
             if decision.get("accepted_target_rows") != 0:
                 raise ValidationError("initial sampling cannot claim a forwarded target input")
@@ -305,16 +316,25 @@ class ClusterCoordinator:
             while True:
                 batch = self._pause_batch(batch)
                 complete = batch.stop_reason is not None or batch.paused
+                measurement.batch(len(batch.output_ids))
                 yield batch
                 if complete:
                     return
                 batch = self._decode_once(settings)
+        except (GeneratorExit, InterruptedError):
+            raise
+        except BaseException:
+            failed = True
+            raise
         finally:
-            if not complete:
-                self.cancel()
-            with self._cancel_lock:
-                self._window = self._spec = self._external_cancelled = self._external_paused = None
-                self._request_lock.release()
+            try:
+                if not complete:
+                    self.cancel()
+            finally:
+                with self._cancel_lock:
+                    self._window = self._spec = self._external_cancelled = self._external_paused = None
+                    self._request_lock.release()
+                measurement.finish("failed" if failed else "paused" if complete and batch.paused else "completed" if complete else "cancelled")
 
     def resume(self, session, *, cancelled=None, paused=None):
         """Continue the exact pending input/RNG state of a paused session.
@@ -340,7 +360,8 @@ class ClusterCoordinator:
             self._window, self._number = None, ledger._next
             self._spec = SimpleNamespace(session=ledger.session, request=ledger.request, epoch=ledger.epoch,
                 transaction=uuid.uuid4().hex, tokens=self.host.execution.history.length)
-        complete = False
+        complete, failed = False, False
+        measurement = metrics.RequestMeasurement()
         try:
             peers = self.admit()
             keys = ("session", "request", "epoch", "phase", "processed", "pending_token", "history_digest",
@@ -351,12 +372,21 @@ class ClusterCoordinator:
             while True:
                 batch = self._pause_batch(self._decode_once(self.host._settings))
                 complete = batch.stop_reason is not None or batch.paused
+                measurement.batch(len(batch.output_ids))
                 yield batch
                 if complete:
                     return
+        except (GeneratorExit, InterruptedError):
+            raise
+        except BaseException:
+            failed = True
+            raise
         finally:
-            if not complete:
-                self.cancel()
-            with self._cancel_lock:
-                self._window = self._spec = self._external_cancelled = self._external_paused = None
-                self._request_lock.release()
+            try:
+                if not complete:
+                    self.cancel()
+            finally:
+                with self._cancel_lock:
+                    self._window = self._spec = self._external_cancelled = self._external_paused = None
+                    self._request_lock.release()
+                measurement.finish("failed" if failed else "paused" if complete and batch.paused else "completed" if complete else "cancelled")

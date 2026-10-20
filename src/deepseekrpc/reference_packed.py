@@ -76,16 +76,18 @@ def projection_reference(inputs, dense, suh, svh):
     expected = hadamard_reference(accumulation) * sv.astype(np.float64)
     u = 2. ** -24
     gamma_k = x.shape[1] * u / (1 - x.shape[1] * u)
-    gamma_7 = 7 * u / (1 - 7 * u)
+    # Seven butterfly additions, one normalization multiplication and its
+    # stored FP32 constant. This bound is fixed before any GPU observation.
+    gamma_rotation = 9 * u / (1 - 9 * u)
     # A full half ULP covers an input sum's FP32 perturbation at a half
     # rounding boundary; account for its propagation through every weight.
     half_ulp = np.maximum(abs(np.spacing(rotated).astype(np.float64)), 2. ** -24)
-    exact_rotation_rounding = gamma_7 * np.sqrt(128.) * np.max(abs(x.astype(np.float64) * su), axis=-1, keepdims=True)
+    exact_rotation_rounding = gamma_rotation * np.sqrt(128.) * np.max(abs(x.astype(np.float64) * su), axis=-1, keepdims=True)
     activation_error = half_ulp + exact_rotation_rounding
     dot_bound = activation_error @ abs(weights.astype(np.float64))
     dot_bound += gamma_k * (abs(rotated.astype(np.float64)) @ abs(weights.astype(np.float64)))
     # Absolute normalized H has every entry 1/sqrt(128).
     propagated = np.repeat((dot_bound.reshape(x.shape[0], -1, 128).sum(-1) / np.sqrt(128.)), 128, axis=-1)
-    output_round = gamma_7 * np.repeat((abs(accumulation).reshape(x.shape[0], -1, 128).sum(-1) / np.sqrt(128.)), 128, axis=-1)
+    output_round = gamma_rotation * np.repeat((abs(accumulation).reshape(x.shape[0], -1, 128).sum(-1) / np.sqrt(128.)), 128, axis=-1)
     bound = (propagated + output_round) * abs(sv.astype(np.float64)) + 2 * u * abs(expected) + 1e-7
     return expected, bound

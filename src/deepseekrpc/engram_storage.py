@@ -8,6 +8,7 @@ the selected source computation's explicit BF16/FP16 conversion policy.
 from collections import OrderedDict
 from pathlib import Path
 import threading
+from . import metrics
 
 import numpy as np
 
@@ -59,6 +60,7 @@ class EngramRows:
             raise ValidationError("Engram row requests require a bounded 1D integer array")
         if np.any(ids < 0) or np.any(ids >= self.rows):
             raise ValidationError("Engram row index outside table")
+        metrics.current.add("engram_row_requests", len(ids))
         result = np.empty((len(ids), ENCODED_BYTES), dtype=np.uint8)
         with self._mutex:
             if self.closed:
@@ -70,6 +72,9 @@ class EngramRows:
                     data = (self._file.read_range(self.weight, row * ROW_WIDTH, ROW_WIDTH)
                             + self._file.read_range(self.scale, row * SCALE_WIDTH, SCALE_WIDTH))
                     self.disk_row_reads += 1
+                    metrics.current.add("engram_storage_rows")
+                    metrics.current.add("engram_file_reads", 2)
+                    metrics.current.add("engram_file_read_bytes", ENCODED_BYTES)
                     if self.max_cached_rows:
                         while len(self._cache) >= self.max_cached_rows:
                             self._cache.popitem(last=False)
@@ -77,6 +82,7 @@ class EngramRows:
                 else:
                     self._cache.move_to_end(row)
                     self.cache_hits += 1
+                    metrics.current.add("engram_row_hits")
                 result[index] = np.frombuffer(data, dtype=np.uint8)
         return result
 

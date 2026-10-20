@@ -6,6 +6,7 @@ device allocations and WDDM admission still require separate qualification.
 from __future__ import annotations
 
 import threading
+from . import metrics
 
 from .inventory import MAX_READ
 from .jsonutil import ValidationError, integer
@@ -122,4 +123,6 @@ class _ResidentTransfer:
             raise ValidationError("resident upload requires one bounded CUDA byte range")
         with self._mutex:
             self.source.copy_to_pinned(name, offset, self._pinned[:count])
-            destination.copy_(self._pinned[:count], non_blocking=False)
+            with metrics.current.measure("pcie_upload"):
+                destination.copy_(self._pinned[:count], non_blocking=False)
+            metrics.current.add("pcie_upload_bytes", count)

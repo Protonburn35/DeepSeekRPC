@@ -71,6 +71,10 @@ def create_app(runtime: APIRuntime):
         return {"object": "list", "data": [{"id": runtime.model, "object": "model", "created": 0,
                 "owned_by": "deepseekrpc", "context_length": 1048576, "max_model_len": 1048576}]}
 
+    @app.get("/v1/diagnostics")
+    async def diagnostics():
+        return JSONResponse(runtime.diagnostics(), headers={"Cache-Control": "no-store"})
+
     async def cleanup(owner):
         if owner is not None:
             if not owner.done.is_set():

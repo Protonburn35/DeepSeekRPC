@@ -1,0 +1,9 @@
+{
+  "model": "deepseek-v4.1-flash-1017-exl3",
+  "messages": [{"role": "user", "content": "Write a numbered list of short descriptive words, one per line."}],
+  "seed": 41017,
+  "temperature": 0,
+  "max_tokens": 128,
+  "thinking": {"type": "disabled"},
+  "speculative": false
+}

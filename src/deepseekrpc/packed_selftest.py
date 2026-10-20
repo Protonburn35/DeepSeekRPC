@@ -67,7 +67,7 @@ def run_packed_checks(device):
     target = torch.empty_like(source)
     exllamav3_ext.had_r_128(source, target, None, None, 1.)
     expected = hadamard_reference(x)
-    gamma = (7 * 2. ** -24) / (1 - 7 * 2. ** -24)
+    gamma = (9 * 2. ** -24) / (1 - 9 * 2. ** -24)
     bound = gamma * np.repeat(abs(x).reshape(7, -1, 128).sum(-1) / np.sqrt(128.), 128, axis=-1) + 1e-7
     if np.any(abs(target.cpu().numpy() - expected) > bound):
         raise AssertionError("actual EXL3 FP32 rotation differs from independent normalized Sylvester-128 equations")

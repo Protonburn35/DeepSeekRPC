@@ -36,6 +36,19 @@ jobs:
           -r requirements-dev.lock -r requirements-reference-windows.lock
       - name: Run tests, build wheel, and check installed package outside the checkout
         run: python tools/ci_check.py
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - name: Install integrity-locked actual OpenCode-compatible SDK without package scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix tools/client-audit
+      - name: Audit actual SDK wire, stream/tool/reasoning preservation and cancellation
+        run: >-
+          node tools/audit_opencode_client.mjs --modules tools/client-audit/node_modules
+          --output "$env:RUNNER_TEMP/deepseekrpc-check/client"
+      - name: Prepare actual SDK text/image/tool requests with the original tokenizer/template
+        env:
+          PYTHONPATH: src
+        run: python tools/audit_client_requests.py --input "$env:RUNNER_TEMP/deepseekrpc-check/client"
       - name: Retain exact-source CPU results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

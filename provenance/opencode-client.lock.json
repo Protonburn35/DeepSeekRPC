@@ -1,0 +1,24 @@
+{
+  "scope": "Read-only OpenCode source/config audit and pinned real AI SDK protocol fixtures; actual user Docker installation and GPU session are not qualified",
+  "opencode": {
+    "repository": "anomalyco/opencode",
+    "release": "v1.19.3",
+    "commit": "e3c4eb242585dcd77be1a867391b7c25fd47ce52",
+    "released": "2026-10-16T12:31:52Z",
+    "files": [
+      {"path": "packages/opencode/src/config/config.ts", "bytes": 27747, "sha256": "87a9071af1ddb04d65947dba49be3fb4c94ecf63e120f17ce46ee81ff25dd45a"},
+      {"path": "packages/opencode/src/provider/provider.ts", "bytes": 82344, "sha256": "8d31296a58bc7955a1adb8b6d60da53a34ab7540d85644bab212a8ee27b8b69d"},
+      {"path": "packages/core/src/v1/config/config.ts", "bytes": 10004, "sha256": "9f7f0a80128153537e2eb4bf5163e45cbf68e3ed03c1efd1c39f39ea4cc18067"},
+      {"path": "packages/core/src/v1/config/provider.ts", "bytes": 5835, "sha256": "45fe8953a698ff8b2cd83150c7617d3a06a4869abf709cd948f408537ee9aae7"},
+      {"path": "packages/opencode/package.json", "bytes": 5268, "sha256": "f26b884353a34f771ed960e4042363f7843d0fb0a822feca84adce37d18aab22"}
+    ]
+  },
+  "sdk": {
+    "package": "@ai-sdk/openai-compatible",
+    "version": "2.0.41",
+    "integrity": "sha512-kNAGINk71AlOXx10Dq/PXw4t/9XjdK8uxfpVElRwtSFMdeSiLVt58p9TPx4/FJD+hxZuVhvxYj9r42osxWq79g==",
+    "dist_index_js_sha256": "aa643a8778eabc86d6d72d052c2ee209454e3c08f1d518e3dd78debe39964013",
+    "transitive_lock": "tools/client-audit/package-lock.json"
+  },
+  "no_claims": ["installed Docker OpenCode version", "full OpenCode agent session", "GPU/model execution", "measured model performance"]
+}

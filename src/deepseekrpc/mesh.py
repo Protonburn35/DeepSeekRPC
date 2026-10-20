@@ -268,11 +268,14 @@ class MeshNetwork:
         for peer, rpc in mesh.controls.items():
             frame = Frame(Kind.HEARTBEAT, self.run, self.role, peer, zero, zero, 0, 0, 0, zero)
             futures[peer] = rpc.submit(frame, {"action": "heartbeat"})
+        observed = {}
         for peer, future in futures.items():
             result = mesh.controls[peer].wait(future, timeout=timeout)
             if result.get("alive") is not True or result.get("stage") != int(peer) or result.get("run") != self.run:
                 mesh.failed.set()
                 raise ValidationError("heartbeat differs from the authenticated peer/run")
+            observed[peer] = result
+        return observed
 
     def close(self):
         self._stop.set()

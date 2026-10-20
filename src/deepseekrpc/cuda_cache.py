@@ -10,6 +10,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass
 import threading
+from . import metrics
 
 from .inventory import MAX_READ
 from .jsonutil import ValidationError, integer
@@ -48,7 +49,9 @@ class DesktopUploader:
                 count = min(MAX_READ, layout.nbytes - offset)
                 self._scratch[:count] = data[offset:offset + count]
                 self._pinned[:count].copy_(self._scratch_tensor[:count])
-                destination[offset:offset + count].copy_(self._pinned[:count], non_blocking=False)
+                with metrics.current.measure("pcie_upload"):
+                    destination[offset:offset + count].copy_(self._pinned[:count], non_blocking=False)
+                metrics.current.add("pcie_upload_bytes", count)
 
 
 class ResidentUploader:
@@ -131,6 +134,7 @@ class DeviceExpertCache:
         import torch
         if not isinstance(key, ExpertKey) or key.component != "bundle" or layout.nbytes > self.slot_bytes:
             raise ValidationError("expert identity/layout exceeds the admitted GPU slot")
+        metrics.current.add("gpu_bundle_requests")
         # Serialize CPU ownership; control/cancellation use independent threads.
         with self._mutex, torch.cuda.device(self.device):
             if self.closed:
@@ -143,6 +147,8 @@ class DeviceExpertCache:
                     if entry.layout != layout:
                         raise ValidationError("GPU expert identity has a conflicting packed layout")
                     self.hits += 1
+                    metrics.current.add("gpu_bundle_hits")
+                    metrics.current.event("cache_hit", bytes=layout.nbytes)
                     self._entries.move_to_end(key)
                 else:
                     if not self._free:
@@ -155,6 +161,7 @@ class DeviceExpertCache:
                             matrix.close()
                         self._free.append(victim.slot)
                         self.evictions += 1
+                        metrics.current.add("gpu_evictions")
                     slot = self._free.pop()
                     self._generations[slot] += 1
                     storage = self._arena.narrow(0, slot * self.slot_bytes, layout.nbytes)
@@ -173,6 +180,8 @@ class DeviceExpertCache:
                     entry = _Entry(key, slot, self._generations[slot], layout, matrices)
                     self._entries[key] = entry
                     self.loads += 1
+                    metrics.current.add("gpu_bundle_loads")
+                    metrics.current.event("expert_load", bytes=layout.nbytes)
                 entry.leases += 1
                 handle = _Lease(entry, caller, self.stream)
                 try:

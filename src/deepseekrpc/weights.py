@@ -10,6 +10,7 @@ import hashlib
 from pathlib import Path
 import re
 import threading
+from . import metrics
 
 from .inventory import MAX_READ, TensorFile, ownership
 from .jsonutil import ValidationError, integer, loads
@@ -121,7 +122,9 @@ class SelectiveWeights:
                 indexed = {key for key, value in self._mapping.items() if value == filename}
                 if set(source.tensors) != indexed:
                     raise ValidationError("checkpoint index and pinned shard tensor names disagree")
-                source.verify_file(pin.file_sha256)
+                with metrics.current.measure("integrity_read"):
+                    source.verify_file(pin.file_sha256)
+                metrics.current.add("integrity_read_bytes", pin.file_bytes)
             except BaseException:
                 source.close()
                 raise
@@ -136,8 +139,12 @@ class SelectiveWeights:
 
     def read_range(self, name: str, offset: int, length: int) -> bytes:
         with self._mutex:
-            result = self._source(name).read_range(name, offset, length)
+            with metrics.current.measure("model_file_read"):
+                result = self._source(name).read_range(name, offset, length)
             self.payload_bytes += len(result)
+            metrics.current.add("model_file_reads")
+            metrics.current.add("model_file_read_bytes", len(result))
+            metrics.current.event("file_read", bytes=len(result))
             return result
 
     def chunks(self, name: str, chunk_bytes: int = MAX_READ):

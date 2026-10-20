@@ -6,6 +6,7 @@ from .http_request import HTTPRequestOwner
 from .jsonutil import ValidationError
 from .protocol import hex_id
 from .snapshot_coordinator import SnapshotCoordinator
+from . import metrics
 
 
 class SnapshotRequestOwner:
@@ -43,8 +44,11 @@ class SnapshotRequestOwner:
 
     def _run(self):
         lease = None
+        original_phase = None
         try:
             lease = self.runtime.reserve(owner=self, cancelled=self.cancelled.is_set)
+            original_phase = metrics.current.snapshot()["phase"]
+            metrics.current.set_phase("diagnostic" if self.action == "probe" else "administration")
             if lease.snapshot_store is None:
                 raise RuntimeUnavailable("snapshot storage is not attached to this runtime")
             if self.cancelled.is_set():
@@ -82,6 +86,8 @@ class SnapshotRequestOwner:
                 self.runtime.set_status("failed", code="INTERNAL")
                 self._failure = HTTPRequestOwner._public_failure(error, prepared=True)
             finally:
+                if original_phase is not None:
+                    metrics.current.set_phase(original_phase)
                 self.done.set()
                 if self.on_done is not None:
                     self.on_done()
