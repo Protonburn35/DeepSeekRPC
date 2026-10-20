@@ -215,7 +215,8 @@ def load_stage(model_root: Path, *, role: Role, run_id: str, state_root: Path,
                                max_entries=65536, max_inflight=1)
                 uploader = DesktopUploader(source, ram)
             experts = DeviceExpertCache(admitted_bytes=memory.gpu["bounded_expert_arena"],
-                                        slot_bytes=memory.expert_slot_bytes, uploader=uploader, device=cuda_device)
+                                        slot_bytes=memory.expert_slot_bytes, uploader=uploader, device=cuda_device,
+                                        cancelled=cancellation.is_set)
             cleanup.callback(experts.close)
             begin, end = plan.bounds(role)
             layers = [(layer, f"layers.{layer}", 384, 6) for layer in range(begin, end)]

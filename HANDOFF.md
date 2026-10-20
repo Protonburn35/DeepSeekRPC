@@ -200,3 +200,15 @@ retains the Python owner until actual vLLM model/world teardown; otherwise a
 real later subgroup lost its Python callback methods. Qualification now forces
 GC, creates a real additional Gloo group, performs its collective and repeats
 cleanup. Check the subsequent Windows run, not either preceding failed attempt.
+
+Windows CPU 39418074217 passed be25537: 382 passes/one intentional skip, actual
+Gloo additional-group/lifetime checks, wheel build/install and real OpenCode
+SDK audits. Preserved neutral rollback tag checkpoint-be25537-windows-cpu and
+external source archive. The complete private runtime is still pending.
+
+DSR-AUDIT-021 adds bounded cancellable backpressure for an unleased expert slot
+whose CUDA event remains pending. The old cache entry stays owned until actual
+completion. Three real host-event control tests pass; a real GPU one-slot EXL3
+reuse/stale-lease diagnostic is implemented but unrun. Full local suite after
+this change: 382 passed/four actual-Windows-only skips. Preserve long native
+vLLM 39408672207; the following Windows CPU run must qualify current source.

@@ -321,9 +321,11 @@ def run_cuda_checks():
     record("BF16 tiled index: independent slots, global ranking and candidate restriction", tiled_index)
     record("BF16 vision attention: fused 9216 patches, 16 heads, head width 64", vision_attention_shape)
     record("FP32 compressor: odd chunks, exact pair closures, partial acceptance and retry", compression_pair_rollback)
-    from .packed_selftest import run_packed_checks
+    from .packed_selftest import run_expert_cache_check, run_packed_checks
     report["packed_checks"] = run_packed_checks(device)
     report["checks"].append({"name": "actual EXL3 K2/K3/K4/K5/K6/K8 layouts, 5120/2304 projections and independent rotations", "status": "passed"})
+    record("actual single-slot expert cache: delayed CUDA completion, complete packed reuse and stale lease refusal",
+           lambda: run_expert_cache_check(device))
     from .graph_selftest import run_graph_checks
     report["checks"].extend(run_graph_checks(device))
     return report

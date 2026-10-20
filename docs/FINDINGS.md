@@ -366,3 +366,22 @@ forces collection before creating a real additional group and running its
 metadata collective. It repeats setup/teardown with non-ASCII output paths;
 separate C++ PrefixStore checks cover the actual callbacks and bounds. Native
 Windows repeat qualification and complete runtime installation remain required.
+
+## DSR-AUDIT-021 — wait for an unleased expert slot's actual CUDA completion
+
+Source review found that the device cache could reject a new bundle when all
+unleased slots still had pending use events. One-slot admission is legal, but
+the routed caller has no retry for that rejection. CPU/GPU timing may mask this
+case; no actual model failure or GPU reproducer is claimed here.
+
+The cache now chooses an unleased victim and polls its actual completion event
+before closing matrices or overwriting storage. The wait has a 30-second limit
+and observes the independent request cancellation flag. Live leases remain
+non-evictable; a failed/cancelled wait retains the old entry and storage. The
+new expert_slot_wait timing records this backpressure explicitly.
+
+Real host-event control tests cover completion, cancellation and timeout. They
+do not emulate a CUDA result. The GPU self-test now contains a real one-slot
+packed-cache probe with finite queued GPU delay, two actual EXL3 calls, exact
+reused-output comparison and stale-lease refusal. That GPU probe remains unrun
+until the later hardware phase.

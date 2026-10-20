@@ -10,12 +10,29 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass
 import threading
+import time
 from . import metrics
 
 from .inventory import MAX_READ
 from .jsonutil import ValidationError, integer
 from .packed import DevicePackedLinear, PackedBundleLayout
 from .storage import ExpertKey, RAMCache
+
+
+def _wait_for_expert_event(ready, *, cancelled=None, timeout=30):
+    """Bounded control wait; production supplies a real CUDA event query."""
+    if (not callable(ready) or cancelled is not None and not callable(cancelled) or
+            isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= 300):
+        raise ValidationError("invalid bounded expert event wait")
+    deadline = time.monotonic() + timeout
+    while True:
+        if cancelled is not None and cancelled():
+            raise InterruptedError("expert slot wait cancelled")
+        if ready():
+            return
+        if time.monotonic() >= deadline:
+            raise TimeoutError("expert slot CUDA completion deadline exceeded")
+        time.sleep(.001)
 
 
 class DesktopUploader:
@@ -106,12 +123,15 @@ class _Lease:
 
 
 class DeviceExpertCache:
-    def __init__(self, *, admitted_bytes: int, slot_bytes: int, uploader, device="cuda:0"):
+    def __init__(self, *, admitted_bytes: int, slot_bytes: int, uploader, device="cuda:0", cancelled=None):
         import torch
         integer(admitted_bytes, "GPU expert pool bytes", 256, 1 << 40)
         integer(slot_bytes, "GPU expert slot bytes", 256, admitted_bytes)
         if slot_bytes % 256:
             raise ValidationError("GPU expert slots require 256-byte alignment")
+        if cancelled is not None and not callable(cancelled):
+            raise ValidationError("expert slot cancellation observer must be callable")
+        self.cancelled = cancelled
         self.slots = min(admitted_bytes // slot_bytes, 65536)
         self.allocation_bytes = self.slots * slot_bytes
         self.slot_bytes, self.uploader, self.device = slot_bytes, uploader, torch.device(device)
@@ -155,7 +175,16 @@ class DeviceExpertCache:
                         victim_key = next((candidate for candidate, value in self._entries.items()
                                            if value.leases == 0 and (value.event is None or value.event.query())), None)
                         if victim_key is None:
-                            raise ValidationError("GPU slots are in use; apply bounded backpressure")
+                            victim_key = next((candidate for candidate, value in self._entries.items()
+                                               if value.leases == 0), None)
+                            if victim_key is None:
+                                raise ValidationError("every GPU expert slot has a live lease")
+                            # A released lease can still have queued GPU work.
+                            # Retain its exact storage until its event completes,
+                            # rather than failing a legal one-slot admission.
+                            with metrics.current.measure("expert_slot_wait"):
+                                _wait_for_expert_event(self._entries[victim_key].event.query,
+                                                      cancelled=self.cancelled)
                         victim = self._entries.pop(victim_key)
                         for matrix in victim.matrices.values():
                             matrix.close()

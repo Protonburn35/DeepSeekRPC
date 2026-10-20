@@ -785,3 +785,26 @@ The complete cloud CPU suite passes 379 tests/four actual-Windows-only skips;
 focused Store checks follow the final timeout/bounds addition. Native Windows
 confirmation and complete private installation are still required. Long vLLM
 39408672207 is unchanged and preserved; no GPU/model result is asserted.
+
+## 2026-10-20 — Windows Store confirmation and bounded expert-event backpressure
+
+Windows CPU 39418074217 passed clean be25537: 382 passed/one intentional
+non-Windows refusal skip, actual Gloo additional-group/owner-lifetime checks,
+wheel build/install and actual OpenCode SDK text/image/tool/reasoning/cancel
+checks. The neutral remote rollback tag is checkpoint-be25537-windows-cpu;
+an exact source archive is retained externally. Installed Linux wheel/source
+identity and actual Gloo subgroup checks also passed outside the checkout.
+Neither result qualifies a GPU or the complete private Windows installation.
+
+DSR-AUDIT-021 fixes a source-level cache progress problem: an admitted one-slot
+cache could reject the next expert if its unleased victim still had GPU work.
+There is no routed caller retry for that rejection. It now waits on the actual
+completion event with a 30-second bound and independent cancellation, keeping
+all old storage intact until completion. Live leases remain non-evictable.
+The closed metrics inventory includes expert_slot_wait. Real host-event tests
+cover pending completion, cancellation and timeout without claiming GPU proof.
+A real CUDA diagnostic uses one slot, finite GPU delay, complete synthetic
+packed bundles, actual EXL3 calls, exact reused-output comparison and stale
+lease refusal. It is implemented but unrun. Focused suite: 14 passed. Complete
+cloud suite: 382 passed/four actual-Windows-only skips, unchanged tolerances.
+The long native vLLM build is preserved and full installation is still pending.

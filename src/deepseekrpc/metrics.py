@@ -22,7 +22,7 @@ COUNTERS = frozenset({"gpu_bundle_requests", "gpu_bundle_hits", "gpu_bundle_load
     "encoder_new_tokens", "encoder_reused_tokens", "target_replay_tokens", "published_tokens",
     "draft_proposed_tokens", "draft_accepted_tokens", "target_verified_inputs", "rollback_inputs", "target_passes",
     "session_faults", "cancelled_requests", "completed_requests", "paused_requests", "failed_requests", "image_encodes"})
-TIMINGS = frozenset({"model_file_read", "integrity_read", "engram_gather", "pcie_upload",
+TIMINGS = frozenset({"model_file_read", "integrity_read", "engram_gather", "pcie_upload", "expert_slot_wait",
     "rpc_send", "rpc_receive", "rpc_encode", "rpc_decode", "stage_host_forward", "stage_cuda_forward",
     "prefill", "time_to_first_token", "request_wall", "inter_output_batch", "image_encode", "load"})
 EVENTS = {"loaded": ("cuda", "info"), "mesh_rebound": ("rpc", "info"),

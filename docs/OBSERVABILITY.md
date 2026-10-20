@@ -33,6 +33,8 @@ diagnostic probes until another local lifecycle phase is selected.
 
 Nanosecond timing histograms have fixed, noncumulative buckets plus count,
 sum and maximum. File/transfer/RPC timings are inclusive host wall times.
+`expert_slot_wait` measures host backpressure while an unleased slot's actual
+CUDA use event is still pending; cancellation and timeout are included.
 `stage_cuda_forward` is actual start/end CUDA-event elapsed time on the owned
 stream, including joins and host submission gaps; it is not active-kernel-only
 utilization. The host-forward timer also includes admission and synchronization.
