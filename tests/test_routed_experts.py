@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from deepseekrpc.jsonutil import ValidationError
-from deepseekrpc.routed_experts import partition_routes, weighted_swiglu
+from deepseekrpc.routed_experts import expert_intermediate, partition_routes, weighted_swiglu
 
 
 def test_route_partition_retains_every_top_six_assignment_including_zero_weight_routes():
@@ -36,3 +36,23 @@ def test_weighted_clamp_matches_official_expert_order_and_pre_down_half_rounding
     torch.testing.assert_close(actual, expected, rtol=0, atol=0)
     unweighted = weighted_swiglu(torch.from_numpy(gate), torch.from_numpy(up), torch.ones((2, 1))).half()
     assert not torch.equal(actual.float(), unweighted.float() * torch.from_numpy(weights))
+
+
+@pytest.mark.reference
+@pytest.mark.parametrize("dtype_name", ["bfloat16", "float16"])
+def test_expert_keeps_original_graph_rounding_before_fp16_weight_kernel(dtype_name):
+    torch = pytest.importorskip("torch")
+    from oracles.official_methods import Expert
+    dtype = getattr(torch, dtype_name)
+    gate = torch.tensor([[.123456, -1.23456, 10.02, -15.03], [2.005, -.003431, -10.06, 13.1]], dtype=torch.float32)
+    up = torch.tensor([[.876543, 3.45678, -10.02, 10.03], [3.003, .008773, -12.1, 6.9]], dtype=torch.float32)
+    weights = torch.tensor([[.123456], [.234567]], dtype=torch.float32)
+    source = Expert()
+    source.swiglu_limit = 10.
+    source.w1, source.w3 = lambda x: gate.to(dtype), lambda x: up.to(dtype)
+    source.w2 = lambda x: x
+    expected = source.forward(torch.ones((2, 4), dtype=dtype), weights).to(torch.float16)
+    actual = expert_intermediate(gate, up, weights, state_dtype=dtype)
+    torch.testing.assert_close(actual.view(torch.int16), expected.view(torch.int16), rtol=0, atol=0)
+    if dtype == torch.bfloat16:
+        assert not torch.equal(actual, weighted_swiglu(gate, up, weights).half())

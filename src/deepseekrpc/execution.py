@@ -85,6 +85,10 @@ class StageExecution:
     def fault(self):
         self.stage.cancellation.set()
         with self._mutex:
+            # Keep every allocation owned until already submitted CUDA work
+            # has quiesced. A failed synchronize is a device/runtime failure;
+            # it must not permit a new mesh to advertise a healthy graph.
+            self.stage.stream.synchronize()
             self.stage.attention.fail()
             self.ledger.fault()
 

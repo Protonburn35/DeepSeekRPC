@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "cluster_id": "REPLACE_WITH_GENERATED_CLUSTER_ID",
+  "split": [18, 5, 17],
+  "context": 1048576,
+  "kv_dtype": "bf16",
+  "index_dtype": "bf16",
+  "layer_stage_wire": "fp32",
+  "replay": "exact",
+  "workers": {
+    "B": {"address": "REPLACE_LAPTOP_PRIVATE_IPV4", "port": 39011},
+    "C": {"address": "192.168.50.143", "port": 39012}
+  },
+  "api": {"address": "127.0.0.1", "port": 8081}
+}

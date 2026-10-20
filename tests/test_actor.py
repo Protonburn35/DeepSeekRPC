@@ -67,3 +67,18 @@ def test_actor_cancellation_and_dispatch_exception_leave_owner_responsive():
         assert actor.submit(4).result(timeout=2) == 4
     finally:
         actor.close()
+
+
+def test_serialized_lifecycle_install_follows_fault_on_the_same_owner():
+    calls = []
+    actor = SerializedActor(lambda: None, interrupt=lambda: calls.append("interrupt"),
+                            fault=lambda: calls.append(("fault", threading.get_ident())))
+    try:
+        actor.invalidate()
+        result = actor.call(lambda: calls.append(("install", threading.get_ident())))
+        result.result(timeout=2)
+        assert calls[0] == "interrupt"
+        assert calls[1][0] == "fault" and calls[2][0] == "install"
+        assert calls[1][1] == calls[2][1] != threading.get_ident()
+    finally:
+        actor.close()

@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "stage": "C",
+  "shared": "cluster.json",
+  "model_root": "REPLACE_LOCAL_PACK_DIRECTORY",
+  "state_root": "../runtime-C",
+  "device": 0,
+  "ram_tier_bytes": 8589934592,
+  "tls": {"ca": "../credentials/C/ca.pem", "certificate": "../credentials/C/stage.pem", "private_key": "../credentials/C/stage.key"}
+}

@@ -1,4 +1,4 @@
-"""Inspect engineering capabilities and model ownership without loading weights."""
+"""Deployment, persistent native workers and truthful engineering diagnostics."""
 import argparse
 import json
 from pathlib import Path
@@ -21,6 +21,7 @@ def capabilities():
                         "original tokenizer/encoding/hash history and exact token/image identities",
                         "phase/commit ledger and actual stage execution boundary",
                         "persistent stage actor/service and full CED/speculative coordinator source",
+                        "OpenAI streaming API, persistent Windows launch path and authenticated mesh recovery source",
                         "all-stage history publication and Stage C RNG finalization",
                         "original image processing and bounded exact BF16 feature storage source",
                         "exact ByteLevel UTF-8 decoding and transactional token-aligned stops",
@@ -28,20 +29,26 @@ def capabilities():
         "native_build_evidence": {"project_ABI_2": "Windows compile/link/import and both SMs passed",
                                   "full_EXLlama": "Windows compile/link/import and both SMs passed",
                                   "full_vLLM": "in progress; full serving dependency bundle pending"},
-        "unqualified_or_missing": ["startup/API and interrupted-mesh recovery integration", "actual EXL3/GPU numerical execution",
+        "unqualified_or_missing": ["actual EXL3/GPU numerical execution",
                                     "full-model exact CED and every-phase cancellation", "full-size laptop residency",
-                                    "streaming API/parser integration and actual image/GPU execution", "actual distributed DSpark execution",
+                                    "actual full-model streaming API and image/GPU execution", "actual distributed DSpark execution",
                                     "prefix checkpoint reuse", "three-stage snapshots", "Windows deployment bundle/launchers"],
         "hardware_validation": "not run", "independent_astra_review": "pending",
     }
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="DeepSeekRPC development inspection tools; inference is not yet implemented")
+    parser = argparse.ArgumentParser(description="DeepSeekRPC native Windows three-stage runtime and diagnostics")
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("capabilities", help="report implemented and missing capabilities truthfully")
     commands.add_parser("selftest-cuda", help="run small native CUDA operation checks on a real GPU")
+    worker = commands.add_parser("serve", help="load the real owned Windows CUDA stage once and keep it resident")
+    worker.add_argument("--config", type=Path, required=True)
+    mode = worker.add_mutually_exclusive_group()
+    mode.add_argument("--print-effective-config", action="store_true")
+    mode.add_argument("--preflight", action="store_true", help="check local metadata/TLS without opening listeners or constructing a model")
+    mode.add_argument("--self-test", action="store_true", help="run local metadata/runtime/native GPU diagnostics without loading weights")
     plan = commands.add_parser("plan", help="derive ownership and prospective source/shadow bytes from config")
     plan.add_argument("--model-config", type=Path, required=True)
     plan.add_argument("--split", default="18,5,17")
@@ -53,6 +60,16 @@ def main(argv=None):
         elif args.command == "selftest-cuda":
             from .gpu_selftest import run_cuda_checks
             result = run_cuda_checks()
+        elif args.command == "serve":
+            from .deployment_config import DeploymentConfig
+            from .worker import PersistentWorker, preflight
+            config = DeploymentConfig.read(args.config)
+            if args.print_effective_config:
+                result = config.effective()
+            elif args.preflight or args.self_test:
+                result = preflight(config, device_checks=args.self_test)
+            else:
+                return PersistentWorker(config).run()
         else:
             config = loads(args.model_config.read_bytes(), limit=128 * 1024)
             split = tuple(int(value) for value in args.split.split(","))

@@ -480,3 +480,23 @@ see DSR-AUDIT-012. Added a fifth exact-source patch for the explicit owned
 profile, preserving core/MoE targets and common Python requirements. Fresh
 five-patch application, final-patch idempotence and setup syntax passed. Native
 compilation and the complete Windows runtime dependency bundle remain pending.
+
+## 2026-10-20 — HTTP ownership and persistent mesh lifecycle source
+
+Added bounded OpenAI JSON/SSE serving and original prompt/image preparation,
+late-cancel request scoping, pre-load diagnostics, strict shared/local Windows
+configuration and persistent worker launchers. Every plane is bound to one
+authenticated mesh incarnation. Real three-role TLS tests cover loading-time
+control, interruption/reconnect, stale incarnation and duplicate-plane refusal.
+Actual background Uvicorn startup/loading readiness, port conflicts and real
+exclusive process-directory ownership were exercised without a model.
+
+The focused startup/API/mesh suite passed 19 tests; transport/mesh/actor passed
+22. Frozen Expert/Block tests cover repaired BF16 and MoE accumulation boundaries
+(DSR-AUDIT-013). The expanded full suite has 304 passes, four Win32 skips and one
+failure at the existing Linux CPU sqrt discrepancy. The new bounded synthetic
+capture confirms immediate bad output with no mutation and accurate subsequent
+calls. No tolerance was changed or later pass substituted for this failure.
+Windows runtime dependencies resolve to 155 hash-pinned packages; installed
+Windows import/pip consistency is still pending. Full vLLM/EXLlama jobs at
+fad5701 remain in progress. Persistent Windows CUDA model/API recovery is unrun.

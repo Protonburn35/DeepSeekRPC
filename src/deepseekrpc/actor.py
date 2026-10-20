@@ -19,7 +19,8 @@ class SerializedActor:
 
     Invalidation skips all previously queued work and calls the fault handler
     on the model thread after the current action returns. The interrupt callback
-    must only set a cancellation flag; it runs on the caller's thread.
+    must only set a cancellation flag or close data sockets; it runs on the
+    caller's thread and cannot acquire the model execution mutex.
     """
     def __init__(self, dispatch, *, interrupt, fault, capacity=8):
         if not all(callable(f) for f in (dispatch, interrupt, fault)):
@@ -33,13 +34,28 @@ class SerializedActor:
         self._thread.start()
 
     def submit(self, *args, **kwargs):
+        return self.call(self.dispatch, *args, **kwargs)
+
+    @property
+    def closed(self):
+        with self._condition:
+            return self._closed
+
+    def call(self, function, *args, **kwargs):
+        """Queue an internal lifecycle operation on the same model owner.
+
+        This is a local Python API, never a peer-selected callable. A mesh
+        replacement consequently follows pending fault/quiescence work.
+        """
+        if not callable(function):
+            raise ValidationError("serialized lifecycle operation must be callable")
         future = Future()
         with self._condition:
             if self._closed:
                 raise ConnectionError("model actor is closed")
             if len(self._queue) >= self.capacity:
                 raise ActorBusy("bounded model actor queue is full")
-            self._queue.append((self._generation, future, args, kwargs))
+            self._queue.append((self._generation, future, function, args, kwargs))
             self._condition.notify()
         return future
 
@@ -69,7 +85,7 @@ class SerializedActor:
                     # A failed fault handler cannot allow further model work.
                     self._shutdown()
                 continue
-            generation, future, args, kwargs = task
+            generation, future, function, args, kwargs = task
             if not future.set_running_or_notify_cancel():
                 continue
             with self._condition:
@@ -78,7 +94,7 @@ class SerializedActor:
                 future.set_exception(ActorInvalidated("queued model work belongs to an invalidated session"))
                 continue
             try:
-                result = self.dispatch(*args, **kwargs)
+                result = function(*args, **kwargs)
                 with self._condition:
                     stale = generation != self._generation or self._closed
                 if stale:
@@ -92,7 +108,7 @@ class SerializedActor:
             self._closed = True
             pending, self._queue = self._queue, deque()
             self._condition.notify_all()
-        for _, future, _, _ in pending:
+        for _, future, _, _, _ in pending:
             if not future.done():
                 future.set_exception(ConnectionError("model actor closed before executing queued work"))
 

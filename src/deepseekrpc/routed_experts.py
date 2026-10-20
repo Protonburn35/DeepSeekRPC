@@ -67,6 +67,19 @@ def weighted_swiglu(gate, up, weights, *, limit=10.0):
     return functional.silu(gate.clamp(max=limit)) * up.clamp(min=-limit, max=limit) * weights.float()
 
 
+def expert_intermediate(gate, up, weights, *, state_dtype):
+    """Original linear/FFN boundaries before the intrinsic EXL3 FP16 operand.
+
+    The stock packed linear exposes its caller's dtype. Apply that boundary to
+    W1/W3 results, perform the official activation/route weighting in FP32,
+    then round to the original graph dtype before W2's FP16 kernel input.
+    """
+    import torch
+    if state_dtype not in (torch.bfloat16, torch.float16, torch.float32):
+        raise ValidationError("unsupported expert graph-state dtype")
+    return weighted_swiglu(gate.to(state_dtype).float(), up.to(state_dtype).float(), weights).to(state_dtype).to(torch.float16).contiguous()
+
+
 class BoundedRoutedExperts:
     """All selected experts, with FP32 accumulation and no dense reconstruction.
 
@@ -113,14 +126,15 @@ class BoundedRoutedExperts:
             with self.cache.lease(catalog.keys[expert], catalog.layouts[expert]) as lease:
                 gate = lease.linear("w1", selected)
                 up = lease.linear("w3", selected)
-                intermediate = weighted_swiglu(gate, up, weights).to(torch.float16).contiguous()
+                intermediate = expert_intermediate(gate, up, weights, state_dtype=inputs.dtype)
                 if not bool(torch.isfinite(intermediate).all()):
                     raise ValidationError("EXL3 weighted SwiGLU conversion overflowed")
                 down = lease.linear("w2", intermediate)
-                output.index_add_(0, row_ids, down)
+                # Each reference Expert returns its input dtype; the MoE adds
+                # those results in FP32, including its separate shared expert.
+                output.index_add_(0, row_ids, down.to(inputs.dtype).float())
         if not bool(torch.isfinite(output).all()):
             raise ValidationError("EXL3 routed output is nonfinite")
-        converted = output.to(inputs.dtype)
-        if not bool(torch.isfinite(converted).all()):
-            raise ValidationError("routed output conversion overflowed")
-        return converted
+        # The real runner adds the shared BF16 contribution to this FP32 sum.
+        # The following mHC boundary establishes the final BF16 MoE output.
+        return output

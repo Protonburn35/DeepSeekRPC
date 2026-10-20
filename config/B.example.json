@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "stage": "B",
+  "shared": "cluster.json",
+  "model_root": "REPLACE_LOCAL_PACK_DIRECTORY",
+  "state_root": "../runtime-B",
+  "device": 0,
+  "ram_tier_bytes": 0,
+  "tls": {"ca": "../credentials/B/ca.pem", "certificate": "../credentials/B/stage.pem", "private_key": "../credentials/B/stage.key"}
+}

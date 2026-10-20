@@ -12,7 +12,8 @@ license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/deepseekrpc/_vendor/d
 dependencies = ["numpy==2.3.5", "safetensors==0.8.0", "tokenizers==0.23.3", "huggingface-hub==1.33.0", "pillow==13.0.0"]
 
 [project.optional-dependencies]
-test = ["pytest==9.1.1", "cryptography==49.0.0", "pip==26.2.1", "build==1.6.1", "cmake==4.4.4", "ninja==1.13.2", "setuptools==80.10.2", "wheel==0.48.0"]
+api = ["fastapi==0.136.3", "uvicorn==0.54.0"]
+test = ["pytest==9.1.1", "cryptography==49.0.0", "pip==26.2.1", "build==1.6.1", "cmake==4.4.4", "ninja==1.13.2", "setuptools==80.10.2", "wheel==0.48.0", "fastapi==0.136.3", "uvicorn==0.54.0", "httpx==0.28.1"]
 
 [project.scripts]
 deepseekrpc = "deepseekrpc.cli:main"

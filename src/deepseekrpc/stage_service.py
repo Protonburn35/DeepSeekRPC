@@ -27,13 +27,15 @@ COMMAND_KINDS = {
 
 
 class StageService:
-    def __init__(self, stage: LoadedStage, *, data_connections, control_connections, image_rows=None):
+    def __init__(self, stage: LoadedStage, *, data_connections, control_connections, image_rows=None,
+                 control_rpcs=None):
         if not isinstance(stage, LoadedStage) or stage.closed:
             raise ValidationError("stage service requires its real loaded Windows CUDA graph")
         if image_rows is not None and (stage.role != Role.HOST or not callable(image_rows)):
             raise ValidationError("only stage A may resolve original image rows for graph windows")
         self.execution = StageExecution(stage)
         self.data = StageDataMesh(self.execution, data_connections)
+        self.mesh_nonce = self._validate_channels(data_connections, control_connections)
         peers = set(Role) - {stage.role}
         if set(control_connections) != peers:
             raise ValidationError("control mesh must contain exactly the other two stages")
@@ -50,13 +52,53 @@ class StageService:
         self._status_lock = threading.Lock()
         self._status = {}
         self._refresh_status()
-        self.actor = SerializedActor(self._dispatch, interrupt=self.execution.request_cancel, fault=self._fault)
-        self.controls = {peer: ControlRPC(connection, self._handle, on_failure=lambda _: self.actor.invalidate())
-                         for peer, connection in control_connections.items()}
+        self.actor = SerializedActor(self._dispatch, interrupt=self._interrupt, fault=self._fault)
+        if control_rpcs is not None:
+            if (set(control_rpcs) != peers or any(not isinstance(rpc, ControlRPC) or
+                    rpc.pump.connection is not control_connections[peer] or not rpc.started
+                    for peer, rpc in control_rpcs.items())):
+                raise ValidationError("prestarted controls must own exactly the admitted mesh connections")
+            self.controls = dict(control_rpcs)
+        else:
+            self.controls = {peer: ControlRPC(connection, self._handle, on_failure=lambda _: self.actor.invalidate())
+                             for peer, connection in control_connections.items()}
+
+    @staticmethod
+    def _validate_channels(data, controls):
+        channels = [*data.values(), *controls.values()]
+        nonces = {c.mesh for c in channels}
+        if len(nonces) != 1 or any(c.closed for c in channels):
+            raise ValidationError("all stage planes must belong to one live mesh incarnation")
+        return next(iter(nonces))
+
+    def rebind(self, mesh):
+        """Replace interrupted sockets after the actor has quiesced CUDA work."""
+        data, controls = mesh.resources()
+        connections = {peer: rpc.pump.connection for peer, rpc in controls.items()}
+        nonce = self._validate_channels(data, connections)
+        if nonce is None or mesh.role != self.role or mesh.run != self.data.run:
+            raise ValidationError("replacement mesh differs from the loaded stage's role/run")
+
+        def install():
+            if not mesh.complete:
+                raise ConnectionError("replacement mesh failed before actor quiescence")
+            self.data = StageDataMesh(self.execution, data)
+            self.controls, self.mesh_nonce = controls, nonce
+            self._ready = False
+            self._reset_context = None
+            self._refresh_status()
+            mesh.attach(self)
+            return {"rebound": True, "weights_retained": True}
+
+        # The caller retires old gates/controls first. Invalidation schedules
+        # fault before install, discarding old queued model actions.
+        self.actor.invalidate()
+        return self.actor.call(install)
 
     def start(self):
         for rpc in self.controls.values():
-            rpc.start()
+            if not rpc.started:
+                rpc.start()
         return self
 
     @property
@@ -80,16 +122,36 @@ class StageService:
 
     def status(self):
         with self._status_lock:
-            return dict(self._status)
+            status = dict(self._status)
+        controls = getattr(self, "controls", {})
+        transport_ready = (len(controls) == 2 and not any(c.closed for c in self.data.connections.values()) and
+                           not any(rpc.pump.connection.closed for rpc in controls.values()))
+        status["transport_ready"] = transport_ready
+        if not transport_ready and status["status"] == "READY":
+            status["status"] = "RECOVERING"
+        return status
 
     def cancel(self, *, session, request, epoch):
         status = self.status()
         if (session, request, epoch) != (status["session"], status["request"], status["epoch"]):
             return {"cancelled": False}
+        if status["phase"] == "faulted" or status["stop_reason"] is not None:
+            return {"cancelled": True}
         self.actor.invalidate()
         return {"cancelled": True}
 
-    def _handle(self, frame, body, reply):
+    def _interrupt(self):
+        self.execution.request_cancel()
+        # Closing a separate data socket interrupts a blocked receive without
+        # acquiring the CUDA mutex or waiting for its frame deadline. Fresh
+        # authenticated channels are paired after actor quiescence; model and
+        # physically resident weight allocations remain owned.
+        self.data.close()
+
+    def _handle(self, frame, body, reply, *, mesh=None):
+        if mesh is not None and mesh != self.mesh_nonce:
+            reply(error="NOT_READY")
+            return
         # Only A schedules model work. Other peers may maintain liveness or
         # report cancellation; neither path waits for the CUDA actor mutex.
         if frame.kind == Kind.HEARTBEAT:
@@ -116,7 +178,7 @@ class StageService:
             reply(error="PROTOCOL")
             return
         try:
-            future = self.actor.submit(frame, body)
+            future = self.actor.submit(frame, body, expected_mesh=mesh)
         except ActorBusy:
             reply(error="BUSY")
             return
@@ -138,7 +200,8 @@ class StageService:
             try:
                 reply(result if code is None else None, error=code)
             except BaseException:
-                self.actor.invalidate()
+                if mesh is None or mesh == self.mesh_nonce:
+                    self.actor.invalidate()
         future.add_done_callback(done)
 
     def submit_local(self, body, *, prompt=None):
@@ -206,11 +269,15 @@ class StageService:
         self._sampling.commit(plan.sampling_digest)
         self._sampling = None
 
-    def _dispatch(self, frame, body, *, prompt=None):
+    def _dispatch(self, frame, body, *, prompt=None, expected_mesh=None):
+        if expected_mesh is not None and expected_mesh != self.mesh_nonce:
+            raise ActorInvalidated("queued control work belongs to a retired mesh incarnation")
         action = body.get("action")
         try:
             if action == "admit":
                 fields(body, ("action", "peers"))
+                if not self.status()["transport_ready"]:
+                    raise ValidationError("stage mesh requires fresh authenticated channels before readiness")
                 peers = body["peers"]
                 if not isinstance(peers, list) or len(peers) != 3:
                     raise ValidationError("readiness requires all three actual loaded stage identities")

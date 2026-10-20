@@ -190,3 +190,25 @@ The same owned profile retains the complete common vLLM Python dependency layer
 plus pinned Torch/Triton and Windows runtime helpers. Unused optional CUDA
 backends do not introduce unrelated Git wheels or conflicting Torch pins.
 Complete Windows Python dependency resolution/import qualification is pending.
+
+## DSR-AUDIT-013 — expert BF16 rounding and the complete shared/routed sum
+
+The original Expert.forward rounds each projection to the caller's state dtype,
+computes clamped/weighted SwiGLU in FP32, rounds that activation back to the
+state dtype, then executes w2. EXL3's intrinsic FP16 kernel operand is a separate
+boundary. Directly rounding its FP32 output to FP16 skips the BF16 boundary.
+Likewise, rounding the routed sum before adding the shared expert changes the
+original MoE accumulation order.
+
+The owned executor now preserves the caller-dtype boundaries before w2 and
+before each expert's FP32 accumulation. Its routed sum remains FP32 through the
+real MoERunner's shared-expert addition, and delayed mHC rounds the complete
+result to the BF16 residual dtype. Frozen original Expert/Block comparisons
+cover the conversions and demonstrate a differing direct-FP16 shortcut. Twelve
+focused expert/mHC/boundary tests passed. Packed GPU and full graph execution
+remain unrun; no optional FP16 cache mode is introduced.
+
+The latest DSR-AUDIT-011 capture confirms the bad sqrt bytes exist immediately,
+with no later mutation. The first 1344-element parallel partition is affected;
+three new calls on the captured input are accurate. The broader suite has one
+failure, 304 passes and four actual-Win32 skips. This remains an open CPU issue.

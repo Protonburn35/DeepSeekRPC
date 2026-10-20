@@ -63,11 +63,13 @@ hardware, BF16-only caches, FP32 wire and complete implementation before review.
   Exact incremental ByteLevel/UTF-8 and transactional stops trim speculative
   accepted prefixes before GPU finish and retain partial stop text for streaming.
 
-These components have not executed a complete model. Startup and interrupted-mesh
-recovery integration, streaming
-OpenAI/OpenCode API and parser, exact prefix checkpoint reuse, state snapshots,
-Windows installation/launchers, full runtime dependency bundle and complete
-GPU self-tests/diagnostics still require implementation and integration.
+These components have not executed a complete model. OpenAI JSON/SSE request
+ownership, the original streaming parser, persistent Windows startup and
+authenticated interrupted-mesh replacement now have integrated source. Early
+control/API diagnostics run before model loading; Ctrl+C cancels a request and
+Ctrl+Break explicitly shuts down. Native worker/model execution is unrun.
+Exact prefix checkpoints, snapshots, structured grammar controls, the complete
+Windows dependency/install bundle and broader GPU diagnostics remain unfinished.
 
 ## Verification
 
@@ -112,3 +114,9 @@ wheel outside the checkout. tools/audit_installed_integration.py exercises the
 real CPU-only empty vLLM package and plugin; it does not qualify CUDA constructors.
 The reusable cloud configuration is saved as a draft; publishing is a separate
 UI action and is not a reason to stop implementation.
+
+The 2026-10-20 API/worker suite passed 304 tests with four Win32-only skips and
+one failure in the still-open Linux CPU sqrt finding. Immediate captured sqrt
+bytes reproduce the error, have no later mutation, and three repeated calls on
+the identical captured input are accurate. This is evidence for a transient
+real CPU library path, not a resolved defect. Keep all tolerances unchanged.

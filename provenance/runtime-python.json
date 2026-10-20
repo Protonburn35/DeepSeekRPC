@@ -1,0 +1,11 @@
+{
+  "scope": "Python dependency inputs for the owned native Windows EXL3 graph/API; resolution and installed imports require qualification",
+  "upstream_repository": "SystemPanic/vllm-windows",
+  "upstream_commit": "3b5b6bcac87589cf35297c0283f0ba500e867645",
+  "source_file": "requirements/common.txt",
+  "retained_file": "vllm-windows-common.requirements.txt",
+  "sha256": "9dc668bc4f43f233dd6da1c07177cb0fad739dbcded59e33b267ef6f8b412086",
+  "owned_profile_patch": "../patches/vllm-windows-owned-runtime.lock.json",
+  "inference_paths": ["actual EXL3 linears", "Torch CUDA auxiliary math and fused SDPA", "Triton compression/normalization/RoPE", "owned BF16 native attention/index/Engram"],
+  "optional_backends_outside_profile": ["FlashInfer", "Humming", "Qutlass", "FlashKDA", "Xformers"]
+}

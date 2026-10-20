@@ -29,3 +29,20 @@ def test_delayed_mhc_coefficients_match_independent_float64_equations(broadcast)
                                     torch.from_numpy(source) if broadcast else None)
     for actual, expected in ((post.squeeze(-1), expected_post), (pre, expected_pre), (comb, expected_comb)):
         np.testing.assert_allclose(actual.numpy(), expected, rtol=2e-6, atol=2e-7)
+
+
+@pytest.mark.reference
+def test_complete_fp32_moe_sum_rounds_to_bf16_before_hc_expansion():
+    torch = pytest.importorskip("torch")
+    from deepseekrpc.vllm_mhc import _post
+    from oracles.official_methods import Block
+    x = torch.full((2, 16), 1.004, dtype=torch.float32)
+    residual = torch.zeros((2, 4, 16), dtype=torch.bfloat16)
+    post = torch.full((2, 4, 1), 1.1, dtype=torch.float32)
+    comb = torch.zeros((2, 4, 4), dtype=torch.float32)
+    expected = Block.hc_post(None, x.to(torch.bfloat16).unsqueeze(0), residual.unsqueeze(0),
+                             post.squeeze(-1).unsqueeze(0), comb.unsqueeze(0)).squeeze(0)
+    actual = _post(x, residual, post, comb)
+    torch.testing.assert_close(actual.view(torch.int16), expected.view(torch.int16), rtol=0, atol=0)
+    shortcut = (post * x.unsqueeze(1)).to(torch.bfloat16)
+    assert not torch.equal(actual, shortcut)

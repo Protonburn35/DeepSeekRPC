@@ -26,6 +26,10 @@ class TokenBatch:
     mode: str
 
 
+class ClusterNotReady(ConnectionError):
+    pass
+
+
 class ClusterCoordinator:
     """One request at a time; all model work goes through persistent services.
 
@@ -42,6 +46,11 @@ class ClusterCoordinator:
         self._cancelled, self._cancel_lock = threading.Event(), threading.Lock()
         self._spec = self._window = None
         self._number, self._cancel_sent = 1, False
+        self._external_cancelled = None
+
+    @property
+    def idle(self):
+        return not self._request_lock.locked()
 
     def _frame(self, role, action, *, kind=None):
         spec, window, zero = self._spec, self._window, "0" * 32
@@ -52,7 +61,7 @@ class ClusterCoordinator:
                      window.operation.start if window else 0, window.operation.rows if window else 0)
 
     def _check_cancel(self):
-        if self._cancelled.is_set():
+        if self._cancelled.is_set() or self._external_cancelled is not None and self._external_cancelled():
             raise InterruptedError("client request was cancelled; its session requires coherent recovery")
 
     def _all(self, body, *, prompt=None, allow_cancelled=False):
@@ -87,6 +96,10 @@ class ClusterCoordinator:
             if peer.get("stage") != int(role):
                 raise ValidationError("loaded peer status differs from its authenticated control role")
             peers.append(peer)
+        if any(peer.get("status") not in {"LOADED", "READY", "RECOVERING"} or "identity" not in peer for peer in peers):
+            raise ClusterNotReady("all three actual owned stage graphs must finish loading before admission")
+        if any(peer.get("transport_ready") is not True for peer in peers):
+            raise ConnectionError("the cluster requires authenticated mesh recovery before a new request")
         identities = [{key: peer[key] for key in ("stage", "run", "identity")} for peer in peers]
         results = self._all({"action": "admit", "peers": identities})
         if any(result != {"ready": True, "identity": self.host.execution.stage.identity} for result in results.values()):
@@ -165,12 +178,16 @@ class ClusterCoordinator:
             unanimous_outputs(receipts, plan, state=state)
         return TokenBatch(plan.output_ids, plan.stop_reason, plan.processed, plan.pending_token, plan.history_digest, mode)
 
-    def cancel(self):
+    def cancel(self, *, expected_cancelled=None):
         """Safe from the API/disconnect thread; does not wait for model work."""
-        self._cancelled.set()
+        if expected_cancelled is not None and not callable(expected_cancelled):
+            raise ValidationError("scoped cancellation requires its actual request observer")
         with self._cancel_lock:
-            if self._cancel_sent or self._spec is None:
-                return
+            if expected_cancelled is not None and self._external_cancelled is not expected_cancelled:
+                return False
+            self._cancelled.set()
+            if self._cancel_sent or self._spec is None or not self._request_lock.locked():
+                return False
             self._cancel_sent = True
             spec = self._spec
             self.host.cancel(session=spec.session, request=spec.request, epoch=spec.epoch)
@@ -179,19 +196,26 @@ class ClusterCoordinator:
                     self.host.controls[role].submit(self._frame(role, "fault", kind=Kind.CANCEL), {"action": "cancel"})
                 except (ConnectionError, ValidationError):
                     pass  # Channel failure itself invalidates that peer service.
+            return True
 
-    def generate(self, prompt: TokenHistory, settings: RequestSettings):
+    def generate(self, prompt: TokenHistory, settings: RequestSettings, *, cancelled=None):
         if not isinstance(prompt, TokenHistory) or not isinstance(settings, RequestSettings):
             raise ValidationError("generation needs validated full original token/image history and immutable settings")
         if prompt.identity != self.host.execution.stage.identity or not 1 <= prompt.length < prompt.capacity:
             raise ValidationError("prompt identity/context leaves no admitted output capacity")
-        if not self._request_lock.acquire(blocking=False):
-            raise RuntimeError("the three-stage runtime already has an active request")
+        if cancelled is not None and not callable(cancelled):
+            raise ValidationError("request cancellation must be a persistent bounded observer")
+        with self._cancel_lock:
+            if not self._request_lock.acquire(blocking=False):
+                raise RuntimeError("the three-stage runtime already has an active request")
+            self._spec = None
+            self._cancel_sent = False
+            self._cancelled.clear()
+            self._external_cancelled = cancelled
         complete = False
         try:
-            self._cancelled.clear()
-            self._cancel_sent, self._window, self._number = False, None, 1
-            self._spec = None
+            self._window, self._number = None, 1
+            self._check_cancel()
             peers = self.admit()
             epoch = max(peer["minimum_next_epoch"] for peer in peers)
             self._spec = PromptSpec.from_history(prompt, session=uuid.uuid4().hex, request=uuid.uuid4().hex,
@@ -236,5 +260,6 @@ class ClusterCoordinator:
         finally:
             if not complete:
                 self.cancel()
-            self._window = None
-            self._request_lock.release()
+            with self._cancel_lock:
+                self._window = self._spec = self._external_cancelled = None
+                self._request_lock.release()

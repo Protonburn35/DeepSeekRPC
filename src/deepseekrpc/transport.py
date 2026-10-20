@@ -11,7 +11,7 @@ import time
 
 from .jsonutil import ValidationError, canonical, loads
 from .planner import Role
-from .protocol import DATA_KINDS, Frame, Kind, PREFIX, decode, parse_prefix
+from .protocol import DATA_KINDS, Frame, Kind, PREFIX, decode, hex_id, parse_prefix
 
 
 @dataclass(frozen=True)
@@ -37,16 +37,19 @@ def check_peer(sock: ssl.SSLSocket, expected: Role):
         raise ValidationError("authenticated peer certificate has the wrong stage identity")
 
 
-def _hello_plane(frame):
+def _hello_metadata(frame):
     zeros = "0" * 32
     if (frame.kind != Kind.HELLO or (frame.session, frame.request, frame.transaction) != (zeros, zeros, zeros) or
             any(getattr(frame, key) for key in ("epoch", "operation", "sequence", "position", "rows", "slot_generation"))):
         raise ValidationError("channel HELLO has an invalid initial timeline")
-    message = loads(frame.payload, limit=128)
-    if (not isinstance(message, dict) or set(message) != {"plane"} or not isinstance(message["plane"], str) or
+    message = loads(frame.payload, limit=256)
+    if (not isinstance(message, dict) or set(message) not in ({"plane"}, {"plane", "mesh"}) or not isinstance(message["plane"], str) or
             message["plane"] not in {"control", "data"}):
         raise ValidationError("invalid channel HELLO plane")
-    return message["plane"]
+    mesh = message.get("mesh")
+    if "mesh" in message:
+        hex_id(mesh, 32, "channel mesh incarnation")
+    return message["plane"], mesh
 
 
 def listen(address: str, port: int) -> socket.socket:
@@ -68,12 +71,14 @@ def listen(address: str, port: int) -> socket.socket:
 
 class Connection:
     def __init__(self, sock: ssl.SSLSocket, *, local: Role, peer: Role, run: str,
-                 plane: str, timeout: float = 10):
+                 plane: str, timeout: float = 10, mesh: str | None = None):
         if plane not in {"data", "control"} or not 0 < timeout <= 300:
             raise ValidationError("invalid channel plane or deadline")
         check_peer(sock, peer)
+        if mesh is not None:
+            hex_id(mesh, 32, "channel mesh incarnation")
         self.socket, self.local, self.peer, self.run = sock, local, peer, run
-        self.plane, self.timeout = plane, timeout
+        self.plane, self.timeout, self.mesh = plane, timeout, mesh
         self.closed = False
         # Blocking channel I/O has one owner at a time. Control and data use
         # separate connections so a bulk read never owns the control lock.
@@ -148,9 +153,12 @@ class Connection:
     def hello(self):
         zeros = "0" * 32
         try:
+            metadata = {"plane": self.plane}
+            if self.mesh is not None:
+                metadata["mesh"] = self.mesh
             self.send(Frame(Kind.HELLO, self.run, self.local, self.peer, zeros, zeros,
-                            0, 0, 0, zeros, payload=canonical({"plane": self.plane})))
-            if _hello_plane(self.receive()) != self.plane:
+                            0, 0, 0, zeros, payload=canonical(metadata)))
+            if _hello_metadata(self.receive()) != (self.plane, self.mesh):
                 raise ValidationError("channel HELLO mismatch")
         except BaseException:
             self.close()
@@ -164,11 +172,11 @@ class Connection:
 
 
 def connect(address: tuple[str, int], tls: TLSFiles, *, local: Role, peer: Role,
-            run: str, plane: str, timeout: float = 10) -> Connection:
+            run: str, plane: str, timeout: float = 10, mesh: str | None = None) -> Connection:
     raw = socket.create_connection(address, timeout=timeout)
     try:
         sock = tls.context(server=False).wrap_socket(raw, server_hostname=peer.dns_name)
-        connection = Connection(sock, local=local, peer=peer, run=run, plane=plane, timeout=timeout)
+        connection = Connection(sock, local=local, peer=peer, run=run, plane=plane, timeout=timeout, mesh=mesh)
         connection.hello()
         return connection
     except BaseException:
@@ -179,13 +187,13 @@ def connect(address: tuple[str, int], tls: TLSFiles, *, local: Role, peer: Role,
 
 
 def accept(listener: socket.socket, tls: TLSFiles, *, local: Role, peer: Role,
-           run: str, plane: str, timeout: float = 10) -> Connection:
+           run: str, plane: str, timeout: float = 10, mesh: str | None = None) -> Connection:
     listener.settimeout(timeout)
     raw, _ = listener.accept()
     try:
         raw.settimeout(timeout)
         sock = tls.context(server=True).wrap_socket(raw, server_side=True)
-        connection = Connection(sock, local=local, peer=peer, run=run, plane=plane, timeout=timeout)
+        connection = Connection(sock, local=local, peer=peer, run=run, plane=plane, timeout=timeout, mesh=mesh)
         connection.hello()
         return connection
     except BaseException:
@@ -220,10 +228,13 @@ def accept_authenticated(listener: socket.socket, tls: TLSFiles, *, local: Role,
         # HELLO is exempt from plane dispatch until its authenticated content
         # selects this channel's immutable control/data plane.
         connection = Connection(sock, local=local, peer=peer, run=run, plane="control", timeout=timeout)
-        connection.plane = _hello_plane(connection.receive())
+        connection.plane, connection.mesh = _hello_metadata(connection.receive())
         zeros = "0" * 32
+        metadata = {"plane": connection.plane}
+        if connection.mesh is not None:
+            metadata["mesh"] = connection.mesh
         connection.send(Frame(Kind.HELLO, run, local, peer, zeros, zeros, 0, 0, 0, zeros,
-                              payload=canonical({"plane": connection.plane})))
+                              payload=canonical(metadata)))
         return connection
     except BaseException:
         raw.close()

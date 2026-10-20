@@ -39,6 +39,9 @@ def _collapse(residual, pre_mix):
 
 
 def _post(x, residual, post_layer_mix, comb_res_mix):
+    # The owned MoE runner returns the FP32 sum of routed and shared experts.
+    # The reference rounds the complete FFN output before its HC expansion.
+    x = x.to(residual.dtype)
     mixed = torch.einsum("rij,rid->rjd", comb_res_mix.float(), residual.float())
     return (mixed + post_layer_mix.float() * x.unsqueeze(1).float()).to(residual.dtype)
 
@@ -80,7 +83,7 @@ def mhc_pre_delayed(residual, fn, hc_scale, hc_base, rms_eps, hc_pre_eps, hc_sin
 
 def mhc_post(x, residual, post_layer_mix, comb_res_mix):
     _check_residual(residual)
-    if (x.device != residual.device or x.dtype != torch.bfloat16 or x.shape != (len(residual), 5120) or
+    if (x.device != residual.device or x.dtype not in (torch.bfloat16, torch.float32) or x.shape != (len(residual), 5120) or
             post_layer_mix.device != residual.device or post_layer_mix.dtype != torch.float32 or post_layer_mix.shape != (len(residual), 4, 1) or
             comb_res_mix.device != residual.device or comb_res_mix.dtype != torch.float32 or comb_res_mix.shape != (len(residual), 4, 4)):
         raise ValidationError("Windows mHC post-mix input mismatch")

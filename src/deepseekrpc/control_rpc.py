@@ -48,6 +48,10 @@ class ControlRPC:
         self.pump.start()
         return self
 
+    @property
+    def started(self):
+        return self.pump._started
+
     def submit(self, template, body):
         if not isinstance(body, dict):
             raise ValidationError("control RPC body must be a structured command object")

@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "stage": "A",
+  "shared": "cluster.json",
+  "model_root": "REPLACE_LOCAL_PACK_DIRECTORY",
+  "engram_root": "REPLACE_ORIGINAL_ENGRAM_DIRECTORY",
+  "state_root": "../runtime-A",
+  "device": 0,
+  "ram_tier_bytes": 8589934592,
+  "default_output": 8192,
+  "tls": {"ca": "../credentials/A/ca.pem", "certificate": "../credentials/A/stage.pem", "private_key": "../credentials/A/stage.key"}
+}

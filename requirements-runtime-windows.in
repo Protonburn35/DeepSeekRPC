@@ -1,0 +1,13 @@
+# External Python dependencies for the owned Windows application.
+# The admitted vLLM, EXLlama, plugin, project and native wheels are installed
+# separately from their exact source/build manifests; no PyPI substitute.
+-r requirements-exllama-windows.in
+-r provenance/vllm-windows-common.requirements.txt
+torchvision==0.26.0+cu130
+torchaudio==2.11.0+cu130
+apache-tvm-ffi==0.1.15
+fastapi[standard]==0.136.3
+uvicorn==0.54.0
+cryptography==49.0.0
+winloop
+portalocker
