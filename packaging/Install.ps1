@@ -37,8 +37,14 @@ function Read-Json([string]$Path, [long]$Limit = 1048576) {
 
 function Verify-File([string]$Path, $Record) {
     if ($Record.sha256 -notmatch '^[a-f0-9]{64}$' -or $Record.bytes -lt 1 -or
-        (Get-Item -LiteralPath $Path).Length -ne $Record.bytes -or
-        (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Record.sha256) {
+        (Get-Item -LiteralPath $Path).Length -ne $Record.bytes) {
+        throw 'A bundle file failed its pinned size/checksum validation.'
+    }
+    $Algorithm = [Security.Cryptography.SHA256]::Create()
+    $Stream = [IO.File]::OpenRead($Path)
+    try { $Hash = [BitConverter]::ToString($Algorithm.ComputeHash($Stream)).Replace('-', '').ToLowerInvariant() }
+    finally { $Stream.Dispose(); $Algorithm.Dispose() }
+    if ($Hash -ne $Record.sha256) {
         throw 'A bundle file failed its pinned size/checksum validation.'
     }
 }
