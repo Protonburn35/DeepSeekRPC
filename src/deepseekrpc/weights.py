@@ -58,9 +58,10 @@ class SelectiveWeights:
     """Open and verify only shards containing this rank's indexed weights.
 
     Metadata and publisher hashes are trusted local deployment inputs. Files
-    must be immutable. Integrity verification reads the whole local shard at
-    boot, then tensor reads stay bounded to the owned byte ranges. This is an
-    I/O component, not proof of physical residency or a model executor.
+    must be immutable; Windows handles enforce deny-write/delete sharing before
+    verification. Integrity verification reads the whole local shard at boot,
+    then tensor reads stay bounded to the owned byte ranges. This is an I/O
+    component, not proof of physical residency or a model executor.
     """
     def __init__(self, root: Path, index: Path, *, index_sha256: str,
                  pins: dict[str, ShardPin], plan: StagePlan, role: Role,

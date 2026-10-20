@@ -274,28 +274,8 @@ class SnapshotStore:
 
 @contextmanager
 def locked_read(path):
-    if os.name == "nt":
-        import ctypes
-        from ctypes import wintypes
-        import msvcrt
-        dll = ctypes.WinDLL("kernel32", use_last_error=True)
-        dll.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
-                                   wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
-        dll.CreateFileW.restype = wintypes.HANDLE
-        dll.CloseHandle.argtypes = [wintypes.HANDLE]
-        dll.CloseHandle.restype = wintypes.BOOL
-        handle = dll.CreateFileW(str(path), 0x80000000, 1, None, 3, 0x08000000, None)
-        if handle == ctypes.c_void_p(-1).value:
-            raise ctypes.WinError(ctypes.get_last_error())
-        try:
-            descriptor = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
-        except BaseException:
-            dll.CloseHandle(handle)
-            raise
-        stream = os.fdopen(descriptor, "rb")
-    else:
-        stream = path.open("rb")
-    with stream:
+    from .file_io import open_read
+    with open_read(path, buffering=-1, sequential=True) as stream:
         yield stream
 
 

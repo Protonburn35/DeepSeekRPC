@@ -64,6 +64,8 @@ payloads locally on the intended PCs from those publishers. Do not rename,
 repack or substitute a different October checkpoint. Startup verifies complete
 selected shard hashes using bounded reads, loads only owned tensors, and closes
 B's source after its all-page locked preload. Boot verification may take time.
+Active Windows weight/Engram handles permit other readers and deny writes,
+deletion and replacement until close. An existing writer prevents admission.
 No full model or Engram payload is included in this artifact or cloud checkout.
 
 Run metadata checks, then small local GPU diagnostics before loading:

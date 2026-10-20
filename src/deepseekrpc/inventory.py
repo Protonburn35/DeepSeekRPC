@@ -82,13 +82,14 @@ def parse_header(data: bytes, file_bytes: int) -> dict[str, TensorInfo]:
 class TensorFile:
     """Unbuffered bounded reads; callers own separate allocation/admission budgets.
 
-    No demand mapping is used. On Windows Python's file I/O uses native Win32
-    file handles. This synchronous baseline does not claim qualified OVERLAPPED
-    asynchronous I/O or physical-residency guarantees.
+    No demand mapping is used. Windows handles share reads but deny writers and
+    deletion before header/payload verification and until close. This synchronous
+    baseline does not claim qualified OVERLAPPED I/O or physical residency.
     """
 
     def __init__(self, path: Path):
-        self._file = path.open("rb", buffering=0)
+        from .file_io import open_read
+        self._file = open_read(path)
         self._lock = threading.Lock()
         try:
             size = os.fstat(self._file.fileno()).st_size

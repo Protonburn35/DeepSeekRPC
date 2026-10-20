@@ -108,11 +108,58 @@ def test_model_file_mutation_after_verification_is_rejected(checkpoint):
     name = "layers.18.ffn.experts.0.w1.suh"
     with source(checkpoint) as weights:
         weights.info(name)
-        # A deterministic size change catches post-admission edits on Windows too.
-        with path.open("ab") as stream:
-            stream.write(b"x")
-        with pytest.raises(ValidationError, match="changed after admission"):
-            weights.read_range(name, 0, 2)
+        if os.name == "nt":
+            # Windows rejects the edit before any admitted payload can change.
+            with pytest.raises(PermissionError):
+                path.open("ab")
+            assert weights.read_range(name, 0, 2) == checkpoint[-1][name].tobytes()[:2]
+        else:
+            # Portable development readers retain the existing stat guard.
+            with path.open("ab") as stream:
+                stream.write(b"x")
+            with pytest.raises(ValidationError, match="changed after admission"):
+                weights.read_range(name, 0, 2)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires actual Windows file-sharing enforcement")
+def test_active_verified_shard_allows_readers_but_denies_writes_and_replacement(checkpoint):
+    path = checkpoint[0] / "model-00002-of-00003.safetensors"
+    name = "layers.18.ffn.experts.0.w1.suh"
+    original = path.read_bytes()
+    replacement = path.with_suffix(".replacement")
+    replacement.write_bytes(original)
+    with source(checkpoint) as weights:
+        weights.info(name)
+        assert path.read_bytes() == original
+        with pytest.raises(PermissionError):
+            path.open("r+b")
+        with pytest.raises(PermissionError):
+            path.unlink()
+        with pytest.raises(PermissionError):
+            os.replace(replacement, path)
+        assert weights.read_range(name, 0, 256) == checkpoint[-1][name].tobytes()
+    # Ownership ends at close; a later installation can replace the file.
+    os.replace(replacement, path)
+    with path.open("r+b") as writer:
+        writer.write(original)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires actual Windows file-sharing enforcement")
+def test_tensor_admission_refuses_an_existing_writer_and_releases_failed_handles(tmp_path):
+    directory = tmp_path / "model \u0394"
+    directory.mkdir()
+    path = directory / "source.safetensors"
+    save_file({"value": np.arange(8, dtype=np.int64)}, path)
+    with path.open("r+b"):
+        with pytest.raises(PermissionError):
+            TensorFile(path)
+    with TensorFile(path) as tensor:
+        assert tensor.read_range("value", 0, 8) == np.arange(8, dtype=np.int64).tobytes()[:8]
+    path.write_bytes(b"bad")
+    with pytest.raises(ValidationError, match="truncated"):
+        TensorFile(path)
+    # A constructor failure must release its deny-write/delete read handle.
+    path.unlink()
 
 
 @pytest.mark.skipif(os.name != "nt", reason="requires real Win32 locked pages")

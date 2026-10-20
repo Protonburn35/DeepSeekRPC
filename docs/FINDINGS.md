@@ -489,3 +489,28 @@ by late cache selection is refused. Reports and exact application identity are
 retained in evidence/owned-cache-*-audit.json and
 evidence/owned-cache-audit-provenance.json. Full native Windows installation and
 complete CUDA configuration remain separate gates.
+
+## DSR-AUDIT-027 — pin verified weight and Engram bytes for their handle lifetime
+
+TensorFile checked size/identity/timestamps before reads, but ordinary Python
+Windows handles allow another writer. A writer can change bytes between that
+check and a read; Windows may also defer the last-write timestamp until writer
+handles close. Thus metadata checks alone did not enforce the documented
+immutable source requirement for long-lived desktop/Engram disk reads. This is
+a source-level lifetime gap, not an observed full-model corruption report.
+
+The shared native Windows opener now takes GENERIC_READ/FILE_SHARE_READ handles
+before header/hash validation. It rejects existing writers and denies subsequent
+write/delete/replacement access until close, while allowing concurrent readers.
+Weight and Engram TensorFile readers use it; snapshots retain the same existing
+policy and sequential-read hint through the common helper. B still permanently
+closes its disk source after locked preload. POSIX development readers retain
+their existing stat guard. No native source/profile or running build changed.
+
+Focused weight/Engram/snapshot/inventory checks passed 47 tests on Linux, with
+three actual-Windows-only skips. Real Windows regressions cover write/delete/
+replacement refusal, existing-writer admission refusal, Unicode paths, ordinary
+read sharing and handle release after successful/failed construction. Their
+native Windows run must qualify this repair; no GPU result is claimed.
+The complete target-version Torch 2.11 CPU follow-up passed 384 tests with six
+actual-Windows-only skips, preserving the original numerical tolerances.
